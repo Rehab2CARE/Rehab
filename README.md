@@ -12,6 +12,18 @@ Werkt offline, kan op het beginscherm gezet worden, en bewaart alles lokaal op h
 - Categorieën: zelf aan te maken per regio
 - Fiches: PDF, foto/afbeelding, of een tekst die je in de app schrijft
 
+Daarnaast is er een vast onderdeel **Games** met spelletjes (concentratie, reactie, geheugen).
+
+## Games
+
+De spellen staan niet in Beheer, want het zijn kleine programma's en geen fiches.
+
+- De lijst met spellen staat in `data/games.json` (titel, korte uitleg, bestand).
+- Een spel zonder bestand (`"bestand": null`) verschijnt als **Binnenkort**.
+- De spelbestanden zelf komen in de map `games/`.
+- Een nieuw spel ook toevoegen aan de lijst in `sw.js`, zodat het zonder internet werkt.
+- Een spel opent schermvullend onder de bovenbalk. Met **Terug** ga je terug naar de lijst.
+
 ## Aanpassen in de app (zonder code)
 
 Tik rechtsboven op **Beheer**. Dan kan je:
@@ -43,6 +55,7 @@ Daarom: maak regelmatig een back-up.
 |---|---|
 | Standaardstructuur bij de eerste start (onderdelen, regio's, standaardcategorie) | `data/structuur.json` |
 | Kleuren, lettergrootte, knopgrootte | bovenaan `css/style.css` (`:root`) |
+| Lijst met spellen | `data/games.json` |
 | Werking van de schermen | `js/app.js` |
 | Pincode: aantal cijfers, minuten tot Beheer vanzelf dichtgaat | bovenaan het pincodeblok in `js/app.js` (`PIN_MIN`, `PIN_MAX`, `AUTO_SLOT_MIN`) |
 | Opslag op het toestel | `js/db.js` |

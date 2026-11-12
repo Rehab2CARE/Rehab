@@ -97,6 +97,15 @@ h1 { font-size: 1.7rem; margin: 0 0 6px; }
 
 .beheer-balk { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; }
 
+/* Games */
+.tegel-games { border-top: 4px solid var(--hoofdkleur); }
+.tegel-binnenkort { opacity: .6; box-shadow: none; }
+.tegel-binnenkort .tegel-link:active { background: transparent; }
+/* Een spel vult het hele scherm onder de bovenbalk */
+body.spel-modus { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+body.spel-modus main { flex: 1; max-width: none; width: 100%; padding: 0; display: flex; }
+iframe.spel { flex: 1; display: block; width: 100%; border: 0; background: #000; }
+
 /* Fiche bekijken */
 .viewer { display: flex; flex-direction: column; gap: 16px; }
 .viewer-kop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }

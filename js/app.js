@@ -13,6 +13,7 @@ import { db } from './db.js';
 const $ = sel => document.querySelector(sel);
 const inhoud = $('#inhoud');
 let structuur = null;
+let games = { titel: 'Games', games: [] }; // uit data/games.json (vast, niet via Beheer)
 let beheer = false;
 let actieveUrl = null; // blob-URL van de geopende fiche (vrijgeven bij wisselen)
 
@@ -220,6 +221,10 @@ async function start() {
     structuur = await standaardStructuur();
     await bewaar();
   }
+  try {
+    const res = await fetch('data/games.json', { cache: 'no-cache' });
+    if (res.ok) games = await res.json();
+  } catch { /* offline zonder cache: geen games */ }
   pinActief = !!(await db.getPin());
   // Met een pincode start de app altijd in de patiëntweergave.
   if (!pinActief) {
@@ -288,6 +293,7 @@ function toonKruimels(keten, ids) {
 
 async function toon() {
   if (actieveUrl) { URL.revokeObjectURL(actieveUrl); actieveUrl = null; }
+  document.body.classList.remove('spel-modus');
   $('#beheer').setAttribute('aria-pressed', String(beheer));
   $('#instellingen').hidden = !beheer;
   document.title = structuur.appTitel;
@@ -300,6 +306,8 @@ async function toon() {
     return toonInstellingen();
   }
 
+  if (delen[0] === 'games') return toonGames(delen[1]);
+
   const keten = zoek(delen);
   if (!keten) { location.hash = '#/'; return; }
   $('#terug').hidden = delen.length === 0;
@@ -308,6 +316,52 @@ async function toon() {
   if (delen.length === 4) return toonFiche(keten, delen);
   if (delen.length === 3) return toonFicheLijst(keten, delen);
   return toonTegels(keten, delen);
+}
+
+// ---------- Games ----------
+// De spellen staan in data/games.json, de spelbestanden zelf in de map games/.
+// Een spel zonder "bestand" verschijnt als "Binnenkort".
+
+function gamesTegel() {
+  return `
+      <div class="tegel tegel-games">
+        <a class="tegel-link" href="#/games">
+          <span class="tegel-titel">${esc(games.titel)}</span>
+          ${games.omschrijving ? `<span class="tegel-sub">${esc(games.omschrijving)}</span>` : ''}
+        </a>
+        ${beheer ? '<div class="tegel-acties"><button disabled>Vast onderdeel (data/games.json)</button></div>' : ''}
+      </div>`;
+}
+
+function toonGames(spelId) {
+  $('#terug').hidden = false;
+  const thuis = `<a href="#/">${esc(structuur.appTitel)}</a> <span class="sep">›</span>`;
+
+  if (spelId) {
+    const spel = games.games.find(g => g.id === spelId && g.bestand);
+    if (!spel) { location.hash = '#/games'; return; }
+    $('#kruimels').innerHTML = `${thuis} <a href="#/games">${esc(games.titel)}</a> <span class="sep">›</span> <span class="huidig">${esc(spel.titel)}</span>`;
+    document.body.classList.add('spel-modus');
+    inhoud.innerHTML = `<iframe class="spel" src="${esc(spel.bestand)}" title="${esc(spel.titel)}" allow="fullscreen"></iframe>`;
+    return;
+  }
+
+  $('#kruimels').innerHTML = `${thuis} <span class="huidig">${esc(games.titel)}</span>`;
+  const tegels = games.games.map(g => g.bestand
+    ? `<div class="tegel"><a class="tegel-link" href="#/games/${encodeURIComponent(g.id)}">
+         <span class="tegel-titel">${esc(g.titel)}</span>
+         ${g.omschrijving ? `<span class="tegel-sub">${esc(g.omschrijving)}</span>` : ''}
+       </a></div>`
+    : `<div class="tegel tegel-binnenkort"><div class="tegel-link">
+         <span class="tegel-soort">Binnenkort</span>
+         <span class="tegel-titel">${esc(g.titel)}</span>
+         ${g.omschrijving ? `<span class="tegel-sub">${esc(g.omschrijving)}</span>` : ''}
+       </div></div>`
+  ).join('');
+  inhoud.innerHTML = `
+    <h1>${esc(games.titel)}</h1>
+    <p class="ondertitel">Kies een spel.</p>
+    <div class="tegels groot">${tegels}</div>`;
 }
 
 // ---------- Tegels: onderdelen, regio's, categorieën ----------
@@ -341,6 +395,7 @@ function toonTegels(keten, ids) {
     ${!lijst.length && !beheer ? `<div class="leeg">Hier staat nog niets. Zet <b>Beheer</b> aan om iets toe te voegen.</div>` : ''}
     <div class="tegels ${diepte === 0 ? 'groot' : ''}">
       ${tegels}
+      ${diepte === 0 && games.games.length ? gamesTegel() : ''}
       ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
     </div>`;
 

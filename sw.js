@@ -1,8 +1,8 @@
 // Offline-cache. Verhoog CACHE_VERSIE bij elke wijziging aan de app-bestanden.
-const CACHE_VERSIE = 'fiches-v3';
+const CACHE_VERSIE = 'fiches-v4';
 const BESTANDEN = [
   './', 'index.html', 'css/style.css', 'js/app.js', 'js/db.js',
-  'data/structuur.json', 'manifest.webmanifest',
+  'data/structuur.json', 'data/games.json', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 

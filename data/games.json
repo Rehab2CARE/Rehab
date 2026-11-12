@@ -1,0 +1,24 @@
+{
+  "titel": "Games",
+  "omschrijving": "Spelletjes voor concentratie, reactie en geheugen",
+  "games": [
+    {
+      "id": "pijlen",
+      "titel": "Pijlenspel",
+      "omschrijving": "Wordt nog uitgewerkt",
+      "bestand": null
+    },
+    {
+      "id": "ballen",
+      "titel": "Ballen volgen",
+      "omschrijving": "Volg de balletjes met je ogen",
+      "bestand": null
+    },
+    {
+      "id": "cijfers",
+      "titel": "Cijferspel",
+      "omschrijving": "Wordt nog uitgewerkt",
+      "bestand": null
+    }
+  ]
+}
