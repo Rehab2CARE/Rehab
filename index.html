@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Praktijkfiches</title>
+  <meta name="theme-color" content="#2f6f73">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Fiches">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="balk">
+    <button id="terug" class="knop knop-plat" hidden aria-label="Terug">‹ Terug</button>
+    <nav id="kruimels" class="kruimels" aria-label="Waar ben je"></nav>
+    <div class="balk-rechts">
+      <button id="instellingen" class="knop knop-plat" hidden>Instellingen</button>
+      <button id="beheer" class="knop knop-plat" aria-pressed="false">Beheer</button>
+    </div>
+  </header>
+
+  <main id="inhoud" tabindex="-1"></main>
+
+  <dialog id="dialoog">
+    <form method="dialog" id="dialoog-form">
+      <h2 id="dialoog-titel"></h2>
+      <div id="dialoog-velden"></div>
+      <div class="dialoog-knoppen">
+        <button type="button" id="dialoog-annuleer" class="knop knop-plat">Annuleren</button>
+        <button value="ok" id="dialoog-ok" class="knop knop-hoofd">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="melding" class="melding" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

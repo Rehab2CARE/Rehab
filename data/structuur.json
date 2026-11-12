@@ -1,0 +1,21 @@
+{
+  "versie": 1,
+  "appTitel": "Praktijkfiches",
+  "niveauNamen": ["Onderdeel", "Regio", "Categorie"],
+  "standaardRegios": ["Nek", "Bovenrug", "Lage rug", "Heup", "Knie", "Enkel"],
+  "standaardCategorieen": ["Algemeen"],
+  "secties": [
+    {
+      "titel": "Oefenfiches",
+      "omschrijving": "Oefeningen voor thuis"
+    },
+    {
+      "titel": "Informatiefiches",
+      "omschrijving": "Uitleg over je klacht"
+    },
+    {
+      "titel": "Revalidatieprotocols",
+      "omschrijving": "Stappenplan van je revalidatie"
+    }
+  ]
+}
