@@ -8,7 +8,7 @@ Werkt offline, kan op het beginscherm gezet worden, en bewaart alles lokaal op h
 **Onderdeel → Regio → Categorie → Fiches**
 
 - Onderdelen: Oefenfiches, Informatiefiches, Revalidatieprotocols
-- Regio's: Nek, Bovenrug, Lage rug, Heup, Knie, Enkel
+- Regio's: Lage rug, Heup, Knie, Enkel
 - Categorieën: zelf aan te maken per regio
 - Fiches: PDF, foto/afbeelding, of een tekst die je in de app schrijft
 
