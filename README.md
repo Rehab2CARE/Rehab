@@ -23,6 +23,20 @@ Tik rechtsboven op **Beheer**. Dan kan je:
 
 Tik opnieuw op **Beheer** om terug naar de patiëntweergave te gaan (enkel bekijken).
 
+## Pincode op Beheer
+
+Zet in **Instellingen → Pincode voor Beheer** een code van 4 tot 8 cijfers.
+
+- Beheer vraagt dan eerst de pincode.
+- Beheer gaat vanzelf dicht na 5 minuten zonder aanraken, of als je de app verlaat.
+- De app start altijd in de patiëntweergave.
+- De code zelf wordt niet bewaard, enkel een versleutelde vorm (hash). Ze zit niet in de back-up.
+- Het is een kinderslot, geen echte beveiliging: de fiches zelf zijn voor iedereen zichtbaar.
+
+**Pincode vergeten?** Er is geen achterdeur. Wis de websitegegevens van de app in Safari
+(Instellingen → Apps → Safari → Geavanceerd → Websitegegevens) en zet daarna je laatste back-up terug.
+Daarom: maak regelmatig een back-up.
+
 ## Aanpassen in de bestanden
 
 | Wat | Waar |
@@ -30,6 +44,7 @@ Tik opnieuw op **Beheer** om terug naar de patiëntweergave te gaan (enkel bekij
 | Standaardstructuur bij de eerste start (onderdelen, regio's, standaardcategorie) | `data/structuur.json` |
 | Kleuren, lettergrootte, knopgrootte | bovenaan `css/style.css` (`:root`) |
 | Werking van de schermen | `js/app.js` |
+| Pincode: aantal cijfers, minuten tot Beheer vanzelf dichtgaat | bovenaan het pincodeblok in `js/app.js` (`PIN_MIN`, `PIN_MAX`, `AUTO_SLOT_MIN`) |
 | Opslag op het toestel | `js/db.js` |
 
 `data/structuur.json` wordt enkel gebruikt bij de allereerste start of na **Instellingen → Alles wissen**.

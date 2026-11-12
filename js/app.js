@@ -72,7 +72,9 @@ function dialoog({ titel, velden, okTekst = 'OK', gevaar = false }) {
     label.textContent = v.label;
     const el = document.createElement(v.soort === 'tekstvak' ? 'textarea' : 'input');
     el.name = v.naam;
-    if (v.soort !== 'tekstvak') el.type = 'text';
+    if (v.soort !== 'tekstvak') el.type = v.type || 'text';
+    if (v.inputmode) el.inputMode = v.inputmode;
+    if (v.autocomplete) el.autocomplete = v.autocomplete;
     el.value = v.waarde || '';
     if (v.verplicht) el.required = true;
     if (v.placeholder) el.placeholder = v.placeholder;
@@ -105,6 +107,93 @@ const vraagNaam = (titel, waarde = '') =>
 const bevestig = (titel, tekst, okTekst = 'Verwijderen') =>
   dialoog({ titel, velden: [{ soort: 'uitleg', tekst }], okTekst, gevaar: true }).then(r => r !== null);
 
+// ---------- Pincode voor Beheer ----------
+// Een kinderslot: een patiënt kan niets wijzigen zonder de code.
+// Bewaard als gezouten SHA-256-hash op het toestel, nooit de code zelf.
+
+const PIN_MIN = 4, PIN_MAX = 8;
+const AUTO_SLOT_MIN = 5; // na zoveel minuten zonder aanraken gaat Beheer vanzelf dicht
+let pinActief = false;
+let slotTimer = null;
+
+async function hashPin(pin, zout) {
+  const data = new TextEncoder().encode(zout + ':' + pin);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const pinVeld = (naam, label) => ({
+  naam, label, type: 'password', inputmode: 'numeric', autocomplete: 'off', verplicht: true
+});
+
+const geldigePin = p => new RegExp(`^\\d{${PIN_MIN},${PIN_MAX}}$`).test(p);
+
+async function pinKlopt(pin) {
+  const opgeslagen = await db.getPin();
+  if (!opgeslagen) return true;
+  return (await hashPin(pin, opgeslagen.zout)) === opgeslagen.hash;
+}
+
+async function vraagPin() {
+  const r = await dialoog({
+    titel: 'Pincode voor Beheer',
+    velden: [pinVeld('pin', 'Pincode')],
+    okTekst: 'Openen'
+  });
+  if (!r) return false;
+  if (await pinKlopt(r.pin)) return true;
+  melding('Verkeerde pincode.');
+  return false;
+}
+
+async function stelPinIn() {
+  const r = await dialoog({
+    titel: pinActief ? 'Pincode wijzigen' : 'Pincode instellen',
+    velden: [
+      { soort: 'uitleg', tekst: `Kies ${PIN_MIN} tot ${PIN_MAX} cijfers. Onthoud de code goed: er is geen manier om ze op te vragen.` },
+      pinVeld('pin1', 'Nieuwe pincode'),
+      pinVeld('pin2', 'Nog eens dezelfde pincode')
+    ],
+    okTekst: 'Bewaren'
+  });
+  if (!r) return;
+  if (!geldigePin(r.pin1)) { melding(`De pincode moet uit ${PIN_MIN} tot ${PIN_MAX} cijfers bestaan.`); return; }
+  if (r.pin1 !== r.pin2) { melding('De twee pincodes zijn niet gelijk.'); return; }
+  const zout = nieuwId() + nieuwId();
+  await db.setPin({ zout, hash: await hashPin(r.pin1, zout) });
+  pinActief = true;
+  melding('Pincode bewaard.');
+  toon();
+}
+
+async function zetPinUit() {
+  if (!await bevestig('Pincode uitzetten?', 'Iedereen kan dan Beheer openen en fiches wijzigen of wissen.', 'Uitzetten')) return;
+  await db.wisPin();
+  pinActief = false;
+  melding('Pincode uitgezet.');
+  toon();
+}
+
+function zetBeheer(aan) {
+  beheer = aan;
+  try { sessionStorage.setItem('beheer', beheer ? '1' : '0'); } catch { /* */ }
+  herstartSlotTimer();
+  if (!beheer && location.hash === '#/instellingen') location.hash = '#/';
+  else toon();
+}
+
+// Beheer gaat vanzelf dicht na een tijd zonder aanraken, of als de app naar de achtergrond gaat.
+function herstartSlotTimer() {
+  clearTimeout(slotTimer);
+  if (beheer && pinActief) slotTimer = setTimeout(() => sluitBeheer(), AUTO_SLOT_MIN * 60 * 1000);
+}
+
+function sluitBeheer() {
+  if (!beheer || !pinActief) return;
+  if ($('#dialoog').open) $('#dialoog').close('annuleer');
+  zetBeheer(false);
+}
+
 // ---------- Opstarten ----------
 
 async function standaardStructuur() {
@@ -131,16 +220,20 @@ async function start() {
     structuur = await standaardStructuur();
     await bewaar();
   }
-  try { beheer = sessionStorage.getItem('beheer') === '1'; } catch { /* privémodus */ }
+  pinActief = !!(await db.getPin());
+  // Met een pincode start de app altijd in de patiëntweergave.
+  if (!pinActief) {
+    try { beheer = sessionStorage.getItem('beheer') === '1'; } catch { /* privémodus */ }
+  }
   $('#dialoog-annuleer').addEventListener('click', () => $('#dialoog').close('annuleer'));
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-  $('#beheer').addEventListener('click', () => {
-    beheer = !beheer;
-    try { sessionStorage.setItem('beheer', beheer ? '1' : '0'); } catch { /* */ }
-    if (!beheer && location.hash === '#/instellingen') location.hash = '#/';
-    else toon();
+  $('#beheer').addEventListener('click', async () => {
+    if (!beheer && pinActief && !await vraagPin()) return;
+    zetBeheer(!beheer);
   });
+  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, herstartSlotTimer, { passive: true }));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) sluitBeheer(); });
   $('#instellingen').addEventListener('click', () => { location.hash = '#/instellingen'; });
   $('#terug').addEventListener('click', () => {
     const delen = pad();
@@ -520,6 +613,17 @@ async function toonInstellingen() {
     </div>
 
     <div class="paneel">
+      <h2>Pincode voor Beheer</h2>
+      <p>${pinActief
+        ? `Aan. Beheer vraagt de pincode en gaat vanzelf dicht na ${AUTO_SLOT_MIN} minuten zonder aanraken, of als je de app verlaat.`
+        : 'Uit. Iedereen kan Beheer openen. Zet een pincode als patiënten zelf de iPad gebruiken.'}</p>
+      <div class="knoppen">
+        <button class="knop knop-hoofd" id="pin-instellen">${pinActief ? 'Pincode wijzigen' : 'Pincode instellen'}</button>
+        ${pinActief ? '<button class="knop knop-plat" id="pin-uit">Pincode uitzetten</button>' : ''}
+      </div>
+    </div>
+
+    <div class="paneel">
       <h2>Back-up maken</h2>
       <p>Bewaart alle onderdelen, categorieën en fiches in één bestand. Doe dit regelmatig en bewaar het bestand op een veilige plek.</p>
       <div class="knoppen"><button class="knop knop-hoofd" id="exporteer">Back-up downloaden</button></div>
@@ -546,6 +650,9 @@ async function toonInstellingen() {
     await bewaar();
     toon();
   });
+
+  $('#pin-instellen').addEventListener('click', stelPinIn);
+  if (pinActief) $('#pin-uit').addEventListener('click', zetPinUit);
 
   $('#exporteer').addEventListener('click', async () => {
     const alle = await db.alleFiches();

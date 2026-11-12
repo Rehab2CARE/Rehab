@@ -43,6 +43,10 @@ export const db = {
     const s = t.objectStore('fiches');
     ids.forEach(id => s.delete(id));
   }),
+  // Pincode voor Beheer: enkel een gezouten hash, nooit de code zelf. Zit niet in de back-up.
+  getPin: () => tx('instellingen', 'readonly', t => t.objectStore('instellingen').get('pin')),
+  setPin: p => tx('instellingen', 'readwrite', t => t.objectStore('instellingen').put(p, 'pin')),
+  wisPin: () => tx('instellingen', 'readwrite', t => t.objectStore('instellingen').delete('pin')),
   alleFiches: () => tx('fiches', 'readonly', t => t.objectStore('fiches').getAll()),
   vervangAlles: (structuur, fiches) => tx(['instellingen', 'fiches'], 'readwrite', t => {
     const f = t.objectStore('fiches');
