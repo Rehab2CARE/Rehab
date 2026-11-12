@@ -35,6 +35,16 @@ Tik rechtsboven op **Beheer**. Dan kan je:
 
 Tik opnieuw op **Beheer** om terug naar de patiëntweergave te gaan (enkel bekijken).
 
+## Fiches doorsturen naar een patiënt
+
+- Tik op het ronde knopje **+** op een fiche (of **Kiezen om te verzenden** in een geopende fiche). Het wordt een **✓**.
+- Kies zo meerdere fiches, ook uit verschillende onderdelen en categorieën.
+- Rechtsonder verschijnt **Verzenden** met het aantal. Tik erop, controleer de lijst en tik **Verzenden**.
+- Het deelvenster van de iPad opent: kies Mail, WhatsApp, Berichten of AirDrop.
+- PDF's en foto's gaan mee zoals ze zijn. Een tekstfiche wordt automatisch een PDF.
+- Na het verzenden is de selectie weer leeg.
+- Er gaat niets via een server: de bestanden gaan rechtstreeks van de iPad naar de gekozen app.
+
 ## Pincode op Beheer
 
 Zet in **Instellingen → Pincode voor Beheer** een code van 4 tot 8 cijfers.
@@ -57,6 +67,7 @@ Daarom: maak regelmatig een back-up.
 | Kleuren, lettergrootte, knopgrootte | bovenaan `css/style.css` (`:root`) |
 | Lijst met spellen | `data/games.json` |
 | Werking van de schermen | `js/app.js` |
+| Fiches kiezen en doorsturen, tekst naar PDF | `js/delen.js` |
 | Pincode: aantal cijfers, minuten tot Beheer vanzelf dichtgaat | bovenaan het pincodeblok in `js/app.js` (`PIN_MIN`, `PIN_MAX`, `AUTO_SLOT_MIN`) |
 | Opslag op het toestel | `js/db.js` |
 

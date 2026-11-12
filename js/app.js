@@ -1,9 +1,10 @@
 import { db } from './db.js';
+import { startDelen, kiesKnop, koppelKiesKnoppen } from './delen.js';
 
 // ---------------------------------------------------------------------------
 // Structuur (boom):
 //   structuur.secties[]            = onderdelen (Oefenfiches, Informatiefiches, ...)
-//     .kinderen[]                  = regio's (Nek, Knie, ...)
+//     .kinderen[]                  = regio's (Lage rug, Knie, ...)
 //       .kinderen[]                = categorieën (Algemeen, ...)
 //         .fiches[]                = { id, titel, omschrijving, soort }
 // De inhoud van een fiche (PDF, afbeelding of tekst) staat apart in db.fiches.
@@ -197,6 +198,20 @@ function sluitBeheer() {
 
 // ---------- Opstarten ----------
 
+// Eenmalige opruiming (november 2026): Nek en Bovenrug zijn geen standaardregio's meer.
+// Enkel lege regio's worden gewist; staat er een fiche in, dan blijft de regio staan.
+const OPRUIMING = { id: 'zonder-nek-bovenrug', regios: ['Nek', 'Bovenrug'] };
+
+async function ruimRegiosOp() {
+  const gedaan = structuur.opruimingen || [];
+  if (gedaan.includes(OPRUIMING.id)) return;
+  structuur.secties.forEach(s => {
+    s.kinderen = (s.kinderen || []).filter(r => !(OPRUIMING.regios.includes(r.titel) && ficheIdsOnder(r).length === 0));
+  });
+  structuur.opruimingen = [...gedaan, OPRUIMING.id];
+  await bewaar();
+}
+
 async function standaardStructuur() {
   const res = await fetch('data/structuur.json', { cache: 'no-cache' });
   const cfg = await res.json();
@@ -221,6 +236,7 @@ async function start() {
     structuur = await standaardStructuur();
     await bewaar();
   }
+  await ruimRegiosOp();
   try {
     const res = await fetch('data/games.json', { cache: 'no-cache' });
     if (res.ok) games = await res.json();
@@ -231,6 +247,7 @@ async function start() {
     try { beheer = sessionStorage.getItem('beheer') === '1'; } catch { /* privémodus */ }
   }
   $('#dialoog-annuleer').addEventListener('click', () => $('#dialoog').close('annuleer'));
+  startDelen(melding);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
   $('#beheer').addEventListener('click', async () => {
@@ -455,7 +472,8 @@ function toonFicheLijst(keten, ids) {
   const fiches = cat.fiches;
 
   const tegels = fiches.map((f, i) => `
-    <div class="tegel">
+    <div class="tegel tegel-fiche">
+      ${kiesKnop(f)}
       <a class="tegel-link" href="${link([...ids, f.id])}">
         <span class="tegel-soort">${SOORT_LABEL[f.soort] || ''}</span>
         <span class="tegel-titel">${esc(f.titel)}</span>
@@ -477,6 +495,7 @@ function toonFicheLijst(keten, ids) {
       </div>` : ''}
     ${!fiches.length ? `<div class="leeg">Nog geen fiches in deze categorie.${beheer ? '' : ' Zet <b>Beheer</b> aan om fiches toe te voegen.'}</div>` : ''}
     <div class="tegels">${tegels}</div>`;
+  koppelKiesKnoppen(inhoud);
 
   if (!beheer) return;
 
@@ -614,6 +633,7 @@ async function toonFiche(keten, ids) {
     <div class="viewer">
       <div class="viewer-kop">
         <h1>${esc(f.titel)}</h1>
+        ${inh ? kiesKnop(f, true) : ''}
         ${volledig}
         ${beheer ? '<button class="knop knop-plat" id="wijzig">Wijzig</button>' : ''}
       </div>
@@ -625,6 +645,7 @@ async function toonFiche(keten, ids) {
       </div>
     </div>`;
   inhoud.focus();
+  koppelKiesKnoppen(inhoud);
 
   const wijzig = $('#wijzig');
   if (wijzig) wijzig.addEventListener('click', async () => {

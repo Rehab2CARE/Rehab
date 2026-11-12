@@ -106,6 +106,45 @@ body.spel-modus { display: flex; flex-direction: column; height: 100vh; height: 
 body.spel-modus main { flex: 1; max-width: none; width: 100%; padding: 0; display: flex; }
 iframe.spel { flex: 1; display: block; width: 100%; border: 0; background: #000; }
 
+/* Fiches kiezen en samen verzenden */
+.tegel-fiche .tegel-link { padding-right: 64px; }
+.kies {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: var(--min-knop); height: var(--min-knop); border-radius: 50%;
+  border: 2px solid var(--hoofdkleur); background: var(--kaart); color: var(--hoofdkleur);
+  font: inherit; font-size: 1.4rem; font-weight: 600; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.kies[aria-pressed="true"] { background: var(--hoofdkleur); color: #fff; }
+.kies.kies-tekst {
+  position: static; width: auto; border-radius: 999px; padding: 0 16px 0 10px;
+  font-size: 1rem; min-height: var(--min-knop);
+}
+.kies.kies-tekst .kies-teken { font-size: 1.3rem; }
+.mand {
+  position: fixed; z-index: 20;
+  right: calc(20px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 52px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: var(--hoofdkleur); color: #fff; font: inherit; font-weight: 600; font-size: 1rem;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer;
+}
+.mand[hidden] { display: none; }
+.mand:active { filter: brightness(.92); }
+.mand-aantal {
+  min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px;
+  background: #fff; color: var(--hoofdkleur); display: inline-flex; align-items: center; justify-content: center;
+}
+body.spel-modus .mand { display: none; }
+.mand-inhoud { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.mand-inhoud h2 { margin: 0; font-size: 1.25rem; }
+.mand-lijst { list-style: none; margin: 0; padding: 0; border: 1px solid var(--rand); border-radius: var(--radius); max-height: 50vh; overflow: auto; }
+.mand-lijst li { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 16px; }
+.mand-lijst li + li { border-top: 1px solid var(--rand); }
+.mand-titel { flex: 1; }
+.mand-weg { min-width: var(--min-knop); }
+main { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+
 /* Fiche bekijken */
 .viewer { display: flex; flex-direction: column; gap: 16px; }
 .viewer-kop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }

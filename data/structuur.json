@@ -2,7 +2,7 @@
   "versie": 1,
   "appTitel": "Praktijkfiches",
   "niveauNamen": ["Onderdeel", "Regio", "Categorie"],
-  "standaardRegios": ["Nek", "Bovenrug", "Lage rug", "Heup", "Knie", "Enkel"],
+  "standaardRegios": ["Lage rug", "Heup", "Knie", "Enkel"],
   "standaardCategorieen": ["Algemeen"],
   "secties": [
     {
