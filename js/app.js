@@ -2,6 +2,7 @@ import { db, maakDb } from './db.js';
 import { startDelen, kiesKnop, koppelKiesKnoppen } from './delen.js';
 import * as bron from './bron.js';
 import { synchroniseer } from './sync.js';
+import { initPatienten, toonTherapeut, startPatient, patientenTegel } from './patienten.js';
 
 // Twee modi:
 // - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
@@ -380,16 +381,34 @@ async function start() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
+  initPatienten({
+    esc, melding, dialoog, bevestig, link, pad, inhoud, toon, ficheVlak, alleFichesMetPlaats,
+    appTitel: () => structuur?.appTitel || 'Praktijkfiches', profielId: () => profiel?.id || null
+  });
+
   let linkMelding = null;
   if (bron.isIngesteld()) {
     modus = 'gedeeld';
     db.gebruik('praktijkfiches-gedeeld');
+    // QR-code van een patiënt: #/aanmelden/<code>/<wachtwoord> (meteen uit de adresbalk halen)
+    let qr = null;
+    if (pad()[0] === 'aanmelden') {
+      const [, code, ww] = pad();
+      if (code && ww) qr = { code, ww };
+      history.replaceState(null, '', location.pathname + location.search + '#/');
+    }
     const { sessie, linkType, linkFout } = await bron.start();
     if (linkFout) linkMelding = 'De link uit je mail werkt niet (meer). Vraag een nieuwe aan.';
     profiel = await laadProfiel(sessie);
     if (!profiel) {
       structuur = (await db.getStructuur()) || LEGE_STRUCTUUR();
-      toonAanmelden(linkMelding);
+      toonAanmelden(linkMelding, qr);
+      return;
+    }
+    if (profiel.rol === 'patient') {
+      structuur = (await db.getStructuur()) || LEGE_STRUCTUUR();
+      bron.bijSessieWijziging(event => { if (event === 'SIGNED_OUT') location.reload(); });
+      await startPatient();
       return;
     }
     if (linkType === 'invite' || linkType === 'recovery') await vraagNieuwWachtwoord(linkType);
@@ -481,7 +500,7 @@ async function werkBij(meteen = false) {
   }
 }
 
-function toonAanmelden(foutTekst) {
+function toonAanmelden(foutTekst, qr = null) {
   document.title = structuur.appTitel;
   $('#beheer').hidden = true;
   $('#instellingen').hidden = true;
@@ -490,9 +509,9 @@ function toonAanmelden(foutTekst) {
   inhoud.innerHTML = `
     <div class="aanmelden">
       <h1>Aanmelden</h1>
-      <p class="ondertitel">Meld je aan met je account van de praktijk.</p>
+      <p class="ondertitel">Meld je aan met je account van de praktijk, of met de patiëntcode van je therapeut.</p>
       <form id="aanmeld-form" class="paneel">
-        <label>E-mailadres<input type="email" name="email" autocomplete="username" inputmode="email" required></label>
+        <label>E-mailadres of patiëntcode<input type="text" name="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
         <label>Wachtwoord<input type="password" name="wachtwoord" autocomplete="current-password" required></label>
         <p class="fout" id="aanmeld-fout" ${foutTekst ? '' : 'hidden'}>${esc(foutTekst || '')}</p>
         <div class="knoppen">
@@ -504,13 +523,19 @@ function toonAanmelden(foutTekst) {
     </div>`;
   const form = $('#aanmeld-form');
   const fout = $('#aanmeld-fout');
+  if (qr) setTimeout(() => {
+    form.email.value = qr.code;
+    form.wachtwoord.value = qr.ww;
+    form.requestSubmit();
+  }, 0);
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const knop = form.querySelector('[type=submit]');
     knop.disabled = true;
     fout.hidden = true;
     try {
-      await bron.aanmelden(form.email.value.trim(), form.wachtwoord.value);
+      const id = form.email.value.trim();
+      await bron.aanmelden(bron.isPatientCode(id) ? bron.codeNaarEmail(id) : id, form.wachtwoord.value.trim());
       location.reload();
     } catch (err) {
       fout.textContent = err.message;
@@ -519,6 +544,7 @@ function toonAanmelden(foutTekst) {
     }
   });
   $('#vergeten').addEventListener('click', async () => {
+    if (bron.isPatientCode(form.email.value)) { melding('Vraag je therapeut om een nieuwe toegangscode.'); return; }
     const r = await dialoog({
       titel: 'Wachtwoord vergeten',
       velden: [
@@ -635,6 +661,10 @@ async function toon() {
 
   if (delen[0] === 'games') return toonGames(delen[1]);
   if (delen[0] === 'zoeken') return toonZoeken(delen[1] || '');
+  if (delen[0] === 'patienten') {
+    if (!gedeeld() || !beheer) { location.hash = '#/'; return; } // patiëntgegevens enkel in Beheer (achter de pincode)
+    return toonTherapeut(delen.slice(1));
+  }
 
   const keten = zoek(delen);
   if (!keten) { location.hash = '#/'; return; }
@@ -800,6 +830,7 @@ function toonTegels(keten, ids) {
     <div class="tegels ${diepte === 0 ? 'groot' : ''}">
       ${tegels}
       ${diepte === 0 && games.games.length ? gamesTegel() : ''}
+      ${diepte === 0 && gedeeld() && beheer ? patientenTegel() : ''}
       ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
     </div>
     ${diepte === 0 ? startRijen() : ''}`;
@@ -1128,6 +1159,20 @@ function tekstNaarHtml(tekst) {
   }).join('');
 }
 
+// Inhoud van een fiche als HTML. Geeft { html, url } terug (url = blob-URL, later vrijgeven).
+function ficheVlak(f, inh) {
+  if (inh && f.soort === 'tekst') return { html: `<div class="viewer-vlak viewer-tekst">${tekstNaarHtml(inh.tekst)}</div>`, url: null };
+  if (inh && inh.data) {
+    const url = URL.createObjectURL(new Blob([inh.data], { type: inh.mime }));
+    let html;
+    if (f.soort === 'afbeelding') html = `<div class="viewer-vlak"><img src="${url}" alt="${esc(f.titel)}"></div>`;
+    else if (f.soort === 'video') html = `<div class="viewer-vlak"><video src="${url}" controls playsinline preload="metadata"></video></div>`;
+    else html = `<div class="viewer-vlak"><iframe src="${url}" title="${esc(f.titel)}"></iframe></div>`;
+    return { html, url };
+  }
+  return { html: '<div class="leeg">Deze fiche is niet gevonden.</div>', url: null };
+}
+
 async function toonFiche(keten, ids) {
   const cat = keten[2];
   const f = keten[3];
@@ -1139,21 +1184,9 @@ async function toonFiche(keten, ids) {
   const pagina = location.hash;
   const inh = await db.getFiche(f.id);
   if (location.hash !== pagina) return; // intussen naar elders genavigeerd
-  let vlak = '<div class="leeg">Deze fiche is niet gevonden.</div>';
-  let volledig = '';
-  if (inh && f.soort === 'tekst') {
-    vlak = `<div class="viewer-vlak viewer-tekst">${tekstNaarHtml(inh.tekst)}</div>`;
-  } else if (inh && inh.data) {
-    actieveUrl = URL.createObjectURL(new Blob([inh.data], { type: inh.mime }));
-    if (f.soort === 'afbeelding') {
-      vlak = `<div class="viewer-vlak"><img src="${actieveUrl}" alt="${esc(f.titel)}"></div>`;
-    } else if (f.soort === 'video') {
-      vlak = `<div class="viewer-vlak"><video src="${actieveUrl}" controls playsinline preload="metadata"></video></div>`;
-    } else {
-      vlak = `<div class="viewer-vlak"><iframe src="${actieveUrl}" title="${esc(f.titel)}"></iframe></div>`;
-    }
-    volledig = `<a class="knop knop-plat" href="${actieveUrl}" target="_blank" rel="noopener">Volledig scherm</a>`;
-  }
+  const { html: vlak, url } = ficheVlak(f, inh);
+  actieveUrl = url;
+  const volledig = url ? `<a class="knop knop-plat" href="${url}" target="_blank" rel="noopener">Volledig scherm</a>` : '';
 
   inhoud.innerHTML = `
     <div class="viewer">
@@ -1404,6 +1437,7 @@ async function toonGebruikers() {
   const box = $('#gebruikers');
   let lijst;
   try { lijst = await bron.profielen(); } catch (e) { box.innerHTML = `<p class="hulp">${esc(e.message)}</p>`; return; }
+  lijst = lijst.filter(p => p.rol !== 'patient'); // patiënten staan onder Patiënten
   box.innerHTML = `<ul class="gebruikers">${lijst.map(p => `
     <li>
       <span class="gebruiker-naam"><b>${esc(p.naam || p.email)}</b><br><span class="hulp">${esc(p.email)}</span></span>

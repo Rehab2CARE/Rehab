@@ -6,5 +6,7 @@
 // Zet hier NOOIT de "service_role"/"secret" sleutel.
 export const SUPABASE = {
   URL: 'https://ozryhokmgushmlonnbdk.supabase.co',
-  ANON_KEY: 'sb_publishable_J19653Q7pxExBRhT0334bA_YdhCUUEE'
+  ANON_KEY: 'sb_publishable_J19653Q7pxExBRhT0334bA_YdhCUUEE',
+  // Interne adressen achter de patiëntcodes (er wordt nooit naar gemaild). Gelijk houden met de Edge Function.
+  PATIENT_DOMEIN: 'patienten.praktijkfiches.invalid'
 };

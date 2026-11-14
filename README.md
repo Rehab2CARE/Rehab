@@ -49,6 +49,33 @@ andere weg geen fiches te zien. De bestanden staan in een privé-opslag (bucket 
 - Zodra er later (fase 3) **patiëntgegevens** in komen: overschakelen naar het betaalde plan (back-ups) en het
   privacy-luik afwerken (zie het plan).
 
+## Patiënten en oefenprogramma's (fase 3)
+
+> **Testfase.** Gebruik voorlopig enkel verzonnen testpatiënten. Voor echte patiënten: eerst beslissen over
+> het betaalde Supabase-plan (back-ups) en kort GDPR-advies vragen.
+
+### Eenmalig instellen in Supabase
+1. **SQL Editor → New query**: plak `supabase/migraties/003_patienten_programmas.sql` en klik **Run**.
+2. **Edge Functions → Deploy a new function → Via Editor**. Naam: `patient-account` (precies zo).
+   Plak de inhoud van `supabase/functions/patient-account/index.ts` en klik **Deploy**.
+   Laat **Verify JWT** aan staan. De geheime sleutel staat automatisch in Supabase; die hoef je nergens in te vullen.
+
+### Werken met patiënten
+- Zet **Beheer** aan. Op het startscherm verschijnt de tegel **Patiënten** (patiëntgegevens zijn enkel in Beheer te zien,
+  dus achter de pincode).
+- **Patiënt toevoegen**: optioneel een voornaam of initialen. De app maakt een **patiëntcode** (bv. `PT-7K3M9Q`) en een
+  **wachtwoord**, met een QR-code. Druk het kaartje af of noteer het: het wachtwoord is later niet meer te zien.
+  Kwijt? **Nieuwe toegangscode** maakt een nieuw wachtwoord.
+- **Programma maken**: kies fiches met het ronde knopje **+** (in de mappen of via Zoeken), open het programma en tik
+  **Gekozen fiches toevoegen**. Vul per oefening sets, herhalingen, hoe vaak en een notitie in (wordt meteen bewaard).
+- **Stopzetten** verbergt het programma voor de patiënt. **Patiënt verwijderen** wist het account en alle programma's.
+
+### De patiënt
+- Scant de QR-code met zijn gsm (of typt de code en het wachtwoord in) en ziet **Mijn programma**:
+  per oefening de dosering, de notitie en de fiche. Na de eerste keer werkt het ook zonder internet.
+- Een patiënt ziet **enkel** de fiches in zijn eigen actieve programma's. Dat wordt afgedwongen in de databank (RLS).
+- Er worden geen mails naar patiënten gestuurd. Achter de code zit een intern adres (`…@patienten.praktijkfiches.invalid`).
+
 ## Opbouw
 
 **Onderdeel → Regio → Categorie → Fiches**

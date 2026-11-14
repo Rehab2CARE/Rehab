@@ -221,3 +221,66 @@ dialog textarea { min-height: 260px; resize: vertical; }
 .gebruikers li + li { border-top: 1px solid var(--rand); }
 .gebruiker-naam { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .gebruikers .hulp { font-size: .8rem; }
+
+/* ---------- Fase 3: patiënten en programma's ---------- */
+.tegel-patienten { border-top: 4px solid #6b5ca5; }
+.beheer-balk .knop-gevaar { margin-left: auto; }
+
+.lijst { list-style: none; margin: 0; padding: 0; background: var(--kaart); border: 1px solid var(--rand); border-radius: var(--radius); overflow: hidden; }
+.lijst li + li { border-top: 1px solid var(--rand); }
+.lijst a { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; min-height: var(--min-knop); text-decoration: none; color: var(--tekst); }
+.lijst a:active { background: var(--hoofdkleur-licht); }
+.lijst-titel { font-weight: 600; font-size: 1.05rem; }
+.lijst-sub { color: var(--tekst-zacht); font-size: .9rem; }
+.label { display: inline-block; vertical-align: middle; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 6px; background: #eee; color: var(--tekst-zacht); }
+.label-aan { background: var(--hoofdkleur-licht); color: var(--hoofdkleur); }
+
+.oefeningen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: oef; }
+.oefening { background: var(--kaart); border: 1px solid var(--rand); border-radius: var(--radius); padding: 14px 16px; counter-increment: oef; }
+.oefening-kop { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.oefening-titel { flex: 1; font-weight: 600; }
+.oefening-titel::before { content: counter(oef) ". "; color: var(--tekst-zacht); }
+.oefening-titel a { color: var(--tekst); }
+.oefening-acties { display: flex; gap: 6px; }
+.knop.klein { padding: 0 12px; }
+.knop.weg { color: var(--gevaar); }
+.dosering { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dosering label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--tekst-zacht); }
+.dosering .breed { grid-column: 1 / -1; }
+.dosering input { font: inherit; font-size: 1rem; color: var(--tekst); min-height: var(--min-knop); padding: 8px 10px; border: 1px solid var(--rand); border-radius: 10px; background: #fff; min-width: 0; }
+
+/* Toegangskaart voor de patiënt */
+.kaart-dialoog { border: 0; border-radius: var(--radius); padding: 24px; width: min(520px, calc(100vw - 32px)); box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.kaart-dialoog::backdrop { background: rgba(20,30,30,.4); }
+.kaart-inhoud h2 { margin: 0 0 8px; font-size: 1.25rem; }
+.kaart-qr svg { display: block; width: 200px; height: 200px; margin: 12px auto; }
+.kaart-gegevens { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 12px 0; font-size: 1.15rem; }
+.kaart-gegevens dt { color: var(--tekst-zacht); }
+.kaart-gegevens dd { margin: 0; font-family: ui-monospace, Menlo, monospace; font-weight: 700; letter-spacing: .06em; }
+.kaart-let-op { color: var(--gevaar) !important; font-weight: 600; }
+.printvak { display: none; }
+@media print {
+  body.print-kaart > *:not(#printvak) { display: none !important; }
+  body.print-kaart #printvak { display: block; padding: 24px; font-size: 14pt; }
+  body.print-kaart { background: #fff; }
+}
+
+/* Patiëntweergave: Mijn programma */
+.programma { margin-bottom: 28px; }
+.programma h2 { font-size: 1.3rem; margin: 8px 0 6px; }
+.programma-opmerking { background: var(--hoofdkleur-licht); border-radius: 12px; padding: 12px 16px; margin: 0 0 14px; }
+.kaarten { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.kaart { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; background: var(--kaart); border: 1px solid var(--rand); border-radius: var(--radius); box-shadow: var(--schaduw); text-decoration: none; color: var(--tekst); min-height: 64px; }
+.kaart:active { background: var(--hoofdkleur-licht); }
+.kaart-titel { font-size: 1.2rem; font-weight: 600; }
+.kaart-dosering { font-size: 1.05rem; color: var(--hoofdkleur); font-weight: 600; }
+.kaart-notitie { color: var(--tekst-zacht); }
+.dosering-groot { display: flex; flex-direction: column; gap: 4px; background: var(--hoofdkleur-licht); border-radius: 12px; padding: 14px 18px; font-size: 1.15rem; }
+.dosering-groot b { color: var(--hoofdkleur); }
+.patient-voet { margin-top: 32px; display: flex; justify-content: center; }
+@media (max-width: 600px) {
+  .dosering { grid-template-columns: 1fr 1fr; }
+  .beheer-balk .knop-gevaar { margin-left: 0; }
+}
+.dosering input::placeholder { color: #a7b0b0; font-style: italic; }
+.knop:disabled { opacity: .45; cursor: default; }

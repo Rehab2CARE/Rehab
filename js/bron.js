@@ -4,6 +4,10 @@
 
 import { SUPABASE } from './config.js';
 
+// Een patiënt meldt zich aan met een code (bv. PT-7K3M9Q). Achter de schermen is dat een intern e-mailadres.
+export const codeNaarEmail = code => `${String(code).trim().toLowerCase()}@${SUPABASE.PATIENT_DOMEIN || 'patienten.praktijkfiches.invalid'}`;
+export const isPatientCode = t => /^pt-[a-z0-9]{4,}$/i.test(String(t).trim());
+
 const BUCKET = 'fiches';
 let sb = null;
 
@@ -154,6 +158,73 @@ export async function voegFavorietToe(profielId, ficheId) {
 
 export async function wisFavoriet(profielId, ficheId) {
   ok(await sb.from('favorieten').delete().eq('profiel_id', profielId).eq('fiche_id', ficheId));
+}
+
+// ---------- Patiënten en programma's (fase 3) ----------
+
+// Patiëntaccounts aanmaken, nieuwe code of verwijderen gaat via de Edge Function "patient-account".
+async function patientFunctie(body) {
+  const { data, error } = await sb.functions.invoke('patient-account', { body });
+  if (error) {
+    let m = error.message || '';
+    try { const j = await error.context.json(); if (j?.fout) m = j.fout; } catch { /* geen JSON */ }
+    if (/Failed to send a request|not found|404/i.test(m)) m = 'De functie "patient-account" staat nog niet in Supabase (zie README, fase 3).';
+    throw new BronFout(m);
+  }
+  if (data?.fout) throw new BronFout(data.fout);
+  return data;
+}
+export const maakPatient = naam => patientFunctie({ actie: 'maak', naam });
+export const nieuweCode = id => patientFunctie({ actie: 'nieuwe-code', id });
+export const verwijderPatient = id => patientFunctie({ actie: 'verwijder', id });
+
+export async function patienten() {
+  return ok(await sb.from('patienten').select('id, code, naam, aangemaakt, programmas(id, actief)').order('aangemaakt', { ascending: false }));
+}
+
+export async function wijzigPatient(id, velden) {
+  return ok(await sb.from('patienten').update(velden).eq('id', id).select().single());
+}
+
+const ITEM_VELDEN = 'id, fiche_id, sets, herhalingen, frequentie, notitie, volgorde';
+const FICHE_VELDEN = 'id, titel, omschrijving, soort, bestand_pad, mime, bestandsnaam, tekst, bijgewerkt';
+
+// Alle programma's van één patiënt (voor de therapeut)
+export async function programmasVan(patientId) {
+  return ok(await sb.from('programmas')
+    .select(`id, titel, opmerking, actief, aangemaakt, programma_items(${ITEM_VELDEN})`)
+    .eq('patient_id', patientId).order('aangemaakt'));
+}
+
+export async function programma(id) {
+  return ok(await sb.from('programmas')
+    .select(`id, patient_id, titel, opmerking, actief, programma_items(${ITEM_VELDEN})`).eq('id', id).single());
+}
+
+export async function maakProgramma(velden) {
+  return ok(await sb.from('programmas').insert(velden).select().single());
+}
+export async function wijzigProgramma(id, velden) {
+  return ok(await sb.from('programmas').update(velden).eq('id', id).select().single());
+}
+export async function wisProgramma(id) {
+  ok(await sb.from('programmas').delete().eq('id', id));
+}
+export async function voegItemsToe(rijen) {
+  return ok(await sb.from('programma_items').insert(rijen).select());
+}
+export async function wijzigItem(id, velden) {
+  ok(await sb.from('programma_items').update(velden).eq('id', id));
+}
+export async function wisItem(id) {
+  ok(await sb.from('programma_items').delete().eq('id', id));
+}
+
+// Voor de aangemelde patiënt: zijn actieve programma's met de fiches erin (RLS laat niets anders door)
+export async function mijnProgrammas() {
+  return ok(await sb.from('programmas')
+    .select(`id, titel, opmerking, aangemaakt, programma_items(${ITEM_VELDEN}, fiche:fiches(${FICHE_VELDEN}))`)
+    .eq('actief', true).order('aangemaakt'));
 }
 
 export async function download(pad) {

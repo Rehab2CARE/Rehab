@@ -23,6 +23,14 @@ function bewaarSelectie() {
 
 export const isGekozen = id => selectie.some(x => x.id === id);
 
+// Voor het programma van een patiënt: de gekozen fiches overnemen en daarna de selectie leegmaken
+export const gekozenFiches = () => selectie.map(x => ({ ...x }));
+export function leegSelectie() {
+  selectie = [];
+  bewaarSelectie();
+  vernieuwKnoppen();
+}
+
 // HTML voor het ronde knopje op een fichetegel of bij een geopende fiche
 export function kiesKnop(f, metTekst = false) {
   const aan = isGekozen(f.id);
