@@ -2,7 +2,8 @@
 // Draait in Supabase (niet in de app), omdat hiervoor de service-role-sleutel nodig is.
 // Die sleutel staat automatisch in Supabase (SUPABASE_SERVICE_ROLE_KEY) en komt nooit in de app.
 //
-// Enkel een aangemelde therapeut of beheerder mag deze functie gebruiken (controle via is_team()).
+// Enkel een aangemelde therapeut of beheerder mag deze functie gebruiken (sessie nagekeken door Supabase Auth,
+// rol uit de tabel profielen). "Verify JWT" mag daarom uit staan.
 // Een patiënt meldt zich aan met zijn code (bv. PT-7K3M9Q) en een wachtwoord. Er wordt geen mail verstuurd:
 // het e-mailadres achter de code is een intern adres dat nooit gebruikt wordt om te mailen.
 //
@@ -43,17 +44,34 @@ Deno.serve(async (req) => {
 
   try {
     const url = Deno.env.get('SUPABASE_URL')!;
-    const alsGebruiker = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
-      auth: { persistSession: false }
-    });
+    const geheim = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!geheim) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY ontbreekt in de omgeving van de functie');
+      return antwoord({ fout: 'De functie mist haar geheime sleutel in Supabase (SUPABASE_SERVICE_ROLE_KEY).' }, 500);
+    }
+    const admin = createClient(url, geheim, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    // Wie vraagt dit? Enkel het team mag verder.
-    const { data: team, error: rolFout } = await alsGebruiker.rpc('is_team');
-    if (rolFout || team !== true) return antwoord({ fout: 'Je hebt hiervoor geen toestemming.' }, 403);
-    const { data: wie } = await alsGebruiker.auth.getUser();
+    // Wie vraagt dit? De sessie (JWT) van de app laten nakijken door Supabase Auth zelf.
+    // Dat werkt met de oude én de nieuwe aanmeldsleutels, ook als "Verify JWT" uit staat.
+    const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const { data: gebruiker, error: sessieFout } = await admin.auth.getUser(token);
+    if (sessieFout || !gebruiker?.user) {
+      console.error('Sessie niet geldig:', sessieFout?.message);
+      return antwoord({ fout: 'Je bent niet (meer) aangemeld. Meld je opnieuw aan en probeer nog eens.' }, 401);
+    }
+    const wie = gebruiker.user;
 
-    const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+    // Enkel therapeuten en beheerders mogen verder.
+    const { data: profiel, error: profielFout } = await admin.from('profielen').select('rol').eq('id', wie.id).maybeSingle();
+    if (profielFout) {
+      console.error('Profiel lezen mislukt:', profielFout.message);
+      return antwoord({ fout: 'Je rol kon niet nagekeken worden: ' + profielFout.message }, 500);
+    }
+    if (!['therapeut', 'beheerder'].includes(profiel?.rol)) {
+      console.error('Geen team-rol voor', wie.id, 'rol =', profiel?.rol);
+      return antwoord({ fout: 'Je account heeft niet de rol therapeut of beheerder.' }, 403);
+    }
+
     const { actie, naam = '', id } = await req.json();
 
     if (actie === 'maak') {
@@ -70,10 +88,11 @@ Deno.serve(async (req) => {
         });
         if (error) {
           if (/already|exists|registered/i.test(error.message)) continue; // code bestond toevallig al
-          return antwoord({ fout: error.message }, 400);
+          console.error('Account aanmaken mislukt:', error.message);
+          return antwoord({ fout: 'Account aanmaken mislukt: ' + error.message }, 400);
         }
         const { error: rijFout } = await admin.from('patienten').insert({
-          id: data.user.id, code, naam: schoneNaam, aangemaakt_door: wie?.user?.id ?? null
+          id: data.user.id, code, naam: schoneNaam, aangemaakt_door: wie.id
         });
         if (rijFout) {
           await admin.auth.admin.deleteUser(data.user.id);

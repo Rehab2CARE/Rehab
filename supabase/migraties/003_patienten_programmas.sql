@@ -113,3 +113,7 @@ grant select, insert, update, delete on public.patienten to authenticated;
 grant select, insert, update, delete on public.programmas to authenticated;
 grant select, insert, update, delete on public.programma_items to authenticated;
 grant execute on function public.mijn_programma_fiches() to authenticated;
+
+-- De Edge Function "patient-account" (service_role) maakt patiënten aan en leest de rol in profielen.
+grant select, insert, update, delete on public.patienten, public.programmas, public.programma_items to service_role;
+grant select on public.profielen to service_role;

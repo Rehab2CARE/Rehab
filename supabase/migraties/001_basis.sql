@@ -246,3 +246,7 @@ grant select, insert, delete on public.favorieten to authenticated;
 
 grant execute on function public.mijn_rol() to authenticated;
 grant execute on function public.is_team() to authenticated;
+
+-- De Edge Functions (service_role) moeten de tabellen ook kunnen lezen en schrijven,
+-- ook als "Automatically expose new tables" uit staat.
+grant select, insert, update, delete on public.profielen, public.knopen, public.fiches, public.favorieten to service_role;
