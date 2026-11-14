@@ -1,5 +1,18 @@
-import { db } from './db.js';
+import { db, maakDb } from './db.js';
 import { startDelen, kiesKnop, koppelKiesKnoppen } from './delen.js';
+import * as bron from './bron.js';
+import { synchroniseer } from './sync.js';
+
+// Twee modi:
+// - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
+// - 'gedeeld' : met Supabase. Het team deelt één verzameling; dit toestel houdt een offline kopie bij.
+let modus = 'lokaal';
+let profiel = null;   // { id, email, naam, rol } van de aangemelde gebruiker (gedeelde modus)
+let offline = false;  // gedeelde modus zonder verbinding: enkel bekijken
+const gedeeld = () => modus === 'gedeeld';
+const isTeam = () => !gedeeld() || ['therapeut', 'beheerder'].includes(profiel?.rol);
+const isBeheerder = () => gedeeld() && profiel?.rol === 'beheerder';
+const SYNC_INTERVAL_MIN = 5;
 
 // ---------------------------------------------------------------------------
 // Structuur (boom):
@@ -44,11 +57,51 @@ async function bewaar() {
   await db.setStructuur(structuur);
 }
 
-// Alle fiche-id's onder een knoop (om mee te wissen)
-function ficheIdsOnder(knoop) {
-  const ids = (knoop.fiches || []).map(f => f.id);
-  (knoop.kinderen || []).forEach(k => ids.push(...ficheIdsOnder(k)));
-  return ids;
+// Alle fiches onder een knoop (om mee te wissen)
+function fichesOnder(knoop) {
+  const lijst = [...(knoop.fiches || [])];
+  (knoop.kinderen || []).forEach(k => lijst.push(...fichesOnder(k)));
+  return lijst;
+}
+const ficheIdsOnder = knoop => fichesOnder(knoop).map(f => f.id);
+
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
+
+const volgendeVolgorde = lijst => lijst.reduce((m, x) => Math.max(m, (x.volgorde ?? -1) + 1), lijst.length);
+
+const veiligeBestandsnaam = naam => String(naam || 'bestand')
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^\w.\-]+/g, '_').replace(/_+/g, '_').slice(-100) || 'bestand';
+
+function soortVan(mime) {
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime.startsWith('image/')) return 'afbeelding';
+  return null;
+}
+
+// Gedeelde modus: een wijziging naar Supabase sturen en daarna de lokale kopie bijwerken.
+// Geeft true terug als het lukte.
+async function schrijf(actie) {
+  if (!navigator.onLine) { melding('Geen internet: wijzigen kan nu niet.'); return false; }
+  try {
+    await actie();
+  } catch (e) {
+    melding(e.message || 'Er liep iets mis.');
+    return false;
+  }
+  try {
+    structuur = (await synchroniseer()).structuur;
+  } catch { /* de wijziging is gelukt; bijwerken lukt de volgende keer */ }
+  return true;
+}
+
+// Volgorde na ◀ ▶ opnieuw nummeren (enkel de items die veranderen)
+function nieuweVolgorde(lijst, i, j) {
+  const kopie = [...lijst];
+  [kopie[i], kopie[j]] = [kopie[j], kopie[i]];
+  return kopie.map((k, idx) => ({ id: k.id, volgorde: idx, oud: k.volgorde })).filter(x => x.oud !== x.volgorde)
+    .map(({ id, volgorde }) => ({ id, volgorde }));
 }
 
 // ---------- Dialogen ----------
@@ -230,13 +283,38 @@ async function standaardStructuur() {
   };
 }
 
+const LEGE_STRUCTUUR = () => ({ versie: 1, bron: 'gedeeld', appTitel: 'Praktijkfiches', niveauNamen: ['Onderdeel', 'Regio', 'Categorie'], secties: [] });
+
 async function start() {
+  $('#dialoog-annuleer').addEventListener('click', () => $('#dialoog').close('annuleer'));
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  let linkMelding = null;
+  if (bron.isIngesteld()) {
+    modus = 'gedeeld';
+    db.gebruik('praktijkfiches-gedeeld');
+    const { sessie, linkType, linkFout } = await bron.start();
+    if (linkFout) linkMelding = 'De link uit je mail werkt niet (meer). Vraag een nieuwe aan.';
+    profiel = await laadProfiel(sessie);
+    if (!profiel) {
+      structuur = (await db.getStructuur()) || LEGE_STRUCTUUR();
+      toonAanmelden(linkMelding);
+      return;
+    }
+    if (linkType === 'invite' || linkType === 'recovery') await vraagNieuwWachtwoord(linkType);
+    bron.bijSessieWijziging(event => { if (event === 'SIGNED_OUT') location.reload(); });
+  }
+
   structuur = await db.getStructuur();
   if (!structuur) {
-    structuur = await standaardStructuur();
+    structuur = gedeeld() ? LEGE_STRUCTUUR() : await standaardStructuur();
     await bewaar();
   }
-  await ruimRegiosOp();
+  if (!gedeeld()) await ruimRegiosOp();
+
+  if (!isTeam()) { toonGeenToegang(); return; }
+
   try {
     const res = await fetch('data/games.json', { cache: 'no-cache' });
     if (res.ok) games = await res.json();
@@ -246,16 +324,18 @@ async function start() {
   if (!pinActief) {
     try { beheer = sessionStorage.getItem('beheer') === '1'; } catch { /* privémodus */ }
   }
-  $('#dialoog-annuleer').addEventListener('click', () => $('#dialoog').close('annuleer'));
   startDelen(melding);
-  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
   $('#beheer').addEventListener('click', async () => {
     if (!beheer && pinActief && !await vraagPin()) return;
     zetBeheer(!beheer);
   });
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, herstartSlotTimer, { passive: true }));
-  document.addEventListener('visibilitychange', () => { if (document.hidden) sluitBeheer(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) sluitBeheer();
+    else if (gedeeld()) werkBij();
+  });
+  window.addEventListener('online', () => { if (gedeeld()) werkBij(true); });
   $('#instellingen').addEventListener('click', () => { location.hash = '#/instellingen'; });
   $('#terug').addEventListener('click', () => {
     const delen = pad();
@@ -264,8 +344,146 @@ async function start() {
   });
   window.addEventListener('hashchange', toon);
   toon();
+  if (linkMelding) melding(linkMelding);
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (gedeeld()) werkBij(true);
+}
+
+// ---------- Gedeelde modus: aanmelden, profiel, bijwerken ----------
+
+// Profiel van de aangemelde gebruiker. Zonder verbinding: het laatst gekende profiel (enkel bekijken).
+async function laadProfiel(sessie) {
+  const bewaard = await db.get('profiel');
+  if (!sessie) {
+    // Geen geldige sessie op te halen. Offline met een eerder profiel? Dan toch de lokale kopie tonen.
+    if (bewaard && !navigator.onLine) { offline = true; return bewaard; }
+    return null;
+  }
+  try {
+    const p = await bron.mijnProfiel(sessie.user.id);
+    await db.put('profiel', p);
+    return p;
+  } catch {
+    if (bewaard && bewaard.id === sessie.user.id) { offline = true; return bewaard; }
+    return { id: sessie.user.id, email: sessie.user.email, rol: null };
+  }
+}
+
+let laatsteBijwerk = 0;
+async function werkBij(meteen = false) {
+  if (!navigator.onLine) return;
+  if (!meteen && Date.now() - laatsteBijwerk < SYNC_INTERVAL_MIN * 60 * 1000) return;
+  laatsteBijwerk = Date.now();
+  try {
+    const r = await synchroniseer((n, totaal) => { if (totaal > 3) melding(`Fiches ophalen… ${n}/${totaal}`); });
+    structuur = r.structuur;
+    if (offline) offline = false;
+    // Scherm vernieuwen, behalve als er net een venster open staat of een fiche/spel bekeken wordt
+    const delen = pad();
+    const bezig = $('#dialoog').open || $('#mand-dialoog').open || delen.length === 4 || delen[0] === 'games';
+    if (!bezig) toon();
+    if (r.mislukt) melding(`${r.mislukt} ${r.mislukt === 1 ? 'fiche kon' : 'fiches konden'} niet opgehaald worden. Later opnieuw.`);
+    else if (r.nieuw > 3) melding(`${r.nieuw} fiches bijgewerkt.`);
+  } catch {
+    // Geen verbinding of server onbereikbaar: gewoon de lokale kopie blijven tonen
+  }
+}
+
+function toonAanmelden(foutTekst) {
+  document.title = structuur.appTitel;
+  $('#beheer').hidden = true;
+  $('#instellingen').hidden = true;
+  $('#terug').hidden = true;
+  $('#kruimels').innerHTML = `<span class="huidig">${esc(structuur.appTitel)}</span>`;
+  inhoud.innerHTML = `
+    <div class="aanmelden">
+      <h1>Aanmelden</h1>
+      <p class="ondertitel">Meld je aan met je account van de praktijk.</p>
+      <form id="aanmeld-form" class="paneel">
+        <label>E-mailadres<input type="email" name="email" autocomplete="username" inputmode="email" required></label>
+        <label>Wachtwoord<input type="password" name="wachtwoord" autocomplete="current-password" required></label>
+        <p class="fout" id="aanmeld-fout" ${foutTekst ? '' : 'hidden'}>${esc(foutTekst || '')}</p>
+        <div class="knoppen">
+          <button class="knop knop-hoofd" type="submit">Aanmelden</button>
+          <button class="knop knop-plat" type="button" id="vergeten">Wachtwoord vergeten?</button>
+        </div>
+      </form>
+      ${navigator.onLine ? '' : '<p class="hulp">Je bent offline. Aanmelden lukt pas met internet.</p>'}
+    </div>`;
+  const form = $('#aanmeld-form');
+  const fout = $('#aanmeld-fout');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const knop = form.querySelector('[type=submit]');
+    knop.disabled = true;
+    fout.hidden = true;
+    try {
+      await bron.aanmelden(form.email.value.trim(), form.wachtwoord.value);
+      location.reload();
+    } catch (err) {
+      fout.textContent = err.message;
+      fout.hidden = false;
+      knop.disabled = false;
+    }
+  });
+  $('#vergeten').addEventListener('click', async () => {
+    const r = await dialoog({
+      titel: 'Wachtwoord vergeten',
+      velden: [
+        { soort: 'uitleg', tekst: 'Je krijgt een mail met een link om een nieuw wachtwoord te kiezen.' },
+        { naam: 'email', label: 'E-mailadres', type: 'email', inputmode: 'email', waarde: form.email.value, verplicht: true }
+      ],
+      okTekst: 'Mail versturen'
+    });
+    if (!r) return;
+    try {
+      await bron.wachtwoordVergeten(r.email);
+      melding('Mail verstuurd. Kijk in je mailbox (ook bij ongewenste mail).');
+    } catch (err) { melding(err.message); }
+  });
+}
+
+async function vraagNieuwWachtwoord(linkType) {
+  const welkom = linkType === 'invite';
+  for (;;) {
+    const r = await dialoog({
+      titel: welkom ? 'Welkom! Kies een wachtwoord' : 'Nieuw wachtwoord kiezen',
+      velden: [
+        { soort: 'uitleg', tekst: 'Minstens 8 tekens. Hiermee meld je je voortaan aan.' },
+        { naam: 'w1', label: 'Wachtwoord', type: 'password', autocomplete: 'new-password', verplicht: true },
+        { naam: 'w2', label: 'Nog eens hetzelfde wachtwoord', type: 'password', autocomplete: 'new-password', verplicht: true }
+      ],
+      okTekst: 'Bewaren'
+    });
+    if (!r) { if (welkom) melding('Je kan later een wachtwoord kiezen via "Wachtwoord vergeten?".'); return; }
+    if (r.w1.length < 8) { melding('Het wachtwoord moet minstens 8 tekens hebben.'); continue; }
+    if (r.w1 !== r.w2) { melding('De twee wachtwoorden zijn niet gelijk.'); continue; }
+    try {
+      await bron.nieuwWachtwoord(r.w1);
+      melding('Wachtwoord bewaard.');
+      return;
+    } catch (e) { melding(e.message); }
+  }
+}
+
+function toonGeenToegang() {
+  document.title = structuur.appTitel;
+  $('#beheer').hidden = true;
+  $('#instellingen').hidden = true;
+  $('#terug').hidden = true;
+  $('#kruimels').innerHTML = `<span class="huidig">${esc(structuur.appTitel)}</span>`;
+  const patient = profiel.rol === 'patient';
+  inhoud.innerHTML = `
+    <div class="aanmelden">
+      <h1>${patient ? 'Mijn programma' : 'Nog geen toegang'}</h1>
+      <div class="paneel">
+        <p>${patient
+          ? 'Je oefenprogramma verschijnt hier binnenkort.'
+          : `Je bent aangemeld als <b>${esc(profiel.email)}</b>, maar je account is nog niet geactiveerd. Vraag de beheerder van de praktijk om je toegang te geven en open de app daarna opnieuw.`}</p>
+        <div class="knoppen"><button class="knop knop-plat" id="afmelden">Afmelden</button></div>
+      </div>
+    </div>`;
+  $('#afmelden').addEventListener('click', async () => { await bron.afmelden(); await db.del('profiel'); location.reload(); });
 }
 
 // ---------- Navigatie ----------
@@ -416,7 +634,7 @@ function toonTegels(keten, ids) {
       ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
     </div>`;
 
-  koppelBeheer(lijst, naam, diepte);
+  koppelBeheer(lijst, naam, diepte, ouder);
 }
 
 function beheerKnoppen(i, n) {
@@ -429,11 +647,15 @@ function beheerKnoppen(i, n) {
     </div>`;
 }
 
-function koppelBeheer(lijst, naam, diepte) {
+function koppelBeheer(lijst, naam, diepte, ouder) {
   inhoud.querySelectorAll('[data-actie]').forEach(knop => {
     knop.addEventListener('click', async () => {
       const i = Number(knop.dataset.i);
       const actie = knop.dataset.actie;
+      if (gedeeld()) {
+        if (await beheerGedeeld(actie, lijst, i, naam, diepte, ouder)) toon();
+        return;
+      }
       if (actie === 'nieuw') {
         const n = await vraagNaam(`${naam} toevoegen`);
         if (!n) return;
@@ -463,6 +685,35 @@ function koppelBeheer(lijst, naam, diepte) {
       toon();
     });
   });
+}
+
+// Beheer van onderdelen, regio's en categorieën in de gedeelde modus (rechtstreeks in Supabase)
+async function beheerGedeeld(actie, lijst, i, naam, diepte, ouder) {
+  const k = lijst[i];
+  if (actie === 'nieuw') {
+    const n = await vraagNaam(`${naam} toevoegen`);
+    if (!n) return false;
+    return schrijf(() => bron.maakKnoop({
+      ouder_id: diepte === 0 ? null : ouder.id, niveau: diepte, titel: n, volgorde: volgendeVolgorde(lijst)
+    }));
+  }
+  if (actie === 'op' || actie === 'neer') {
+    return schrijf(() => bron.zetVolgorde('knopen', nieuweVolgorde(lijst, i, actie === 'op' ? i - 1 : i + 1)));
+  }
+  if (actie === 'hernoem') {
+    const velden = [{ naam: 'naam', label: 'Naam', waarde: k.titel, verplicht: true }];
+    if (diepte === 0) velden.push({ naam: 'omschrijving', label: 'Korte omschrijving (optioneel)', waarde: k.omschrijving });
+    const r = await dialoog({ titel: `${naam} wijzigen`, velden });
+    if (!r || !r.naam) return false;
+    return schrijf(() => bron.wijzigKnoop(k.id, diepte === 0 ? { titel: r.naam, omschrijving: r.omschrijving } : { titel: r.naam }));
+  }
+  if (actie === 'weg') {
+    const fiches = fichesOnder(k);
+    const extra = fiches.length ? ` Ook ${fiches.length} ${fiches.length === 1 ? 'fiche wordt' : 'fiches worden'} gewist, voor het hele team.` : ' Dit geldt voor het hele team.';
+    if (!await bevestig(`"${k.titel}" wissen?`, `Dit kan je niet ongedaan maken.${extra}`)) return false;
+    return schrijf(() => bron.wisKnoop(k.id, fiches.map(f => f.pad)));
+  }
+  return false;
 }
 
 // ---------- Fiches in een categorie ----------
@@ -498,6 +749,7 @@ function toonFicheLijst(keten, ids) {
   koppelKiesKnoppen(inhoud);
 
   if (!beheer) return;
+  if (gedeeld()) return koppelFicheBeheerGedeeld(cat, fiches);
 
   $('#upload').addEventListener('change', async e => {
     const bestanden = [...e.target.files];
@@ -546,7 +798,61 @@ function toonFicheLijst(keten, ids) {
   });
 }
 
-const HULP_TEKST = 'Lege regel = nieuwe alinea. "# " vooraan = tussentitel. "- " vooraan = opsomming.';
+function koppelFicheBeheerGedeeld(cat, fiches) {
+  $('#upload').addEventListener('change', async e => {
+    const bestanden = [...e.target.files];
+    e.target.value = '';
+    let ok = 0;
+    const gelukt = await schrijf(async () => {
+      let volgorde = volgendeVolgorde(fiches);
+      for (const [n, b] of bestanden.entries()) {
+        const soort = soortVan(b.type);
+        if (!soort) { melding(`${b.name}: enkel PDF of afbeeldingen.`); continue; }
+        melding(`Uploaden… ${n + 1}/${bestanden.length}`);
+        const id = uuid();
+        const rij = await bron.maakFiche({
+          id, categorie_id: cat.id, soort, volgorde: volgorde++,
+          titel: b.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Fiche',
+          bestand_pad: `${id}/${veiligeBestandsnaam(b.name)}`, mime: b.type, bestandsnaam: b.name, grootte: b.size
+        }, b);
+        // Meteen in de lokale kopie, zodat het niet opnieuw gedownload moet worden
+        await db.putFiche({ id, mime: b.type, bestandsnaam: b.name, data: await b.arrayBuffer(), versie: rij.bijgewerkt });
+        ok++;
+      }
+    });
+    if (ok) melding(`${ok} ${ok === 1 ? 'fiche' : 'fiches'} toegevoegd voor het hele team.`);
+    if (gelukt || ok) toon();
+  });
+
+  $('#nieuwe-tekst').addEventListener('click', async () => {
+    const r = await tekstDialoog('Tekstfiche schrijven');
+    if (!r) return;
+    if (await schrijf(() => bron.maakFiche({
+      id: uuid(), categorie_id: cat.id, soort: 'tekst', titel: r.titel, omschrijving: r.omschrijving,
+      tekst: r.tekst, volgorde: volgendeVolgorde(fiches)
+    }))) toon();
+  });
+
+  inhoud.querySelectorAll('[data-actie]').forEach(knop => {
+    knop.addEventListener('click', async () => {
+      const i = Number(knop.dataset.i);
+      const f = fiches[i];
+      const actie = knop.dataset.actie;
+      let gelukt = false;
+      if (actie === 'op' || actie === 'neer') {
+        gelukt = await schrijf(() => bron.zetVolgorde('fiches', nieuweVolgorde(fiches, i, actie === 'op' ? i - 1 : i + 1)));
+      } else if (actie === 'hernoem') {
+        gelukt = await bewerkFiche(f);
+      } else if (actie === 'weg') {
+        if (!await bevestig(`"${f.titel}" wissen?`, 'Dit kan je niet ongedaan maken. De fiche verdwijnt voor het hele team.')) return;
+        gelukt = await schrijf(() => bron.wisFiche(f.id, f.pad));
+      }
+      if (gelukt) toon();
+    });
+  });
+}
+
+const HULP_TEKST ='Lege regel = nieuwe alinea. "# " vooraan = tussentitel. "- " vooraan = opsomming.';
 
 function tekstDialoog(titel, f = {}, tekst = '') {
   return dialoog({
@@ -561,6 +867,25 @@ function tekstDialoog(titel, f = {}, tekst = '') {
 }
 
 async function bewerkFiche(f) {
+  if (gedeeld()) {
+    let r;
+    if (f.soort === 'tekst') {
+      const inh = await db.getFiche(f.id);
+      r = await tekstDialoog('Fiche wijzigen', f, inh?.tekst || '');
+    } else {
+      r = await dialoog({
+        titel: 'Fiche wijzigen', okTekst: 'Bewaren',
+        velden: [
+          { naam: 'titel', label: 'Titel', waarde: f.titel, verplicht: true },
+          { naam: 'omschrijving', label: 'Korte omschrijving (optioneel)', waarde: f.omschrijving }
+        ]
+      });
+    }
+    if (!r) return false;
+    const velden = { titel: r.titel, omschrijving: r.omschrijving };
+    if (f.soort === 'tekst') velden.tekst = r.tekst;
+    return schrijf(() => bron.wijzigFiche(f.id, velden));
+  }
   if (f.soort === 'tekst') {
     const inh = await db.getFiche(f.id);
     const r = await tekstDialoog('Fiche wijzigen', f, inh?.tekst || '');
@@ -678,9 +1003,41 @@ async function toonInstellingen() {
     blijvend = (await navigator.storage.persisted()) ? 'ja' : 'nee (zet de app op je beginscherm)';
   }
 
+  const laatsteSync = gedeeld() ? await db.get('laatsteSync') : null;
+  const oudeFiches = gedeeld() ? await telOudeFiches() : 0;
+
   inhoud.innerHTML = `
     <h1>Instellingen</h1>
-    <p class="ondertitel">${fiches.length} fiches, samen ongeveer ${mb} MB. Blijvende opslag: ${blijvend}.</p>
+    <p class="ondertitel">${fiches.length} fiches op dit toestel, samen ongeveer ${mb} MB. Blijvende opslag: ${blijvend}.</p>
+
+    ${gedeeld() ? `
+    <div class="paneel">
+      <h2>Account</h2>
+      <p>Aangemeld als <b>${esc(profiel.email)}</b> (${esc(profiel.rol)}).
+        ${offline ? 'Je bent offline: je ziet de laatst opgehaalde fiches.' : ''}
+        Laatst bijgewerkt: ${laatsteSync ? new Date(laatsteSync).toLocaleString('nl-BE') : 'nog nooit'}.</p>
+      <div class="knoppen">
+        <button class="knop knop-hoofd" id="sync-nu">Nu bijwerken</button>
+        <button class="knop knop-plat" id="wachtwoord">Wachtwoord wijzigen</button>
+        <button class="knop knop-plat" id="afmelden">Afmelden</button>
+      </div>
+    </div>
+
+    ${isBeheerder() ? `
+    <div class="paneel" id="gebruikers-paneel">
+      <h2>Gebruikers</h2>
+      <p>Nieuwe collega? Nodig die uit in Supabase (Authentication → Users → Invite user). Daarna verschijnt die hier en geef je de rol <b>therapeut</b>.</p>
+      <div id="gebruikers"><p class="hulp">Laden…</p></div>
+    </div>` : ''}
+
+    ${oudeFiches ? `
+    <div class="paneel">
+      <h2>Fiches van dit toestel kopiëren</h2>
+      <p>Op dit toestel staan nog ${oudeFiches} fiches van vóór de gedeelde verzameling. Kopieer ze om ze met het team te delen.
+        Onderdelen, regio's en categorieën met dezelfde naam worden samengevoegd; een fiche met dezelfde titel in dezelfde categorie wordt overgeslagen.</p>
+      <div class="knoppen"><button class="knop knop-hoofd" id="kopieer-oud">${oudeFiches} fiches kopiëren</button></div>
+    </div>` : ''}
+    ` : ''}
 
     <div class="paneel">
       <h2>App-naam</h2>
@@ -701,10 +1058,18 @@ async function toonInstellingen() {
 
     <div class="paneel">
       <h2>Back-up maken</h2>
-      <p>Bewaart alle onderdelen, categorieën en fiches in één bestand. Doe dit regelmatig en bewaar het bestand op een veilige plek.</p>
+      <p>${gedeeld()
+        ? 'De fiches staan veilig op de server van de praktijk. Hier download je een kopie van alles wat op dit toestel staat, als extra zekerheid.'
+        : 'Bewaart alle onderdelen, categorieën en fiches in één bestand. Doe dit regelmatig en bewaar het bestand op een veilige plek.'}</p>
       <div class="knoppen"><button class="knop knop-hoofd" id="exporteer">Back-up downloaden</button></div>
     </div>
 
+    ${gedeeld() ? `
+    <div class="paneel">
+      <h2>Lokale kopie opnieuw ophalen</h2>
+      <p>Wist de kopie op dit toestel en haalt alles opnieuw op van de server. Handig als er iets niet klopt. Er gaat niets verloren voor het team.</p>
+      <div class="knoppen"><button class="knop knop-plat" id="herlaad-kopie">Opnieuw ophalen</button></div>
+    </div>` : `
     <div class="paneel">
       <h2>Back-up terugzetten</h2>
       <p>Vervangt alles in de app door de inhoud van een back-upbestand. Ook handig om de fiches naar een ander toestel over te zetten.</p>
@@ -717,7 +1082,9 @@ async function toonInstellingen() {
       <h2>Opnieuw beginnen</h2>
       <p>Wist alles en zet de standaardstructuur uit <code>data/structuur.json</code> terug.</p>
       <div class="knoppen"><button class="knop knop-gevaar" id="reset">Alles wissen</button></div>
-    </div>`;
+    </div>`}`;
+
+  if (gedeeld()) koppelInstellingenGedeeld();
 
   $('#app-naam').addEventListener('click', async () => {
     const n = await vraagNaam('App-naam wijzigen', structuur.appTitel);
@@ -753,6 +1120,8 @@ async function toonInstellingen() {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   });
 
+  if (gedeeld()) return;
+
   $('#importeer').addEventListener('change', async e => {
     const b = e.target.files[0];
     if (!b) return;
@@ -780,6 +1149,145 @@ async function toonInstellingen() {
     location.hash = '#/';
     toon();
   });
+}
+
+// ---------- Instellingen in de gedeelde modus ----------
+
+function koppelInstellingenGedeeld() {
+  $('#sync-nu').addEventListener('click', async () => {
+    if (!navigator.onLine) { melding('Geen internet.'); return; }
+    try {
+      const r = await synchroniseer((n, t) => melding(`Fiches ophalen… ${n}/${t}`));
+      structuur = r.structuur;
+      offline = false;
+      melding(r.mislukt ? `Bijgewerkt, maar ${r.mislukt} fiches lukten niet.` : 'Alles is bijgewerkt.');
+      toon();
+    } catch (e) { melding(e.message || 'Bijwerken lukte niet.'); }
+  });
+  $('#wachtwoord').addEventListener('click', () => vraagNieuwWachtwoord('wijzig'));
+  $('#afmelden').addEventListener('click', async () => {
+    if (!await bevestig('Afmelden?', 'De fiches op dit toestel blijven staan. Om opnieuw bij te werken moet je je weer aanmelden.', 'Afmelden')) return;
+    await bron.afmelden();
+    await db.del('profiel');
+    location.hash = '#/';
+    location.reload();
+  });
+  $('#herlaad-kopie').addEventListener('click', async () => {
+    if (!navigator.onLine) { melding('Geen internet: eerst online gaan.'); return; }
+    if (!await bevestig('Opnieuw ophalen?', 'De kopie op dit toestel wordt gewist en opnieuw opgehaald.', 'Opnieuw ophalen')) return;
+    await db.vervangAlles({ ...LEGE_STRUCTUUR(), appTitel: structuur.appTitel }, []);
+    try {
+      structuur = (await synchroniseer((n, t) => melding(`Fiches ophalen… ${n}/${t}`))).structuur;
+      melding('Alles opnieuw opgehaald.');
+    } catch (e) { melding(e.message); }
+    toon();
+  });
+  const kopieer = $('#kopieer-oud');
+  if (kopieer) kopieer.addEventListener('click', kopieerOudeFiches);
+  if (isBeheerder()) toonGebruikers();
+}
+
+const ROLLEN = [['', 'Geen toegang'], ['therapeut', 'Therapeut'], ['beheerder', 'Beheerder']];
+
+async function toonGebruikers() {
+  const box = $('#gebruikers');
+  let lijst;
+  try { lijst = await bron.profielen(); } catch (e) { box.innerHTML = `<p class="hulp">${esc(e.message)}</p>`; return; }
+  box.innerHTML = `<ul class="gebruikers">${lijst.map(p => `
+    <li>
+      <span class="gebruiker-naam"><b>${esc(p.naam || p.email)}</b><br><span class="hulp">${esc(p.email)}</span></span>
+      ${p.rol === 'patient' ? '<span class="hulp">Patiënt</span>' : `
+      <select data-rol="${esc(p.id)}" ${p.id === profiel.id ? 'disabled' : ''} aria-label="Rol van ${esc(p.email)}">
+        ${ROLLEN.map(([w, l]) => `<option value="${w}" ${(p.rol || '') === w ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>`}
+    </li>`).join('')}</ul>`;
+  box.querySelectorAll('[data-rol]').forEach(sel => sel.addEventListener('change', async () => {
+    try {
+      await bron.zetRol(sel.dataset.rol, sel.value);
+      melding('Rol aangepast. De collega moet de app opnieuw openen.');
+    } catch (e) {
+      melding(e.message);
+      toonGebruikers();
+    }
+  }));
+}
+
+// Fiches uit de oude, lokale databank (van vóór Supabase) naar de gedeelde verzameling kopiëren.
+const oudeDb = () => maakDb('praktijkfiches');
+
+async function telOudeFiches() {
+  try {
+    if (indexedDB.databases) {
+      const lijst = await indexedDB.databases();
+      if (!lijst.some(d => d.name === 'praktijkfiches')) return 0;
+    }
+    const s = await oudeDb().getStructuur();
+    return s ? fichesOnder({ kinderen: s.secties }).length : 0;
+  } catch { return 0; }
+}
+
+async function kopieerOudeFiches() {
+  if (!navigator.onLine) { melding('Geen internet.'); return; }
+  const oud = oudeDb();
+  const s = await oud.getStructuur();
+  if (!s) return;
+  const totaal = fichesOnder({ kinderen: s.secties }).length;
+  if (!await bevestig('Fiches kopiëren?', `${totaal} fiches worden naar de gedeelde verzameling gekopieerd en zijn daarna zichtbaar voor het hele team.`, 'Kopiëren')) return;
+
+  let gedaan = 0, overgeslagen = 0, mislukt = 0;
+  const zelfde = (a, b) => a.trim().toLocaleLowerCase('nl') === b.trim().toLocaleLowerCase('nl');
+  try {
+    let { knopen, fiches } = await bron.alles();
+    // Zoek een knoop met dezelfde naam onder dezelfde ouder, of maak er een
+    const knoopVoor = async (titel, niveau, ouderId, omschrijving = '') => {
+      const broers = knopen.filter(k => k.niveau === niveau && (k.ouder_id ?? null) === (ouderId ?? null));
+      const bestaand = broers.find(k => zelfde(k.titel, titel));
+      if (bestaand) return bestaand;
+      const nieuw = await bron.maakKnoop({ ouder_id: ouderId, niveau, titel, omschrijving, volgorde: volgendeVolgorde(broers) });
+      knopen = [...knopen, nieuw];
+      return nieuw;
+    };
+    for (const sectie of s.secties) {
+      const sk = await knoopVoor(sectie.titel, 0, null, sectie.omschrijving || '');
+      for (const regio of sectie.kinderen || []) {
+        const rk = await knoopVoor(regio.titel, 1, sk.id);
+        for (const cat of regio.kinderen || []) {
+          const ck = await knoopVoor(cat.titel, 2, rk.id);
+          let volgorde = volgendeVolgorde(fiches.filter(f => f.categorie_id === ck.id));
+          for (const f of cat.fiches || []) {
+            melding(`Kopiëren… ${gedaan + overgeslagen + mislukt + 1}/${totaal}`);
+            if (fiches.some(x => x.categorie_id === ck.id && zelfde(x.titel, f.titel))) { overgeslagen++; continue; }
+            try {
+              const inh = await oud.getFiche(f.id);
+              if (!inh) { mislukt++; continue; }
+              const id = uuid();
+              const velden = { id, categorie_id: ck.id, titel: f.titel, omschrijving: f.omschrijving || '', soort: f.soort, volgorde: volgorde++ };
+              let bestand = null;
+              if (f.soort === 'tekst') {
+                velden.tekst = inh.tekst || '';
+              } else {
+                const naam = inh.bestandsnaam || `${f.titel}.${(inh.mime || '').split('/')[1] || 'bin'}`;
+                bestand = new Blob([inh.data], { type: inh.mime });
+                Object.assign(velden, { bestand_pad: `${id}/${veiligeBestandsnaam(naam)}`, mime: inh.mime, bestandsnaam: naam, grootte: bestand.size });
+              }
+              const rij = await bron.maakFiche(velden, bestand);
+              fiches = [...fiches, rij];
+              gedaan++;
+            } catch { mislukt++; }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    melding(e.message || 'Kopiëren lukte niet.');
+  }
+  try { structuur = (await synchroniseer()).structuur; } catch { /* later */ }
+  melding(`${gedaan} gekopieerd${overgeslagen ? `, ${overgeslagen} overgeslagen (bestond al)` : ''}${mislukt ? `, ${mislukt} mislukt` : ''}.`);
+  if (!mislukt && (gedaan || overgeslagen) && await bevestig('Oude kopie wissen?',
+    'Alles staat nu in de gedeelde verzameling. Wil je de oude, lokale fiches van dit toestel wissen? (Ze staan nog in je back-ups.)', 'Wissen')) {
+    await new Promise(r => { const q = indexedDB.deleteDatabase('praktijkfiches'); q.onsuccess = q.onerror = q.onblocked = r; });
+  }
+  toon();
 }
 
 start();

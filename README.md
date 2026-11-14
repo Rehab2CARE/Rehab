@@ -1,7 +1,53 @@
 # Praktijkfiches
 
 Eenvoudige web-app (PWA) om in de praktijk fiches aan patiënten te tonen op de iPad.
-Werkt offline, kan op het beginscherm gezet worden, en bewaart alles lokaal op het toestel.
+Werkt offline en kan op het beginscherm gezet worden.
+
+Twee modi:
+- **Lokaal** (als `js/config.js` leeg is): alles staat enkel op dit toestel, zoals vroeger.
+- **Gedeeld** (met Supabase): elke collega meldt zich aan met een eigen account en het team deelt één verzameling fiches.
+  Elk toestel houdt een offline kopie bij, dus tonen en doorsturen werkt ook zonder internet. Wijzigen kan enkel online.
+
+## Gedeelde fiches instellen (Supabase, eenmalig)
+
+1. Maak een account op https://supabase.com en kies **New project**. Naam: praktijkfiches.
+   Kies een sterk databankwachtwoord (bewaar het). **Region: Frankfurt (eu-central-1)**.
+2. **SQL Editor → New query**: plak de inhoud van `supabase/migraties/001_basis.sql` en klik **Run**.
+   Doe daarna hetzelfde met `supabase/migraties/002_standaardstructuur.sql` (de standaardindeling).
+3. **Authentication → Sign In / Providers**: zet **Allow new users to sign up** uit. Zo kan enkel wie uitgenodigd is binnen.
+4. **Authentication → URL Configuration**: zet *Site URL* op `https://rehab2care.github.io/praktijkfiches/`
+   en voeg die ook toe bij *Redirect URLs* (plus `http://localhost:8765/` om lokaal te testen).
+5. **Authentication → Users → Invite user**: nodig jezelf uit. Open de mail en kies een wachtwoord.
+6. Maak jezelf beheerder: **SQL Editor**, vervang het e-mailadres en klik **Run**:
+   ```sql
+   update public.profielen set rol = 'beheerder' where email = 'jouw@adres.be';
+   ```
+7. **Project Settings → API**: kopieer de *Project URL* en de *anon / publishable key* naar `js/config.js`.
+   Zet daar **nooit** de *service_role / secret* sleutel.
+8. Verhoog `CACHE_VERSIE` in `sw.js` en zet de bestanden op GitHub. Open de app en meld je aan.
+9. Stonden er al fiches op de iPad? **Beheer → Instellingen → Fiches van dit toestel kopiëren.**
+
+### Collega's toevoegen
+- Supabase → **Authentication → Users → Invite user** met het e-mailadres van de collega.
+- De collega klikt op de link in de mail, kiest een wachtwoord en komt in de app op "Nog geen toegang".
+- Jij (beheerder) gaat naar **Beheer → Instellingen → Gebruikers** en kiest bij die collega **Therapeut**.
+- Iemand weghalen: zet de rol op **Geen toegang** (of verwijder het account in Supabase).
+
+### Rollen
+| Rol | Mag |
+|---|---|
+| Geen toegang | niets (nieuw account, wacht op de beheerder) |
+| Therapeut | alle fiches bekijken, doorsturen en beheren |
+| Beheerder | therapeut + rollen van anderen aanpassen |
+
+De beveiliging zit in de databank zelf (Row Level Security): wie geen rol heeft, krijgt ook via een
+andere weg geen fiches te zien. De bestanden staan in een privé-opslag (bucket `fiches`).
+
+### Goed om te weten
+- Het **gratis plan** van Supabase volstaat om te starten (1 GB bestanden). Een gratis project pauzeert na
+  een week zonder gebruik; de fiches op de iPads blijven dan wel zichtbaar.
+- Zodra er later (fase 3) **patiëntgegevens** in komen: overschakelen naar het betaalde plan (back-ups) en het
+  privacy-luik afwerken (zie het plan).
 
 ## Opbouw
 
@@ -55,9 +101,12 @@ Zet in **Instellingen → Pincode voor Beheer** een code van 4 tot 8 cijfers.
 - De code zelf wordt niet bewaard, enkel een versleutelde vorm (hash). Ze zit niet in de back-up.
 - Het is een kinderslot, geen echte beveiliging: de fiches zelf zijn voor iedereen zichtbaar.
 
-**Pincode vergeten?** Er is geen achterdeur. Wis de websitegegevens van de app in Safari
-(Instellingen → Apps → Safari → Geavanceerd → Websitegegevens) en zet daarna je laatste back-up terug.
-Daarom: maak regelmatig een back-up.
+**Pincode vergeten?** Er is geen achterdeur.
+- App op het beginscherm: verwijder het icoon van het beginscherm (dat wist de gegevens van die app) en zet de app opnieuw op het beginscherm.
+- In Safari zelf: wis de websitegegevens (Instellingen → Apps → Safari → Geavanceerd → Websitegegevens).
+
+In de gedeelde modus haal je daarna alles opnieuw op door je aan te melden. In de lokale modus zet je je laatste back-up terug.
+Let op: de app op het beginscherm en dezelfde website in Safari hebben **elk hun eigen opslag**.
 
 ## Aanpassen in de bestanden
 
@@ -70,6 +119,10 @@ Daarom: maak regelmatig een back-up.
 | Fiches kiezen en doorsturen, tekst naar PDF | `js/delen.js` |
 | Pincode: aantal cijfers, minuten tot Beheer vanzelf dichtgaat | bovenaan het pincodeblok in `js/app.js` (`PIN_MIN`, `PIN_MAX`, `AUTO_SLOT_MIN`) |
 | Opslag op het toestel | `js/db.js` |
+| Koppeling met Supabase (adres en sleutel) | `js/config.js` |
+| Alle contact met Supabase | `js/bron.js` |
+| Gedeelde fiches ophalen (offline kopie) | `js/sync.js` |
+| Databank: tabellen, rollen en beveiliging | `supabase/migraties/` |
 
 `data/structuur.json` wordt enkel gebruikt bij de allereerste start of na **Instellingen → Alles wissen**.
 Wat je daarna in Beheer verandert, staat op het toestel zelf.
@@ -78,7 +131,7 @@ Na een wijziging aan een app-bestand: verhoog `CACHE_VERSIE` in `sw.js`, anders 
 
 ## Belangrijk
 
-- **Back-up:** de fiches staan enkel op de iPad. Maak regelmatig een back-up (Instellingen) en bewaar die in Bestanden of iCloud.
+- **Back-up (lokale modus):** de fiches staan enkel op de iPad. Maak regelmatig een back-up (Instellingen) en bewaar die in Bestanden of iCloud.
 - **Zet de app op het beginscherm** (Safari → Deel → Zet op beginscherm). Safari kan anders na een tijd ongebruikte websitegegevens wissen.
 - Geen patiëntgegevens: de app bevat enkel algemene fiches.
 
@@ -89,3 +142,15 @@ python3 -m http.server 8765
 ```
 
 Open daarna http://localhost:8765
+
+### Automatische tests
+
+```bash
+pip install playwright && python3 -m playwright install chromium   # eenmalig
+python3 -m http.server 8765 &
+python3 test/test_app.py         # hele app: lokale en gedeelde modus (met nagebootste server)
+python3 test/test_bron_echt.py   # echte Supabase-bibliotheek tegen nagebootste server
+```
+
+De databankregels (rollen en RLS) testen kan in een lokale Postgres: `supabase/test/stub_supabase.sql`,
+daarna de migraties, daarna `supabase/test/test_rls.sql`.

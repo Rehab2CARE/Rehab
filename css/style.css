@@ -194,3 +194,17 @@ dialog textarea { min-height: 260px; resize: vertical; }
   .tegels, .tegels.groot { grid-template-columns: 1fr 1fr; }
   .kruimels { display: none; }
 }
+
+/* Aanmelden en gebruikers (gedeelde modus) */
+.aanmelden { max-width: 520px; margin: 24px auto 0; }
+.paneel label { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: var(--tekst-zacht); margin-bottom: 14px; }
+.paneel input, .paneel select {
+  font: inherit; font-size: 1rem; color: var(--tekst);
+  min-height: var(--min-knop); padding: 10px 12px; border: 1px solid var(--rand); border-radius: 10px; background: #fff;
+}
+.fout { color: var(--gevaar) !important; font-weight: 600; }
+.gebruikers { list-style: none; margin: 0; padding: 0; border: 1px solid var(--rand); border-radius: var(--radius); }
+.gebruikers li { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.gebruikers li + li { border-top: 1px solid var(--rand); }
+.gebruiker-naam { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gebruikers .hulp { font-size: .8rem; }
