@@ -231,3 +231,18 @@ drop policy if exists "fiches-bucket: team wist" on storage.objects;
 create policy "fiches-bucket: team wist" on storage.objects
   for delete to authenticated
   using (bucket_id = 'fiches' and public.is_team());
+
+-- ---------- Rechten voor de app (Data API) ----------
+-- Expliciet toegekend, zodat het ook werkt als "Automatically expose new tables" uit staat.
+-- Bezoekers die niet aangemeld zijn ("anon") krijgen niets. RLS hierboven beperkt verder per rij.
+
+revoke all on public.profielen, public.knopen, public.fiches, public.favorieten from anon;
+
+grant select on public.profielen to authenticated;
+grant update (rol) on public.profielen to authenticated;   -- enkel de rol, en enkel door een beheerder (RLS)
+grant select, insert, update, delete on public.knopen to authenticated;
+grant select, insert, update, delete on public.fiches to authenticated;
+grant select, insert, delete on public.favorieten to authenticated;
+
+grant execute on function public.mijn_rol() to authenticated;
+grant execute on function public.is_team() to authenticated;

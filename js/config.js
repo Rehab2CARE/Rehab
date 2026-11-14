@@ -5,6 +5,6 @@
 // De "anon"/"publishable" sleutel mag publiek in de app staan: de beveiliging zit in de databank (RLS).
 // Zet hier NOOIT de "service_role"/"secret" sleutel.
 export const SUPABASE = {
-  URL: '',
-  ANON_KEY: ''
+  URL: 'https://ozryhokmgushmlonnbdk.supabase.co',
+  ANON_KEY: 'sb_publishable_J19653Q7pxExBRhT0334bA_YdhCUUEE'
 };
