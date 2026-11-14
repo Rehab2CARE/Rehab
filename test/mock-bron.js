@@ -122,3 +122,21 @@ export async function download(pad) {
   for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
   return u.buffer;
 }
+
+// Favorieten: per aangemelde gebruiker (zoals RLS in de echte databank)
+export async function favorieten() {
+  const s = server(); team(s);
+  return (s.favorieten || []).filter(r => r.profiel_id === sessie().user.id).map(r => r.fiche_id);
+}
+export async function voegFavorietToe(pid, fid) {
+  const s = server(); team(s);
+  if (pid !== sessie().user.id) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  s.favorieten = s.favorieten || [];
+  if (!s.favorieten.some(r => r.profiel_id === pid && r.fiche_id === fid)) s.favorieten.push({ profiel_id: pid, fiche_id: fid });
+  schrijfServer(s);
+}
+export async function wisFavoriet(pid, fid) {
+  const s = server(); team(s);
+  s.favorieten = (s.favorieten || []).filter(r => !(r.profiel_id === pid && r.fiche_id === fid));
+  schrijfServer(s);
+}

@@ -31,7 +31,9 @@ let games = { titel: 'Games', games: [] }; // uit data/games.json (vast, niet vi
 let beheer = false;
 let actieveUrl = null; // blob-URL van de geopende fiche (vrijgeven bij wisselen)
 
-const SOORT_LABEL = { pdf: 'PDF', afbeelding: 'Afbeelding', tekst: 'Tekst' };
+const SOORT_LABEL = { pdf: 'PDF', afbeelding: 'Afbeelding', video: 'Video', tekst: 'Tekst' };
+const UPLOAD_TYPES = 'application/pdf,image/*,video/mp4,video/quicktime';
+const MAX_UPLOAD_MB = 50; // limiet per bestand in de gedeelde opslag (gratis plan Supabase)
 
 // ---------- Hulpfuncties ----------
 
@@ -65,6 +67,84 @@ function fichesOnder(knoop) {
 }
 const ficheIdsOnder = knoop => fichesOnder(knoop).map(f => f.id);
 
+// Alle fiches met hun plaats: [{ f, ids: [onderdeel, regio, categorie], pad: 'Onderdeel › Regio › Categorie' }]
+function alleFichesMetPlaats() {
+  const uit = [];
+  structuur.secties.forEach(s => (s.kinderen || []).forEach(r => (r.kinderen || []).forEach(c =>
+    (c.fiches || []).forEach(f => uit.push({ f, ids: [s.id, r.id, c.id], pad: `${s.titel} › ${r.titel} › ${c.titel}` })))));
+  return uit;
+}
+
+// Alle categorieën, bv. om een fiche naar te verplaatsen
+function alleCategorieen() {
+  const uit = [];
+  structuur.secties.forEach(s => (s.kinderen || []).forEach(r => (r.kinderen || []).forEach(c =>
+    uit.push({ cat: c, pad: `${s.titel} › ${r.titel} › ${c.titel}` }))));
+  return uit;
+}
+
+// Zoeken zonder rekening te houden met hoofdletters en accenten (é = e)
+const zoekNormaal = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('nl');
+
+// Fichetegel met de plaats eronder (voor zoekresultaten, favorieten, laatst bekeken)
+function ficheTegel({ f, ids, pad }) {
+  return `
+    <div class="tegel tegel-fiche">
+      ${kiesKnop(f)}
+      <a class="tegel-link" href="${link([...ids, f.id])}">
+        <span class="tegel-soort">${SOORT_LABEL[f.soort] || ''}</span>
+        <span class="tegel-titel">${esc(f.titel)}</span>
+        ${f.omschrijving ? `<span class="tegel-sub">${esc(f.omschrijving)}</span>` : ''}
+        <span class="tegel-pad">${esc(pad)}</span>
+      </a>
+    </div>`;
+}
+
+// ---------- Favorieten (per therapeut) en laatst bekeken (per toestel) ----------
+// Lokale modus: favorieten op dit toestel. Gedeelde modus: per account in Supabase, met een kopie op het toestel.
+
+let favorieten = new Set();
+const favSleutel = () => (gedeeld() && profiel ? `favorieten-${profiel.id}` : 'favorieten');
+
+async function laadFavorieten() {
+  try { favorieten = new Set((await db.get(favSleutel())) || []); } catch { favorieten = new Set(); }
+}
+
+async function vernieuwFavorieten() {
+  if (!gedeeld() || !navigator.onLine) return;
+  try {
+    const ids = await bron.favorieten();
+    favorieten = new Set(ids);
+    await db.put(favSleutel(), ids);
+  } catch { /* volgende keer opnieuw */ }
+}
+
+async function wisselFavoriet(id) {
+  const aan = !favorieten.has(id);
+  if (gedeeld()) {
+    if (!navigator.onLine) { melding('Geen internet: favorieten aanpassen kan nu niet.'); return false; }
+    try {
+      if (aan) await bron.voegFavorietToe(profiel.id, id);
+      else await bron.wisFavoriet(profiel.id, id);
+    } catch (e) { melding(e.message); return false; }
+  }
+  if (aan) favorieten.add(id); else favorieten.delete(id);
+  await db.put(favSleutel(), [...favorieten]);
+  return true;
+}
+
+const LAATST_MAX = 8;
+
+function laatstBekeken() {
+  try { return JSON.parse(localStorage.getItem('laatstBekeken') || '[]'); } catch { return []; }
+}
+
+function onthoudBekeken(id) {
+  try {
+    localStorage.setItem('laatstBekeken', JSON.stringify([id, ...laatstBekeken().filter(x => x !== id)].slice(0, LAATST_MAX)));
+  } catch { /* privémodus: niet onthouden */ }
+}
+
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
   : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
 
@@ -77,6 +157,7 @@ const veiligeBestandsnaam = naam => String(naam || 'bestand')
 function soortVan(mime) {
   if (mime === 'application/pdf') return 'pdf';
   if (mime.startsWith('image/')) return 'afbeelding';
+  if (mime.startsWith('video/')) return 'video';
   return null;
 }
 
@@ -125,9 +206,18 @@ function dialoog({ titel, velden, okTekst = 'OK', gevaar = false }) {
     }
     const label = document.createElement('label');
     label.textContent = v.label;
-    const el = document.createElement(v.soort === 'tekstvak' ? 'textarea' : 'input');
+    const el = document.createElement(v.soort === 'tekstvak' ? 'textarea' : v.soort === 'keuze' ? 'select' : 'input');
     el.name = v.naam;
-    if (v.soort !== 'tekstvak') el.type = v.type || 'text';
+    if (v.soort === 'keuze') {
+      (v.opties || []).forEach(o => {
+        const optie = document.createElement('option');
+        optie.value = o.waarde;
+        optie.textContent = o.label;
+        el.appendChild(optie);
+      });
+    } else if (v.soort !== 'tekstvak') {
+      el.type = v.type || 'text';
+    }
     if (v.inputmode) el.inputMode = v.inputmode;
     if (v.autocomplete) el.autocomplete = v.autocomplete;
     el.value = v.waarde || '';
@@ -151,7 +241,7 @@ function dialoog({ titel, velden, okTekst = 'OK', gevaar = false }) {
     };
     dlg.returnValue = '';
     dlg.showModal();
-    const eerste = box.querySelector('input, textarea');
+    const eerste = box.querySelector('input, textarea, select');
     if (eerste) setTimeout(() => eerste.focus(), 50);
   });
 }
@@ -320,6 +410,7 @@ async function start() {
     if (res.ok) games = await res.json();
   } catch { /* offline zonder cache: geen games */ }
   pinActief = !!(await db.getPin());
+  await laadFavorieten();
   // Met een pincode start de app altijd in de patiëntweergave.
   if (!pinActief) {
     try { beheer = sessionStorage.getItem('beheer') === '1'; } catch { /* privémodus */ }
@@ -339,7 +430,7 @@ async function start() {
   $('#instellingen').addEventListener('click', () => { location.hash = '#/instellingen'; });
   $('#terug').addEventListener('click', () => {
     const delen = pad();
-    if (delen[0] === 'instellingen') location.hash = '#/';
+    if (delen[0] === 'instellingen' || delen[0] === 'zoeken') location.hash = '#/';
     else location.hash = '#/' + delen.slice(0, -1).join('/');
   });
   window.addEventListener('hashchange', toon);
@@ -377,6 +468,7 @@ async function werkBij(meteen = false) {
   try {
     const r = await synchroniseer((n, totaal) => { if (totaal > 3) melding(`Fiches ophalen… ${n}/${totaal}`); });
     structuur = r.structuur;
+    await vernieuwFavorieten();
     if (offline) offline = false;
     // Scherm vernieuwen, behalve als er net een venster open staat of een fiche/spel bekeken wordt
     const delen = pad();
@@ -542,6 +634,7 @@ async function toon() {
   }
 
   if (delen[0] === 'games') return toonGames(delen[1]);
+  if (delen[0] === 'zoeken') return toonZoeken(delen[1] || '');
 
   const keten = zoek(delen);
   if (!keten) { location.hash = '#/'; return; }
@@ -599,6 +692,81 @@ function toonGames(spelId) {
     <div class="tegels groot">${tegels}</div>`;
 }
 
+// ---------- Zoeken ----------
+
+function zoekbalk(term) {
+  return `
+    <form class="zoekbalk" id="zoek-form" role="search">
+      <input type="search" name="q" value="${esc(term)}" placeholder="Zoek een fiche, bv. knie of kracht"
+        aria-label="Zoek een fiche" enterkeyhint="search" autocomplete="off">
+      <button class="knop knop-hoofd" type="submit">Zoeken</button>
+    </form>`;
+}
+
+// live = op de zoekpagina zelf (resultaten bijwerken tijdens het typen)
+function koppelZoekbalk(live, bijTypen) {
+  const form = $('#zoek-form');
+  const veld = form.querySelector('[name=q]');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (live) { veld.blur(); return; } // klavier wegdoen
+    if (veld.value.trim()) location.hash = '#/zoeken/' + encodeURIComponent(veld.value.trim());
+  });
+  if (live) veld.addEventListener('input', () => {
+    history.replaceState(null, '', '#/zoeken/' + encodeURIComponent(veld.value));
+    bijTypen(veld.value);
+  });
+  return veld;
+}
+
+async function toonZoeken(term) {
+  $('#terug').hidden = false;
+  $('#kruimels').innerHTML = `<a href="#/">${esc(structuur.appTitel)}</a> <span class="sep">›</span> <span class="huidig">Zoeken</span>`;
+  inhoud.innerHTML = `
+    <h1>Zoeken</h1>
+    <p class="ondertitel">Zoekt in de titel, de omschrijving, de map en de tekst van tekstfiches.</p>
+    ${zoekbalk(term)}
+    <div id="zoek-resultaten"></div>`;
+
+  const alle = alleFichesMetPlaats();
+  const teksten = new Map(); // tekst van tekstfiches, ingeladen zodra de pagina opent
+
+  const toonResultaten = q => {
+    const box = $('#zoek-resultaten');
+    if (!box) return;
+    const woorden = zoekNormaal(q).split(/\s+/).filter(Boolean);
+    if (!woorden.length) { box.innerHTML = ''; return; }
+    const hits = alle.filter(x => {
+      const hooiberg = zoekNormaal(`${x.f.titel} ${x.f.omschrijving} ${x.pad}`) + ' ' + (teksten.get(x.f.id) || '');
+      return woorden.every(w => hooiberg.includes(w));
+    });
+    box.innerHTML = `<p class="ondertitel">${hits.length ? `${hits.length} ${hits.length === 1 ? 'fiche' : 'fiches'} gevonden.` : 'Niets gevonden. Probeer een ander woord.'}</p>
+      ${hits.length ? `<div class="tegels">${hits.map(ficheTegel).join('')}</div>` : ''}`;
+    koppelKiesKnoppen(box);
+  };
+
+  const veld = koppelZoekbalk(true, toonResultaten);
+  toonResultaten(term);
+  if (!term) veld.focus();
+
+  await Promise.all(alle.filter(x => x.f.soort === 'tekst').map(async x => {
+    const inh = await db.getFiche(x.f.id);
+    teksten.set(x.f.id, zoekNormaal(inh?.tekst));
+  }));
+  if (pad()[0] === 'zoeken' && veld.isConnected) toonResultaten(veld.value);
+}
+
+// Rijen onderaan het startscherm: favorieten en laatst bekeken
+function startRijen() {
+  const alle = alleFichesMetPlaats();
+  const perId = new Map(alle.map(x => [x.f.id, x]));
+  const fav = alle.filter(x => favorieten.has(x.f.id));
+  const recent = laatstBekeken().map(id => perId.get(id)).filter(Boolean);
+  const rij = (titel, lijst) => lijst.length
+    ? `<h2 class="rij-titel">${titel}</h2><div class="tegels">${lijst.map(ficheTegel).join('')}</div>` : '';
+  return rij('★ Favorieten', fav) + rij('Laatst bekeken', recent);
+}
+
 // ---------- Tegels: onderdelen, regio's, categorieën ----------
 
 function toonTegels(keten, ids) {
@@ -627,22 +795,29 @@ function toonTegels(keten, ids) {
   inhoud.innerHTML = `
     <h1>${esc(titel)}</h1>
     <p class="ondertitel">${sub}</p>
+    ${diepte === 0 ? zoekbalk('') : ''}
     ${!lijst.length && !beheer ? `<div class="leeg">Hier staat nog niets. Zet <b>Beheer</b> aan om iets toe te voegen.</div>` : ''}
     <div class="tegels ${diepte === 0 ? 'groot' : ''}">
       ${tegels}
       ${diepte === 0 && games.games.length ? gamesTegel() : ''}
       ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
-    </div>`;
+    </div>
+    ${diepte === 0 ? startRijen() : ''}`;
 
+  if (diepte === 0) {
+    koppelZoekbalk(false);
+    koppelKiesKnoppen(inhoud);
+  }
   koppelBeheer(lijst, naam, diepte, ouder);
 }
 
-function beheerKnoppen(i, n) {
+function beheerKnoppen(i, n, metVerplaats = false) {
   return `
     <div class="tegel-acties">
       <button data-actie="op" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Naar voren">◀</button>
       <button data-actie="neer" data-i="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="Naar achteren">▶</button>
       <button data-actie="hernoem" data-i="${i}">Wijzig</button>
+      ${metVerplaats ? `<button data-actie="verplaats" data-i="${i}" aria-label="Verplaats naar een andere categorie">Naar…</button>` : ''}
       <button data-actie="weg" data-i="${i}" class="weg">Wis</button>
     </div>`;
 }
@@ -730,7 +905,7 @@ function toonFicheLijst(keten, ids) {
         <span class="tegel-titel">${esc(f.titel)}</span>
         ${f.omschrijving ? `<span class="tegel-sub">${esc(f.omschrijving)}</span>` : ''}
       </a>
-      ${beheer ? beheerKnoppen(i, fiches.length) : ''}
+      ${beheer ? beheerKnoppen(i, fiches.length, true) : ''}
     </div>`).join('');
 
   inhoud.innerHTML = `
@@ -739,8 +914,8 @@ function toonFicheLijst(keten, ids) {
     ${beheer ? `
       <div class="beheer-balk">
         <label class="knop knop-hoofd">
-          Bestanden toevoegen (PDF of foto)
-          <input type="file" id="upload" accept="application/pdf,image/*" multiple hidden>
+          Bestanden toevoegen (PDF, foto of video)
+          <input type="file" id="upload" accept="${UPLOAD_TYPES}" multiple hidden>
         </label>
         <button class="knop knop-plat" id="nieuwe-tekst">Tekstfiche schrijven</button>
       </div>` : ''}
@@ -755,8 +930,8 @@ function toonFicheLijst(keten, ids) {
     const bestanden = [...e.target.files];
     let ok = 0;
     for (const b of bestanden) {
-      const soort = b.type === 'application/pdf' ? 'pdf' : b.type.startsWith('image/') ? 'afbeelding' : null;
-      if (!soort) { melding(`${b.name}: enkel PDF of afbeeldingen.`); continue; }
+      const soort = soortVan(b.type);
+      if (!soort) { melding(`${b.name}: enkel PDF, foto of video.`); continue; }
       const id = nieuwId();
       await db.putFiche({ id, mime: b.type, bestandsnaam: b.name, data: await b.arrayBuffer() });
       fiches.push({ id, titel: b.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), omschrijving: '', soort });
@@ -787,6 +962,12 @@ function toonFicheLijst(keten, ids) {
         [fiches[i], fiches[j]] = [fiches[j], fiches[i]];
       } else if (actie === 'hernoem') {
         if (!await bewerkFiche(f)) return;
+      } else if (actie === 'verplaats') {
+        const doel = await kiesDoelCategorie(f, cat);
+        if (!doel) return;
+        fiches.splice(i, 1);
+        (doel.fiches = doel.fiches || []).push(f);
+        melding(`"${f.titel}" verplaatst.`);
       } else if (actie === 'weg') {
         if (!await bevestig(`"${f.titel}" wissen?`, 'Dit kan je niet ongedaan maken.')) return;
         await db.deleteFiches([f.id]);
@@ -807,7 +988,8 @@ function koppelFicheBeheerGedeeld(cat, fiches) {
       let volgorde = volgendeVolgorde(fiches);
       for (const [n, b] of bestanden.entries()) {
         const soort = soortVan(b.type);
-        if (!soort) { melding(`${b.name}: enkel PDF of afbeeldingen.`); continue; }
+        if (!soort) { melding(`${b.name}: enkel PDF, foto of video.`); continue; }
+        if (b.size > MAX_UPLOAD_MB * 1024 * 1024) { melding(`${b.name}: groter dan ${MAX_UPLOAD_MB} MB, te groot voor de gedeelde opslag.`); continue; }
         melding(`Uploaden… ${n + 1}/${bestanden.length}`);
         const id = uuid();
         const rij = await bron.maakFiche({
@@ -843,6 +1025,11 @@ function koppelFicheBeheerGedeeld(cat, fiches) {
         gelukt = await schrijf(() => bron.zetVolgorde('fiches', nieuweVolgorde(fiches, i, actie === 'op' ? i - 1 : i + 1)));
       } else if (actie === 'hernoem') {
         gelukt = await bewerkFiche(f);
+      } else if (actie === 'verplaats') {
+        const doel = await kiesDoelCategorie(f, cat);
+        if (!doel) return;
+        gelukt = await schrijf(() => bron.wijzigFiche(f.id, { categorie_id: doel.id, volgorde: volgendeVolgorde(doel.fiches || []) }));
+        if (gelukt) melding(`"${f.titel}" verplaatst voor het hele team.`);
       } else if (actie === 'weg') {
         if (!await bevestig(`"${f.titel}" wissen?`, 'Dit kan je niet ongedaan maken. De fiche verdwijnt voor het hele team.')) return;
         gelukt = await schrijf(() => bron.wisFiche(f.id, f.pad));
@@ -850,6 +1037,18 @@ function koppelFicheBeheerGedeeld(cat, fiches) {
       if (gelukt) toon();
     });
   });
+}
+
+async function kiesDoelCategorie(f, huidige) {
+  const opties = alleCategorieen();
+  const r = await dialoog({
+    titel: `"${f.titel}" verplaatsen`,
+    okTekst: 'Verplaatsen',
+    velden: [{ naam: 'doel', label: 'Naar categorie', soort: 'keuze', waarde: huidige.id,
+      opties: opties.map(o => ({ waarde: o.cat.id, label: o.pad })) }]
+  });
+  if (!r || r.doel === huidige.id) return null;
+  return opties.find(o => o.cat.id === r.doel)?.cat || null;
 }
 
 const HULP_TEKST ='Lege regel = nieuwe alinea. "# " vooraan = tussentitel. "- " vooraan = opsomming.';
@@ -948,6 +1147,8 @@ async function toonFiche(keten, ids) {
     actieveUrl = URL.createObjectURL(new Blob([inh.data], { type: inh.mime }));
     if (f.soort === 'afbeelding') {
       vlak = `<div class="viewer-vlak"><img src="${actieveUrl}" alt="${esc(f.titel)}"></div>`;
+    } else if (f.soort === 'video') {
+      vlak = `<div class="viewer-vlak"><video src="${actieveUrl}" controls playsinline preload="metadata"></video></div>`;
     } else {
       vlak = `<div class="viewer-vlak"><iframe src="${actieveUrl}" title="${esc(f.titel)}"></iframe></div>`;
     }
@@ -959,6 +1160,7 @@ async function toonFiche(keten, ids) {
       <div class="viewer-kop">
         <h1>${esc(f.titel)}</h1>
         ${inh ? kiesKnop(f, true) : ''}
+        <button class="knop knop-plat ster" id="favoriet" aria-pressed="${favorieten.has(f.id)}">${favorieten.has(f.id) ? '★' : '☆'} Favoriet</button>
         ${volledig}
         ${beheer ? '<button class="knop knop-plat" id="wijzig">Wijzig</button>' : ''}
       </div>
@@ -971,6 +1173,15 @@ async function toonFiche(keten, ids) {
     </div>`;
   inhoud.focus();
   koppelKiesKnoppen(inhoud);
+  onthoudBekeken(f.id);
+
+  const ster = $('#favoriet');
+  ster.addEventListener('click', async () => {
+    if (!await wisselFavoriet(f.id)) return;
+    const aan = favorieten.has(f.id);
+    ster.setAttribute('aria-pressed', String(aan));
+    ster.textContent = `${aan ? '★' : '☆'} Favoriet`;
+  });
 
   const wijzig = $('#wijzig');
   if (wijzig) wijzig.addEventListener('click', async () => {

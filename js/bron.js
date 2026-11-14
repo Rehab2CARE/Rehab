@@ -141,6 +141,21 @@ export async function wisFiche(id, pad) {
   ok(await sb.from('fiches').delete().eq('id', id));
 }
 
+// ---------- Favorieten (enkel die van de aangemelde gebruiker, via RLS) ----------
+
+export async function favorieten() {
+  return ok(await sb.from('favorieten').select('fiche_id')).map(r => r.fiche_id);
+}
+
+export async function voegFavorietToe(profielId, ficheId) {
+  ok(await sb.from('favorieten').upsert({ profiel_id: profielId, fiche_id: ficheId },
+    { onConflict: 'profiel_id,fiche_id', ignoreDuplicates: true }));
+}
+
+export async function wisFavoriet(profielId, ficheId) {
+  ok(await sb.from('favorieten').delete().eq('profiel_id', profielId).eq('fiche_id', ficheId));
+}
+
 export async function download(pad) {
   const blob = ok(await sb.storage.from(BUCKET).download(pad));
   return blob.arrayBuffer();

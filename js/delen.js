@@ -157,7 +157,7 @@ function klaar(n, gedownload = false) {
 
 // ---------- Bestanden maken ----------
 
-const EXTENSIE = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/gif': 'gif', 'image/webp': 'webp' };
+const EXTENSIE = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/gif': 'gif', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov' };
 
 function veiligeNaam(titel) {
   return String(titel || 'fiche').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'fiche';

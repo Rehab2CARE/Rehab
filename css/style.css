@@ -86,6 +86,8 @@ h1 { font-size: 1.7rem; margin: 0 0 6px; }
   font: inherit; font-size: .85rem; color: var(--hoofdkleur); cursor: pointer;
 }
 .tegel-acties button + button { border-left: 1px solid var(--rand); }
+.tegel-acties button { min-width: 0; padding: 0 2px; }
+.tegel-fiche .tegel-acties button { font-size: .78rem; }
 .tegel-acties button:active { background: var(--hoofdkleur-licht); }
 .tegel-acties button.weg { color: var(--gevaar); }
 .tegel-acties button:disabled { color: var(--rand); }
@@ -144,6 +146,17 @@ body.spel-modus .mand { display: none; }
 .mand-titel { flex: 1; }
 .mand-weg { min-width: var(--min-knop); }
 main { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+
+/* Zoeken, favorieten, laatst bekeken */
+.zoekbalk { display: flex; gap: 10px; margin: 0 0 24px; }
+.zoekbalk input {
+  flex: 1; min-width: 0; font: inherit; font-size: 1.05rem; color: var(--tekst);
+  min-height: var(--min-knop); padding: 10px 14px; border: 1px solid var(--rand); border-radius: 12px; background: var(--kaart);
+}
+.rij-titel { font-size: 1.2rem; margin: 36px 0 12px; }
+.tegel-pad { font-size: .8rem; color: var(--tekst-zacht); margin-top: 4px; }
+.ster[aria-pressed="true"] { color: #a86b00; border-color: #e3c27a; }
+.viewer-vlak video { display: block; width: 100%; max-height: 75vh; background: #000; }
 
 /* Fiche bekijken */
 .viewer { display: flex; flex-direction: column; gap: 16px; }

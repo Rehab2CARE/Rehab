@@ -56,7 +56,7 @@ andere weg geen fiches te zien. De bestanden staan in een privé-opslag (bucket 
 - Onderdelen: Oefenfiches, Informatiefiches, Revalidatieprotocols
 - Regio's: Lage rug, Heup, Knie, Enkel
 - Categorieën: zelf aan te maken per regio
-- Fiches: PDF, foto/afbeelding, of een tekst die je in de app schrijft
+- Fiches: PDF, foto/afbeelding, video, of een tekst die je in de app schrijft
 
 Daarnaast is er een vast onderdeel **Games** met spelletjes (concentratie, reactie, geheugen).
 
@@ -80,6 +80,21 @@ Tik rechtsboven op **Beheer**. Dan kan je:
 - via **Instellingen** een back-up maken en terugzetten.
 
 Tik opnieuw op **Beheer** om terug naar de patiëntweergave te gaan (enkel bekijken).
+
+## Zoeken, favorieten en laatst bekeken
+
+- **Zoeken:** het zoekvak bovenaan het startscherm zoekt in de titel, de omschrijving, de map en de tekst van tekstfiches.
+  Hoofdletters en accenten maken niet uit ("een" vindt ook "één").
+- **Favorieten:** tik op **☆ Favoriet** in een geopende fiche. Je favorieten staan onderaan het startscherm.
+  In de gedeelde modus heeft elke collega zijn eigen favorieten, op al zijn toestellen.
+- **Laatst bekeken:** de laatste 8 geopende fiches, onderaan het startscherm. Dit geldt per toestel.
+
+## Fiches verplaatsen en video
+
+- **Verplaatsen:** in **Beheer** staat onder elke fiche **Naar…**. Kies de nieuwe categorie.
+- **Video:** voeg een filmpje (mp4 of mov) toe via **Bestanden toevoegen**. Het speelt af in de app.
+  In de gedeelde modus mag een bestand hoogstens 50 MB zijn (limiet van het gratis plan). Elk toestel bewaart
+  een kopie, dus veel grote video's nemen plaats in op de iPad en in de gratis opslag van 1 GB.
 
 ## Fiches doorsturen naar een patiënt
 
