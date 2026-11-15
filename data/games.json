@@ -19,6 +19,12 @@
       "titel": "Cijferspel",
       "omschrijving": "Getallen in volgorde, met wisselende opdrachten",
       "bestand": "games/cijfers.html"
+    },
+    {
+      "id": "trainthebrain",
+      "titel": "Trainthebrain",
+      "omschrijving": "Reageer op pijlen, cijfers en kleuren",
+      "bestand": "games/trainthebrain.html"
     }
   ]
 }

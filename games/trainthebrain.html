@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Trainthebrain</title>
+<link rel="stylesheet" href="spel.css">
+<style>
+  :root {
+    --k-rood: #e03131; --k-groen: #2f9e44; --k-blauw: #1c7ed6;
+    --k-geel: #fcc419; --k-paars: #9c36b5; --k-oranje: #f76707;
+  }
+
+  /* Modus: twee grote kaarten */
+  .modi { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; width: min(640px, 100%); }
+  .modi button { min-height: 96px; border-radius: 16px; border: 2px solid #2d4547; background: var(--spel-vlak);
+                 color: var(--spel-tekst); font: inherit; cursor: pointer; display: grid; gap: 4px; place-content: center; padding: 12px; }
+  .modi button b { font-size: 1.15rem; }
+  .modi button small { color: var(--spel-zacht); font-size: .8rem; line-height: 1.35; }
+  .modi button[aria-pressed="true"] { border-color: var(--spel-hoofd); background: #1f4544; }
+
+  /* Meerkeuze-knoppen */
+  .keuzes button .stip { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #f2f5f4; vertical-align: middle; margin-right: 8px; }
+  .keuzes.pijlen button { font-size: 1.6rem; min-width: 64px; padding: 0; }
+  .keuzes.vormen button { min-width: 64px; padding: 0; }
+  .keuzes.vormen svg { width: 30px; height: 30px; display: block; margin: auto; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .groep-uitleg { color: var(--spel-zacht); font-size: .8rem; line-height: 1.4; margin-top: -8px; }
+  .keuzes.cijfers button { font-size: 1.3rem; font-weight: 700; min-width: 60px; padding: 0; }
+  .klein-link { background: none; border: 0; color: var(--spel-hoofd); font: inherit; font-size: .85rem; font-weight: 600;
+                cursor: pointer; min-height: 44px; padding: 0 4px; justify-self: start; }
+
+  /* Schuifregelaar met − en + */
+  .regelaar { display: grid; grid-template-columns: 52px 1fr 52px auto; align-items: center; gap: 10px; }
+  .regelaar button { min-height: 52px; border-radius: 12px; border: 2px solid #2d4547; background: var(--spel-vlak);
+                     color: var(--spel-tekst); font: inherit; font-size: 1.5rem; cursor: pointer; }
+  .regelaar output { min-width: 4.6em; text-align: right; font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+  .regelaar.uit { opacity: .4; pointer-events: none; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; margin: 0; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: #2d4547; }
+  input[type="range"]::-moz-range-track { height: 8px; border-radius: 4px; background: #2d4547; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; margin-top: -12px; border-radius: 50%; background: var(--spel-hoofd); border: 3px solid #f2f5f4; }
+  input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: var(--spel-hoofd); border: 3px solid #f2f5f4; }
+
+  .groep { width: min(640px, 100%); display: grid; gap: 16px; text-align: left; padding: 16px; border-radius: 16px; background: rgba(24, 42, 43, .55); }
+  .groep > h2 { margin: 0; font-size: 1.05rem; color: var(--spel-hoofd); text-transform: uppercase; letter-spacing: .06em; }
+  #waarschuwing { color: var(--spel-accent); min-height: 1.4em; font-weight: 600; }
+  .spel-knop:disabled { opacity: .4; cursor: default; }
+
+  /* Spelscherm: volledig scherm voor de prikkel */
+  #spel { padding: 0; gap: 0; overflow: hidden; background: #ffffff; transition: none; }
+  #spel .balk { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center;
+                gap: 10px; padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top)); z-index: 3; }
+  #spel .teller { background: rgba(0, 0, 0, .45); color: #f2f5f4; padding: 8px 14px; border-radius: 12px;
+                  font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #spel .balk .rechts { display: flex; gap: 10px; }
+  #spel .balk button { min-height: 48px; padding: 0 18px; border-radius: 12px; border: 0; background: rgba(0, 0, 0, .45);
+                       color: #f2f5f4; font: inherit; font-size: 1rem; cursor: pointer; }
+  #prikkel { position: absolute; inset: 0; display: grid; place-items: center; }
+  #prikkel .getal { font-size: min(68vh, 62vw); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  #prikkel svg.vorm { width: min(60vh, 60vw); height: min(60vh, 60vw); }
+  #prikkel svg { width: min(66vh, 66vw); height: min(66vh, 66vw); }
+  #prikkel .bol { width: min(60vh, 60vw); height: min(60vh, 60vw); border-radius: 50%; border: min(1.6vh, 1.6vw) solid #fff;
+                  box-shadow: 0 0 0 min(1vh, 1vw) rgba(0, 0, 0, .35); }
+  #prikkel.donker { color: #111417; }
+  #prikkel.licht { color: #ffffff; }
+  #prikkel.licht .getal, #prikkel.licht svg { filter: drop-shadow(0 0 min(1vh, 1vw) rgba(0, 0, 0, .45)); }
+  .pauze-melding { position: absolute; inset: 0; background: rgba(15, 28, 29, .85); display: grid; place-items: center; z-index: 2;
+                   font-size: 3rem; font-weight: 800; color: #f2f5f4; }
+</style>
+</head>
+<body>
+
+<section class="scherm" id="start">
+  <h1>Trainthebrain</h1>
+  <p>Er verschijnen prikkels op het scherm: pijlen, cijfers, kleuren of vormen. Spreek vooraf af wat de patiënt bij elke prikkel doet, bv. naar de juiste kegel lopen of springen.</p>
+
+  <div class="modi" id="modi"></div>
+
+  <div class="groep">
+    <h2>Prikkels</h2>
+    <small class="groep-uitleg">Duid aan wat er mag verschijnen. Kies je uit meerdere soorten, dan komen ze door elkaar.</small>
+    <div class="instelling"><span>Pijlen</span><div class="keuzes pijlen" id="pijlen"></div>
+      <button class="klein-link" type="button" data-alles="pijlen">Alle pijlen</button></div>
+    <div class="instelling"><span>Cijfers</span><div class="keuzes cijfers" id="cijfers"></div>
+      <button class="klein-link" type="button" data-alles="cijfers">Alle cijfers</button></div>
+    <div class="instelling"><span>Kleuren</span><div class="keuzes" id="kleuren"></div>
+      <button class="klein-link" type="button" data-alles="kleuren">Alle kleuren</button></div>
+    <div class="instelling"><span>Vormen</span><div class="keuzes vormen" id="vormen"></div>
+      <button class="klein-link" type="button" data-alles="vormen">Alle vormen</button></div>
+    <div class="instelling" id="vak-achtergronden"><span>Achtergrondkleuren</span><div class="keuzes" id="achtergronden"></div>
+      <small>De achtergrond wisselt willekeurig tussen deze kleuren. Leg zelf uit wat elke kleur betekent, bv. groen = doen, rood = stilstaan.</small></div>
+  </div>
+
+  <div class="groep">
+    <h2>Tijd</h2>
+    <div class="instelling"><span>Prikkel zichtbaar</span>
+      <div class="keuzes" data-instelling="totVolgende"></div>
+      <div class="regelaar" id="r-zichtbaar"></div></div>
+    <div class="instelling"><span>Tussentijd</span>
+      <div class="keuzes" data-instelling="willekeurig"></div>
+      <div class="regelaar" id="r-tussenMin"></div>
+      <div class="regelaar" id="r-tussenMax"></div>
+      <small id="tussen-uitleg"></small></div>
+  </div>
+
+  <div class="groep">
+    <h2>Lengte</h2>
+    <div class="instelling"><span>Stoppen na</span>
+      <div class="keuzes" data-instelling="einde"></div>
+      <div class="regelaar" id="r-aantal"></div>
+      <div class="regelaar" id="r-duur"></div></div>
+    <div class="instelling"><span>Geluid</span><div class="keuzes" data-instelling="geluid"></div>
+      <small>Een korte piep bij elke prikkel.</small></div>
+  </div>
+
+  <p id="waarschuwing"></p>
+  <button class="spel-knop" id="begin">Start</button>
+</section>
+
+<section class="scherm" id="aftellen" hidden>
+  <div class="aftellen" id="aftel-getal">3</div>
+</section>
+
+<section class="scherm" id="spel" hidden>
+  <div id="prikkel"></div>
+  <div class="balk">
+    <div class="teller" id="teller">1 / 30</div>
+    <div class="rechts">
+      <button type="button" id="pauze">Pauze</button>
+      <button type="button" id="stop">Stoppen</button>
+    </div>
+  </div>
+  <div class="pauze-melding" id="pauze-melding" hidden>Pauze</div>
+</section>
+
+<section class="scherm" id="resultaat" hidden>
+  <h1>Goed gedaan!</h1>
+  <div class="resultaat-getal" id="res-getal">30 prikkels</div>
+  <p id="res-tekst"></p>
+  <div class="knoppen">
+    <button class="spel-knop" id="opnieuw">Opnieuw</button>
+    <button class="spel-knop plat" id="naar-start">Instellingen</button>
+  </div>
+</section>
+
+<script type="module">
+import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, aftellen } from './spel.js';
+
+// ---------- Inhoud ----------
+
+// Hoek in graden, 0 = naar boven, met de klok mee. Volgorde = volgorde van de knoppen (tegengestelde paren naast elkaar).
+const PIJLEN = {
+  links: { hoek: 270, teken: '←' }, rechts: { hoek: 90, teken: '→' },
+  boven: { hoek: 0, teken: '↑' }, onder: { hoek: 180, teken: '↓' },
+  linksboven: { hoek: 315, teken: '↖' }, rechtsboven: { hoek: 45, teken: '↗' },
+  linksonder: { hoek: 225, teken: '↙' }, rechtsonder: { hoek: 135, teken: '↘' }
+};
+const CIJFERS = [1, 2, 3, 4, 5, 6, 7, 8];
+// donker = zwarte tekst op deze kleur geeft beter contrast dan witte
+const KLEUREN = {
+  rood:   { naam: 'Rood',   kleur: 'var(--k-rood)',   donker: false },
+  groen:  { naam: 'Groen',  kleur: 'var(--k-groen)',  donker: false },
+  blauw:  { naam: 'Blauw',  kleur: 'var(--k-blauw)',  donker: false },
+  geel:   { naam: 'Geel',   kleur: 'var(--k-geel)',   donker: true },
+  paars:  { naam: 'Paars',  kleur: 'var(--k-paars)',  donker: false },
+  oranje: { naam: 'Oranje', kleur: 'var(--k-oranje)', donker: true }
+};
+// Vormen als SVG-pad in een vak van 100 x 100.
+const VORMEN = {
+  cirkel:   { naam: 'Cirkel',   pad: 'M50 6 A44 44 0 1 1 49.9 6 Z' },
+  vierkant: { naam: 'Vierkant', pad: 'M10 10 H90 V90 H10 Z' },
+  driehoek: { naam: 'Driehoek', pad: 'M50 8 L94 88 H6 Z' },
+  ruit:     { naam: 'Ruit',     pad: 'M50 4 L92 50 L50 96 L8 50 Z' },
+  ster:     { naam: 'Ster',     pad: 'M50 5 L61 38 L96 38 L68 59 L79 93 L50 72 L21 93 L32 59 L4 38 L39 38 Z' },
+  kruis:    { naam: 'Kruis',    pad: 'M36 6 H64 V36 H94 V64 H64 V94 H36 V64 H6 V36 H36 Z' }
+};
+const vormSvg = (v, klasse = '') => `<svg class="${klasse}" viewBox="0 0 100 100" aria-hidden="true"><path d="${VORMEN[v].pad}" fill="currentColor"/></svg>`;
+
+// ---------- Instellingen ----------
+
+const SLEUTEL = 'spel-trainthebrain';
+const instellingen = laadInstellingen(SLEUTEL, {
+  modus: 'gewoon',               // 'gewoon' of 'achtergrond'
+  pijlen: [],                    // standaard niets aangeduid: de therapeut kiest zelf
+  cijfers: [],
+  kleuren: [],
+  vormen: [],
+  achtergronden: ['groen', 'rood'],
+  totVolgende: false,            // true = prikkel blijft staan tot de volgende
+  zichtbaar: 0.5,                // seconden
+  willekeurig: false,
+  tussenMin: 1.5,                // seconden (bij vast: de tussentijd)
+  tussenMax: 3.0,
+  einde: 'tijd',                 // 'aantal' of 'tijd'
+  aantal: 30,
+  duur: 30,                      // seconden
+  geluid: false
+});
+const bewaar = () => bewaarInstellingen(SLEUTEL, instellingen);
+
+const komma = (x, d = 1) => x.toFixed(d).replace('.', ',');
+const tijdTekst = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const duurLabel = s => s < 60 ? `${s} s` : s % 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s / 60} min`;
+
+// Meerkeuzeknoppen (meerdere tegelijk aan, ook geen).
+function bouwMeerkeuze(id, opties, sleutel, label) {
+  const vak = document.getElementById(id);
+  vak.innerHTML = '';
+  for (const waarde of opties) {
+    const knop = document.createElement('button');
+    knop.type = 'button';
+    knop.innerHTML = label(waarde);
+    knop.setAttribute('aria-pressed', String(instellingen[sleutel].includes(waarde)));
+    knop.addEventListener('click', () => {
+      const aan = instellingen[sleutel].includes(waarde);
+      instellingen[sleutel] = aan ? instellingen[sleutel].filter(w => w !== waarde)
+                                  : opties.filter(w => w === waarde || instellingen[sleutel].includes(w));
+      bewaar();
+      bouwAlles();
+    });
+    vak.appendChild(knop);
+  }
+}
+
+// Schuifregelaar met − en + knoppen.
+function bouwRegelaar(id, sleutel, { min, max, stap, tekst }, bijWijziging) {
+  const vak = document.getElementById(id);
+  vak.innerHTML = `<button type="button" aria-label="Minder">−</button>
+    <input type="range" min="${min}" max="${max}" step="${stap}" aria-label="${id}">
+    <button type="button" aria-label="Meer">+</button><output></output>`;
+  const [min_, schuif, plus] = vak.querySelectorAll('button, input');
+  const uit = vak.querySelector('output');
+  const zet = w => {
+    w = Math.min(max, Math.max(min, Math.round(w / stap) * stap));
+    instellingen[sleutel] = Number(w.toFixed(2));
+    schuif.value = instellingen[sleutel];
+    uit.textContent = tekst(instellingen[sleutel]);
+  };
+  zet(instellingen[sleutel]);
+  const wijzig = w => { zet(w); bijWijziging?.(); bewaar(); };
+  schuif.addEventListener('input', () => wijzig(Number(schuif.value)));
+  min_.addEventListener('click', () => wijzig(instellingen[sleutel] - stap));
+  plus.addEventListener('click', () => wijzig(instellingen[sleutel] + stap));
+  return zet;
+}
+
+function bouwModi() {
+  const vak = document.getElementById('modi');
+  vak.innerHTML = '';
+  const modi = {
+    gewoon: ['Prikkel', 'Pijl, cijfer, kleur of vorm op een wit scherm'],
+    achtergrond: ['Achtergrond + prikkel', 'Gekleurde achtergrond met een pijl, cijfer, kleur of vorm erop']
+  };
+  for (const [m, [titel, uitleg]] of Object.entries(modi)) {
+    const knop = document.createElement('button');
+    knop.type = 'button';
+    knop.innerHTML = `<b>${titel}</b><small>${uitleg}</small>`;
+    knop.setAttribute('aria-pressed', String(instellingen.modus === m));
+    knop.addEventListener('click', () => { instellingen.modus = m; bewaar(); bouwAlles(); });
+    vak.appendChild(knop);
+  }
+}
+
+let zetMin, zetMax;
+function bouwAlles() {
+  bouwModi();
+  bouwMeerkeuze('pijlen', Object.keys(PIJLEN), 'pijlen', p => PIJLEN[p].teken);
+  bouwMeerkeuze('cijfers', CIJFERS, 'cijfers', c => String(c));
+  const stip = k => `<span class="stip" style="background:${KLEUREN[k].kleur}"></span>${KLEUREN[k].naam}`;
+  bouwMeerkeuze('kleuren', Object.keys(KLEUREN), 'kleuren', stip);
+  bouwMeerkeuze('achtergronden', Object.keys(KLEUREN), 'achtergronden', stip);
+  bouwMeerkeuze('vormen', Object.keys(VORMEN), 'vormen', v => `${vormSvg(v)}<span class="sr">${VORMEN[v].naam}</span>`);
+  document.getElementById('vak-achtergronden').hidden = instellingen.modus !== 'achtergrond';
+
+  bouwKeuzes({
+    totVolgende: [{ waarde: false, label: 'Vaste tijd' }, { waarde: true, label: 'Tot de volgende prikkel' }],
+    willekeurig: [{ waarde: false, label: 'Vast' }, { waarde: true, label: 'Willekeurig' }],
+    einde: [{ waarde: 'aantal', label: 'Aantal prikkels' }, { waarde: 'tijd', label: 'Tijd' }],
+    geluid: [{ waarde: true, label: 'Aan' }, { waarde: false, label: 'Uit' }]
+  }, instellingen, () => { bewaar(); bouwAlles(); });
+
+  bouwRegelaar('r-zichtbaar', 'zichtbaar', { min: 0.2, max: 5, stap: 0.1, tekst: w => `${komma(w)} s` });
+  document.getElementById('r-zichtbaar').hidden = instellingen.totVolgende;
+
+  const w = instellingen.willekeurig;
+  zetMin = bouwRegelaar('r-tussenMin', 'tussenMin', { min: 0.5, max: 5, stap: 0.1, tekst: x => `${w ? 'min ' : ''}${komma(x)} s` },
+    () => { if (instellingen.tussenMax < instellingen.tussenMin) zetMax(instellingen.tussenMin); toonUitleg(); });
+  zetMax = bouwRegelaar('r-tussenMax', 'tussenMax', { min: 0.5, max: 5, stap: 0.1, tekst: x => `max ${komma(x)} s` },
+    () => { if (instellingen.tussenMin > instellingen.tussenMax) zetMin(instellingen.tussenMax); toonUitleg(); });
+  document.getElementById('r-tussenMax').hidden = !w;
+
+  bouwRegelaar('r-aantal', 'aantal', { min: 5, max: 100, stap: 1, tekst: x => `${x}` });
+  bouwRegelaar('r-duur', 'duur', { min: 15, max: 600, stap: 15, tekst: duurLabel });
+  document.getElementById('r-aantal').hidden = instellingen.einde !== 'aantal';
+  document.getElementById('r-duur').hidden = instellingen.einde !== 'tijd';
+
+  toonUitleg();
+  bouwAllesKnoppen();
+  controleer();
+}
+
+function toonUitleg() {
+  const { totVolgende, willekeurig: w, tussenMin, tussenMax } = instellingen;
+  const tussen = w ? `willekeurig tussen ${komma(tussenMin)} en ${komma(tussenMax)} s` : `${komma(tussenMin)} s`;
+  document.getElementById('tussen-uitleg').textContent = totVolgende
+    ? `Elke prikkel blijft ${tussen} staan en wordt dan meteen vervangen door de volgende.`
+    : `Na elke prikkel is het scherm ${tussen} leeg.`;
+}
+
+// Mogelijke prikkels volgens de instellingen.
+function mogelijkePrikkels() {
+  const voor = [];
+  instellingen.pijlen.forEach(p => voor.push({ soort: 'pijl', waarde: p }));
+  instellingen.cijfers.forEach(c => voor.push({ soort: 'cijfer', waarde: c }));
+  instellingen.kleuren.forEach(k => voor.push({ soort: 'kleur', waarde: k }));
+  instellingen.vormen.forEach(v => voor.push({ soort: 'vorm', waarde: v }));
+  if (instellingen.modus !== 'achtergrond') return voor.map(p => ({ ...p, achtergrond: null }));
+  // Een kleur op een achtergrond van dezelfde kleur zie je niet: die combinatie valt weg.
+  return instellingen.achtergronden.flatMap(a =>
+    voor.filter(p => !(p.soort === 'kleur' && p.waarde === a)).map(p => ({ ...p, achtergrond: a })));
+}
+
+function controleer() {
+  const aantal = mogelijkePrikkels().length;
+  const { modus, achtergronden } = instellingen;
+  const niets = !['pijlen', 'cijfers', 'kleuren', 'vormen'].some(s => instellingen[s].length);
+  const melding = niets ? 'Duid minstens één pijl, cijfer, kleur of vorm aan.'
+    : modus === 'achtergrond' && !achtergronden.length ? 'Duid minstens één achtergrondkleur aan.'
+    : aantal === 0 ? 'Deze combinatie geeft geen zichtbare prikkels. Kies een andere kleur of achtergrond.'
+    : aantal === 1 ? 'Er is maar één mogelijke prikkel. Kies er meer voor afwisseling.' : '';
+  document.getElementById('waarschuwing').textContent = melding;
+  document.getElementById('begin').disabled = aantal === 0;
+}
+
+// Knop "Alle …" duidt alles aan; staat alles al aan, dan wordt het "Geen …".
+const ALLES = { pijlen: Object.keys(PIJLEN), cijfers: CIJFERS, kleuren: Object.keys(KLEUREN), vormen: Object.keys(VORMEN) };
+const ALLES_TEKST = { pijlen: 'pijlen', cijfers: 'cijfers', kleuren: 'kleuren', vormen: 'vormen' };
+function bouwAllesKnoppen() {
+  document.querySelectorAll('[data-alles]').forEach(knop => {
+    const s = knop.dataset.alles;
+    knop.textContent = `${instellingen[s].length === ALLES[s].length ? 'Geen' : 'Alle'} ${ALLES_TEKST[s]}`;
+  });
+}
+document.querySelectorAll('[data-alles]').forEach(knop => knop.addEventListener('click', () => {
+  const s = knop.dataset.alles;
+  instellingen[s] = instellingen[s].length === ALLES[s].length ? [] : [...ALLES[s]];
+  bewaar();
+  bouwAlles();
+}));
+
+bouwAlles();
+
+// ---------- Prikkel tonen ----------
+
+const veld = document.getElementById('prikkel');
+const spelScherm = document.getElementById('spel');
+const LEEG = '#ffffff';   // standaard wit scherm
+
+const pijlSvg = hoek => `<svg viewBox="0 0 100 100" style="transform: rotate(${hoek}deg)" aria-hidden="true">
+  <path d="M50 6 L90 48 L64 48 L64 94 L36 94 L36 48 L10 48 Z" fill="currentColor"/></svg>`;
+
+function toon(p) {
+  const ach = p.achtergrond ? KLEUREN[p.achtergrond] : null;
+  if (p.soort === 'kleur' && !ach) {
+    // Gewone modus: het hele scherm kleurt
+    spelScherm.style.background = KLEUREN[p.waarde].kleur;
+    veld.innerHTML = '';
+    return;
+  }
+  spelScherm.style.background = ach ? ach.kleur : LEEG;
+  // Op wit, geel en oranje: zwarte prikkel; op de andere kleuren: witte.
+  veld.className = !ach || ach.donker ? 'donker' : 'licht';
+  veld.innerHTML = p.soort === 'pijl' ? pijlSvg(PIJLEN[p.waarde].hoek)
+    : p.soort === 'cijfer' ? `<div class="getal">${p.waarde}</div>`
+    : p.soort === 'vorm' ? vormSvg(p.waarde, 'vorm')
+    : `<div class="bol" style="background:${KLEUREN[p.waarde].kleur}"></div>`;
+}
+
+function verberg() {
+  spelScherm.style.background = LEEG;
+  veld.innerHTML = '';
+}
+
+const sleutelVan = p => `${p.soort}-${p.waarde}-${p.achtergrond}`;
+function kiesPrikkel(lijst, vorige) {
+  // Nooit twee keer na elkaar dezelfde prikkel, anders lijkt het alsof er niets verandert.
+  const keuze = lijst.length > 1 ? lijst.filter(p => sleutelVan(p) !== vorige) : lijst;
+  return keuze[Math.floor(Math.random() * keuze.length)];
+}
+
+function tussentijd() {
+  const { willekeurig, tussenMin, tussenMax } = instellingen;
+  return (willekeurig ? tussenMin + Math.random() * (tussenMax - tussenMin) : tussenMin) * 1000;
+}
+
+// ---------- Sessie ----------
+
+let beurt = 0;          // verhoogt bij Start en Stoppen, zodat een oude sessie stilvalt
+let gepauzeerd = false;
+let verstreken = 0;     // ms speeltijd zonder pauzes
+let getoond = 0;
+let wekslot = null;
+
+const teller = document.getElementById('teller');
+function toonTeller() {
+  teller.textContent = instellingen.einde === 'aantal'
+    ? `${getoond} / ${instellingen.aantal}`
+    : tijdTekst(Math.max(0, Math.ceil(instellingen.duur - verstreken / 1000)));
+}
+
+// Wacht ms speeltijd (pauzes tellen niet). Geeft 'stop', 'einde' (tijd om) of 'ok'.
+function speelWacht(ms, mijn) {
+  return new Promise(klaar => {
+    let rest = ms;
+    let vorig = performance.now();
+    const tik = nu => {
+      if (mijn !== beurt) return klaar('stop');
+      const d = nu - vorig;
+      vorig = nu;
+      if (!gepauzeerd) { rest -= d; verstreken += d; }
+      if (instellingen.einde === 'tijd') {
+        toonTeller();
+        if (verstreken >= instellingen.duur * 1000) return klaar('einde');
+      }
+      if (rest <= 0) return klaar('ok');
+      setTimeout(() => tik(performance.now()), 15);
+    };
+    setTimeout(() => tik(performance.now()), 15);
+  });
+}
+
+async function houdWakker(aan) {
+  try {
+    if (aan && 'wakeLock' in navigator) wekslot = await navigator.wakeLock.request('screen');
+    else { await wekslot?.release(); wekslot = null; }
+  } catch { /* niet erg */ }
+}
+
+// Volledig scherm: moet starten vanuit een tik (Start/Opnieuw), anders weigert de browser.
+function volScherm(aan) {
+  const d = document, el = d.documentElement;
+  const actief = d.fullscreenElement || d.webkitFullscreenElement;
+  try {
+    if (aan && !actief) (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el)?.catch?.(() => {});
+    else if (!aan && actief) (d.exitFullscreen || d.webkitExitFullscreen)?.call(d)?.catch?.(() => {});
+  } catch { /* niet ondersteund (bv. iPhone): gewoon verder */ }
+}
+
+async function speel() {
+  volScherm(true);
+  startGeluid();
+  const mijn = ++beurt;
+  const lijst = mogelijkePrikkels();
+  if (!lijst.length) return;
+  gepauzeerd = false;
+  verstreken = 0;
+  getoond = 0;
+  document.getElementById('pauze').textContent = 'Pauze';
+  document.getElementById('pauze-melding').hidden = true;
+  houdWakker(true);
+
+  await aftellen(instellingen.geluid);
+  if (mijn !== beurt) return;
+  verberg();
+  toonScherm('spel');
+  toonTeller();
+
+  let vorige = null;
+  let uitkomst = 'ok';
+  // korte lege pauze zodat de eerste prikkel niet samenvalt met het einde van het aftellen
+  uitkomst = await speelWacht(500, mijn);
+  while (uitkomst === 'ok') {
+    const p = kiesPrikkel(lijst, vorige);
+    vorige = sleutelVan(p);
+    toon(p);
+    getoond++;
+    toonTeller();
+    piep(instellingen.geluid, 880, 0.08);
+    const laatste = instellingen.einde === 'aantal' && getoond >= instellingen.aantal;
+
+    if (instellingen.totVolgende) {
+      uitkomst = await speelWacht(tussentijd(), mijn);
+    } else {
+      uitkomst = await speelWacht(instellingen.zichtbaar * 1000, mijn);
+      if (uitkomst !== 'stop') verberg();
+      if (uitkomst === 'ok' && !laatste) uitkomst = await speelWacht(tussentijd(), mijn);
+    }
+    if (uitkomst === 'ok' && laatste) uitkomst = 'einde';
+  }
+  if (uitkomst === 'stop') return;
+  einde();
+}
+
+function einde() {
+  beurt++;
+  houdWakker(false);
+  verberg();
+  document.getElementById('res-getal').textContent = `${getoond} ${getoond === 1 ? 'prikkel' : 'prikkels'}`;
+  document.getElementById('res-tekst').textContent = `Speeltijd ${tijdTekst(verstreken / 1000)}. Mooi volgehouden!`;
+  toonScherm('resultaat');
+  piep(instellingen.geluid, 660, 0.15);
+  setTimeout(() => piep(instellingen.geluid, 990, 0.2), 180);
+}
+
+document.getElementById('begin').addEventListener('click', speel);
+document.getElementById('opnieuw').addEventListener('click', speel);
+document.getElementById('naar-start').addEventListener('click', () => { volScherm(false); toonScherm('start'); });
+document.getElementById('stop').addEventListener('click', () => {
+  volScherm(false);
+  beurt++;
+  houdWakker(false);
+  verberg();
+  toonScherm('start');
+});
+document.getElementById('pauze').addEventListener('click', () => {
+  gepauzeerd = !gepauzeerd;
+  document.getElementById('pauze').textContent = gepauzeerd ? 'Verder' : 'Pauze';
+  document.getElementById('pauze-melding').hidden = !gepauzeerd;
+});
+// Wakker-slot vervalt als de app naar de achtergrond gaat; opnieuw vragen bij terugkeer.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !document.getElementById('spel').hidden) houdWakker(true);
+});
+</script>
+</body>
+</html>
