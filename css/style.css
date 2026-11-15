@@ -409,3 +409,50 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 .fasen-patient li { display: flex; gap: 14px; align-items: flex-start; }
 .fasen-patient p { margin: 4px 0 0; color: var(--tekst-zacht); }
 .fase-nr { flex: 0 0 36px; height: 36px; border-radius: 50%; background: var(--hoofdkleur-licht); color: var(--hoofdkleur); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Patiëntscherm in stroken */
+.sprongen { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.strook { scroll-margin-top: 80px; margin-bottom: 16px; }
+.strook > div > .paneel, .strook.paneel { margin-bottom: 0; }
+.strook-kop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.strook-kop h2 { margin: 0; }
+.strook-kop .knoppen { display: flex; flex-wrap: wrap; gap: 8px; }
+.strook-testen { border-left: 4px solid var(--hoofdkleur); }
+.strook-programmas { border-left: 4px solid #6b5ca5; }
+.tabel-scroll { overflow-x: auto; }
+.strook-tabel { font-size: .9rem; }
+.strook-tabel td { vertical-align: top; padding: 8px 6px; }
+.lsi-badge { display: inline-block; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #eee; }
+.lsi-badge.lsi-ok { background: var(--hoofdkleur-licht); color: var(--hoofdkleur); }
+.lsi-badge.lsi-nog { background: #fdf0d5; color: #8a5a00; }
+.beter { color: var(--hoofdkleur); font-weight: 600; }
+.minder { color: #8a5a00; font-weight: 600; }
+
+/* Oefensessies */
+.strook-sessies { border-left: 4px solid #a86b00; }
+.signaal { background: #fdf0d5; border-radius: 10px; padding: 10px 14px; margin: 8px 0 12px; color: #6b4600; }
+.rij-signaal td { background: #fffaf0; }
+.grafiek-klein { height: 150px; margin-bottom: 8px; }
+/* Oefenkalender */
+.kalender { max-width: 520px; }
+.kal-balk { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.kal-periode { font-weight: 600; }
+.kal-raster { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.kal-kop { text-align: center; font-size: .8rem; color: var(--tekst-zacht); font-weight: 600; }
+.kal-dag { min-height: var(--min-knop); aspect-ratio: 1 / 1; border: 1px solid var(--rand); border-radius: 10px; background: var(--kaart);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font: inherit; color: var(--tekst); padding: 2px; }
+button.kal-dag { cursor: pointer; }
+button.kal-dag:active { background: var(--hoofdkleur-licht); }
+.kal-nr { font-size: .8rem; color: var(--tekst-zacht); line-height: 1; }
+.kal-teken { font-size: 1.15rem; font-weight: 700; line-height: 1.2; min-height: 1.2em; }
+.kal-alles { background: var(--hoofdkleur-licht); border-color: var(--hoofdkleur); }
+.kal-alles .kal-teken { color: var(--hoofdkleur); }
+.kal-deel { background: #eef5f5; border-color: #8fb8b9; }
+.kal-deel .kal-teken { color: var(--hoofdkleur); }
+.kal-niet .kal-teken { color: #8a9a9a; }
+.kal-vandaag { outline: 2px solid var(--tekst); outline-offset: 1px; }
+.kal-toekomst { opacity: .35; }
+.kal-signaal { box-shadow: inset 0 0 0 2px #c99a3a; }
+.kal-legende { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+.sessie-raster { display: grid; gap: 16px; grid-template-columns: minmax(260px, 520px) minmax(0, 1fr); align-items: start; margin-bottom: 12px; }
+@media (max-width: 800px) { .sessie-raster { grid-template-columns: 1fr; } }

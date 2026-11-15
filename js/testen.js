@@ -17,6 +17,7 @@ export function initTesten(hulp) {
   ctx = hulp;
   ctx.testenScherm = (...a) => testenScherm(...a);
   ctx.testmomentScherm = (...a) => testmomentScherm(...a);
+  ctx.testenPaneel = (...a) => testenPaneel(...a);
 }
 
 // ---------- Berekeningen ----------
@@ -187,6 +188,71 @@ async function laad(pid) {
   return { p, t };
 }
 
+// Strook "Testresultaten" op het scherm van een patiënt: per test de laatste meting, LSI en verloop
+async function testenPaneel(box, p) {
+  const { esc } = ctx;
+  if (!box) return;
+  const kop = (knoppen = '') => `<div class="strook-kop"><h2>Testresultaten</h2>${knoppen}</div>`;
+  let t, testlijst, momenten;
+  try { t = (await bron.trajectenVan(p.id)).find(x => x.actief); } catch { box.innerHTML = ''; return; }
+  if (!t) {
+    box.innerHTML = `<div class="paneel strook-testen">${kop()}<p>Wijs eerst een protocol toe bij <b>Opvolging</b> om testresultaten bij te houden.</p></div>`;
+    return;
+  }
+  try { [testlijst, momenten] = await Promise.all([bron.tests(), bron.testmomentenVan(t.id)]); }
+  catch (e) {
+    box.innerHTML = `<div class="paneel strook-testen">${kop()}<p>${/does not exist|schema cache|relation/i.test(e.message || '')
+      ? 'De testresultaten staan nog niet in Supabase (009_testresultaten.sql).' : esc(e.message)}</p></div>`;
+    return;
+  }
+  if (!box.isConnected) return;
+  const laatste = momenten[momenten.length - 1];
+  const rijen = testlijst.map(x => {
+    const reeks = momenten.filter(tm => (tm.metingen || []).some(m => m.test_id === x.id))
+      .map(tm => ({ tm, m: tm.metingen.find(m => m.test_id === x.id) }));
+    if (!reeks.length) return null;
+    const nu = reeks[reeks.length - 1], vorig = reeks[reeks.length - 2];
+    const w = lsi(x, nu.m, t.zijde), wv = vorig ? lsi(x, vorig.m, t.zijde) : null;
+    let verloop = '';
+    if (w != null && wv != null && Math.round(w) !== Math.round(wv)) {
+      const d = Math.round(w) - Math.round(wv);
+      verloop = `<span class="${d > 0 ? 'beter' : 'minder'}">${d > 0 ? '▲' : '▼'} ${d > 0 ? '+' : ''}${d} % LSI</span>`;
+    } else if (vorig && (x.soort === 'enkel' || (x.soort === 'lr' && w == null))) {
+      const a = x.soort === 'enkel' ? getal(nu.m.waarde) : zijden(nu.m, t.zijde).aangedaan ?? getal(nu.m.links);
+      const b = x.soort === 'enkel' ? getal(vorig.m.waarde) : zijden(vorig.m, t.zijde).aangedaan ?? getal(vorig.m.links);
+      if (a != null && b != null && a !== b) {
+        const beter = (x.lager_beter || x.lsi_omgekeerd) ? a < b : a > b;
+        verloop = `<span class="${beter ? 'beter' : 'minder'}">${a > b ? '▲' : '▼'} ${a > b ? '+' : ''}${fmt(a - b)} ${esc(x.eenheid)}</span>`;
+      }
+    } else if (vorig && x.soort === 'keuze' && nu.m.tekst !== vorig.m.tekst) {
+      verloop = `<span class="hulp">was ${esc(vorig.m.tekst || '—')}</span>`;
+    }
+    return `<tr>
+      <td><b>${esc(x.naam)}</b><br><span class="hulp">${esc(x.groep)}</span></td>
+      <td>${esc(datumKort(nu.tm.datum))}</td>
+      <td>${esc(metingTekst(x, nu.m, t.zijde, getal(nu.tm.gewicht_kg)).replace(/ · LSI \d+ %/, ''))}</td>
+      <td>${w != null ? `<span class="lsi-badge ${lsiKlasse(x, w)}">${Math.round(w)} %</span>` : '—'}</td>
+      <td>${verloop || '<span class="hulp">—</span>'}</td>
+    </tr>`;
+  }).filter(Boolean);
+
+  const pidEnc = encodeURIComponent(p.id);
+  box.innerHTML = `
+    <div class="paneel strook-testen">
+      ${kop(`<span class="knoppen">
+        <button class="knop knop-hoofd" id="strook-nieuw-tm">+ Testmoment</button>
+        ${momenten.length ? `<a class="knop knop-plat" href="#/patienten/${pidEnc}/testen">Grafieken</a>` : ''}
+      </span>`)}
+      ${laatste ? `<p class="hulp" style="font-size:.95rem">Laatste testmoment: <a href="#/patienten/${pidEnc}/test/${encodeURIComponent(laatste.id)}">${esc(datumLang(laatste.datum))}</a>
+        · ${momenten.length} ${momenten.length === 1 ? 'testmoment' : 'testmomenten'} in totaal${t.zijde ? '' : ' · <b>zijde niet ingevuld: geen LSI</b>'}</p>` : '<p>Nog geen testmoment.</p>'}
+      ${rijen.length ? `<div class="tabel-scroll"><table class="meet-tabel strook-tabel">
+        <thead><tr><th>Test</th><th>Datum</th><th>Laatste meting</th><th>LSI</th><th>Verloop</th></tr></thead>
+        <tbody>${rijen.join('')}</tbody>
+      </table></div>` : ''}
+    </div>`;
+  box.querySelector('#strook-nieuw-tm').addEventListener('click', () => nieuwTestmoment(p.id, t, momenten));
+}
+
 // Overzicht: testmomenten + grafiek per gemeten test
 async function testenScherm(pid, thuis) {
   const { esc, inhoud } = ctx;
@@ -234,7 +300,7 @@ export async function nieuwTestmoment(pid, t, momenten = []) {
   const r = await ctx.dialoog({
     titel: 'Nieuw testmoment', okTekst: 'Verder',
     velden: [
-      { naam: 'datum', label: 'Datum', type: 'date', waarde: new Date().toISOString().slice(0, 10), verplicht: true },
+      { naam: 'datum', label: 'Datum', type: 'date', waarde: (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date()), verplicht: true },
       { naam: 'gewicht', label: 'Lichaamsgewicht (kg, optioneel)', type: 'number', inputmode: 'decimal', waarde: vorigGewicht, hulp: 'Nodig voor de waarden per kg.' },
       { naam: 'notitie', label: 'Notitie (optioneel)', placeholder: 'bv. Looppoortbatterij week 12' }
     ]

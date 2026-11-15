@@ -9,7 +9,7 @@
 
 import * as bron from './bron.js';
 import { startKiesModus, registreerKiesDoel } from './patienten.js';
-import { laatsteMeting, metingTekst, nieuwTestmoment } from './testen.js';
+import { laatsteMeting, metingTekst } from './testen.js';
 
 let ctx = null;
 const $ = sel => document.querySelector(sel);
@@ -426,10 +426,8 @@ async function opvolgingVoor(box, p, herlaad) {
     t.ingreep && t.ingreep !== 'Geen' ? t.ingreep : '', t.sportprofiel
   ].filter(Boolean);
   const afwijkend = Object.keys(t.zichtbaar || {}).length;
-  let statussen = [], momenten = null;
+  let statussen = [];
   try { statussen = await bron.criteriumStatussen(t.id); } catch { /* stap 3 nog niet in de databank */ }
-  try { momenten = await bron.testmomentenVan(t.id); } catch { /* stap 4 nog niet in de databank */ }
-  const laatste = momenten?.length ? momenten[momenten.length - 1] : null;
   const vg = voortgang(huidig, statussen);
 
   box.innerHTML = `
@@ -447,11 +445,6 @@ async function opvolgingVoor(box, p, herlaad) {
         <span>Criteria fase ${t.huidige_fase}: <b>${vg.voldaan} van ${vg.totaal} voldaan</b>${vg.nietVoldaan ? ` · ${vg.nietVoldaan} niet voldaan` : ''}</span>
         <a class="knop knop-plat klein" href="#/patienten/${encodeURIComponent(p.id)}/criteria/${t.huidige_fase}">Criteria bijhouden</a>
       </div>
-      ${momenten ? `<div class="voortgang">
-        <span>Testresultaten: ${laatste ? `laatste testmoment <b>${datumTekst(laatste.datum)}</b> (${(laatste.metingen || []).length} tests)` : 'nog geen testmoment'}</span>
-        <button class="knop knop-plat klein" id="nieuw-tm">+ Testmoment</button>
-        ${momenten.length ? `<a class="knop knop-plat klein" href="#/patienten/${encodeURIComponent(p.id)}/testen">Grafieken</a>` : ''}
-      </div>` : ''}
       ${volgende ? `<p class="opvolging-volgende">Volgende: <b>fase ${volgende.nummer}</b> (${esc(volgende.titel)})${grens != null
         ? ` · ten vroegste vanaf <b>week ${String(grens).replace('.', ',')}</b>${grensDatum ? ` (${datumTekst(grensDatum)})` : ''}${weken != null ? (weken >= grens ? ' · <span class="ok">ondergrens bereikt</span>' : ` · <span class="nog">nog ${Math.ceil(grens - weken)} ${Math.ceil(grens - weken) === 1 ? 'week' : 'weken'}</span>`) : ''}`
         : ''}</p>` : '<p class="opvolging-volgende">Dit is de laatste fase.</p>'}
@@ -466,7 +459,6 @@ async function opvolgingVoor(box, p, herlaad) {
 
   const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
 
-  box.querySelector('#nieuw-tm')?.addEventListener('click', () => nieuwTestmoment(p.id, t, momenten || []));
 
   box.querySelector('#fase-vrij')?.addEventListener('click', async () => {
     let tekst = `De patiënt ziet daarna fase ${volgende.nummer}: “${volgende.titel_patient || volgende.titel}”, met de standaardoefeningen van die fase.`;
@@ -607,7 +599,7 @@ function voortgang(fase, statussen) {
 }
 
 const STATUS = [['voldaan', 'Voldaan'], ['niet_voldaan', 'Niet voldaan'], ['nvt', 'N.v.t.']];
-const vandaag = () => new Date().toISOString().slice(0, 10);
+const vandaag = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 async function criteriaScherm(pid, nummer, thuis) {
   const { esc, inhoud } = ctx;

@@ -167,6 +167,29 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
   (SQL 010); per fase of per patiënt kan je ze uitzetten. Positieve uitleg ("van 69 % naar 81 %. Goed bezig!"), geen notities.
 - De grafieken gebruiken Chart.js 4.4.4 (MIT), lokaal meegeleverd in `js/vendor/`, dus ook offline.
 
+## Patiëntscherm in stroken
+
+Bij een patiënt (in Beheer) staan vier stroken, met bovenaan knoppen om er meteen naartoe te springen:
+1. **Opvolging**: protocol, fasebalk, ondergrens, criteria en fase vrijgeven.
+2. **Testresultaten**: per test de laatste meting, de LSI in kleur en het verloop ten opzichte van de vorige meting,
+   met **+ Testmoment** en **Grafieken**.
+3. **Oefenprogramma's**: actieve programma's bovenaan en **+ Nieuw programma**.
+4. **Oefensessies**: de feedback van de patiënt (zie hieronder).
+
+## Oefenkalender met feedback van de patiënt
+
+### Eenmalig instellen in Supabase
+- **SQL Editor**: plak `supabase/migraties/013_oefensessies.sql` en klik **Run**.
+
+### Hoe het werkt
+- De patiënt ziet onder zijn programma's **Mijn oefenkalender** (5 weken, terug te bladeren). Hij tikt op een dag
+  (vandaag of eerder, als hij het vergat) of op **Vandaag aanduiden**, en duidt aan: **Ja, alles gedaan**, **Ja, een deel**
+  of **Nee, niet geoefend**, met feedback: pijn (0–10), zwelling, wat ging goed, wat was moeilijk.
+  Eén ingave per dag; een dag kan hij nog aanpassen. Geen reeks of druk om elke dag te oefenen.
+- Jij ziet in de strook **Oefensessies** dezelfde kalender (✓ alles, ◐ een deel, ✕ niet), het aantal dagen geoefend en de
+  gemiddelde pijn van de laatste 14 dagen, een **signaal** bij pijn ≥ 5/10 of meer zwelling, een pijngrafiek en de feedback.
+- Dit zijn gezondheidsgegevens die de patiënt zelf ingeeft: voor echte patiënten hoort dit bij het GDPR-advies.
+
 ## Opbouw
 
 **Onderdeel → Regio → Categorie → Fiches**

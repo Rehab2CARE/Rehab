@@ -5,6 +5,7 @@ import { synchroniseer } from './sync.js';
 import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbalkBij } from './patienten.js';
 import { initProtocollen, toonProtocollen } from './protocollen.js';
 import { initTesten } from './testen.js';
+import { initSessies } from './sessies.js';
 
 // Twee modi:
 // - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
@@ -413,6 +414,7 @@ async function start() {
   initPatienten(hulp);
   initProtocollen(hulp);
   initTesten(hulp);
+  initSessies(hulp);
 
   let linkMelding = null;
   if (bron.isIngesteld()) {

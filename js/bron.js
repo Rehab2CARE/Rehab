@@ -349,6 +349,23 @@ export async function mijnTestresultaten() {
   return ok(await sb.rpc('mijn_testresultaten')) || [];
 }
 
+// ---------- Oefensessies met feedback van de patiënt ----------
+export async function sessiesVan(patientId) {
+  return ok(await sb.from('oefensessies').select('*, programma:programmas(titel)').eq('patient_id', patientId)
+    .order('datum', { ascending: false }).order('aangemaakt', { ascending: false }).limit(90));
+}
+export async function mijnSessies() {
+  return ok(await sb.from('oefensessies').select('id, programma_id, datum, gedaan, pijn, zwelling, goed, moeilijk, aangemaakt')
+    .order('datum', { ascending: false }).limit(120));
+}
+// Eén ingave per patiënt per dag: bestaat de dag al, dan wordt ze aangepast
+export async function bewaarSessie(velden) {
+  return ok(await sb.from('oefensessies').upsert(velden, { onConflict: 'patient_id,datum' }).select().single());
+}
+export async function wisSessie(id) {
+  ok(await sb.from('oefensessies').delete().eq('id', id));
+}
+
 // Voor de aangemelde patiënt: enkel patiëntteksten en wat zichtbaar staat (functie in de databank)
 export async function mijnOpvolging() {
   return ok(await sb.rpc('mijn_opvolging')) || [];

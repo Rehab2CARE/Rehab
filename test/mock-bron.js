@@ -372,3 +372,24 @@ export async function wijzigProtocol(pid, v) { const s = server(); team(s); Obje
 export async function maakFase(v) { const s = server(); team(s); const f = { id: id(), titel_patient: '', kort: '', wanneer: '', ondergrens_weken: null, doel_patient: '', doel_concept: false, scope: '', opmerkingen: '', zichtbaar: { oefeningen: true, doel: true, criteria: true, testresultaten: true }, ...v }; s.fasen.push(f); schrijfServer(s); return { ...f }; }
 export async function wisFase(fid) { const s = server(); team(s); s.fasen = s.fasen.filter(f => f.id !== fid); s.criteria = s.criteria.filter(c => c.fase_id !== fid); schrijfServer(s); }
 export async function trajectenMetProtocol(pid) { const s = server(); team(s); return (s.trajecten || []).filter(t => t.protocol_id === pid && t.actief).map(t => ({ id: t.id, huidige_fase: t.huidige_fase })); }
+
+// ---------- Oefensessies (nagebootst, met dezelfde regels als de RLS) ----------
+export async function sessiesVan(pid) {
+  const s = server(); team(s);
+  return (s.sessies || []).filter(x => x.patient_id === pid).sort((a, b) => String(b.datum).localeCompare(String(a.datum)) || String(b.aangemaakt).localeCompare(String(a.aangemaakt)))
+    .map(x => ({ ...x, programma: (() => { const g = (s.programmas || []).find(y => y.id === x.programma_id); return g ? { titel: g.titel } : null; })() }));
+}
+export async function mijnSessies() {
+  const s = server(); const u = sessie(); if (!u) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  return (s.sessies || []).filter(x => x.patient_id === u.user.id).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+}
+export async function bewaarSessie(v) {
+  const s = server(); const u = sessie();
+  if (!u || (mijnRol(s) === 'patient' && v.patient_id !== u.user.id)) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  s.sessies = s.sessies || [];
+  const bestaand = s.sessies.find(x => x.patient_id === v.patient_id && x.datum === v.datum);
+  if (bestaand) { Object.assign(bestaand, v); schrijfServer(s); return { ...bestaand }; }
+  const r = { id: id(), gedaan: 'alles', pijn: null, zwelling: '', goed: '', moeilijk: '', ...v, aangemaakt: new Date().toISOString() };
+  s.sessies.push(r); schrijfServer(s); return { ...r };
+}
+export async function wisSessie(sid) { const s = server(); team(s); s.sessies = (s.sessies || []).filter(x => x.id !== sid); schrijfServer(s); }

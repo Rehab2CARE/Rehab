@@ -12,6 +12,7 @@ import { db } from './db.js';
 import * as bron from './bron.js';
 import { gekozenFiches, leegSelectie, bijSelectieWijziging } from './delen.js';
 import { toonPatientResultaten } from './testen.js';
+import { koppelKalender, dagAanduiden, vandaag as vandaagLokaal } from './sessies.js';
 
 let ctx = null;          // hulpmiddelen uit app.js (zie initPatienten)
 let blobUrl = null;      // blob-URL van de geopende fiche in de patiëntweergave
@@ -192,21 +193,39 @@ async function patientScherm(pid, thuis) {
     <h1>${esc(p.naam || p.code)}</h1>
     <p class="ondertitel">Code ${esc(p.code)}</p>
     <div class="beheer-balk">
-      <button class="knop knop-hoofd" id="nieuw-programma">+ Nieuw programma</button>
       <button class="knop knop-plat" id="wijzig-naam">Naam wijzigen</button>
       <button class="knop knop-plat" id="nieuwe-code">Nieuwe toegangscode</button>
       <button class="knop knop-gevaar" id="verwijder">Patiënt verwijderen</button>
     </div>
-    <div id="opvolging"><p class="ondertitel">Opvolging laden…</p></div>
-    <h2 class="rij-titel">Oefenprogramma's</h2>
-    ${progs.length ? `<ul class="lijst">${progs.map(g => `
+    <nav class="sprongen" aria-label="Ga naar">
+      <button type="button" class="knop knop-plat klein" data-naar="strook-opvolging">Opvolging</button>
+      <button type="button" class="knop knop-plat klein" data-naar="strook-testen">Testresultaten</button>
+      <button type="button" class="knop knop-plat klein" data-naar="strook-programmas">Oefenprogramma's</button>
+      <button type="button" class="knop knop-plat klein" data-naar="strook-sessies">Oefensessies</button>
+    </nav>
+    <section class="strook" id="strook-opvolging"><div id="opvolging"><p class="ondertitel">Opvolging laden…</p></div></section>
+    <section class="strook" id="strook-testen"><div id="testresultaten-vak"><p class="ondertitel">Testresultaten laden…</p></div></section>
+    <section class="strook paneel strook-programmas" id="strook-programmas">
+      <div class="strook-kop">
+        <h2>Oefenprogramma's</h2>
+        <button class="knop knop-hoofd" id="nieuw-programma">+ Nieuw programma</button>
+      </div>
+    ${progs.length ? `<ul class="lijst">${[...progs].sort((a, b) => (b.actief - a.actief)).map(g => `
       <li><a href="#/patienten/${encodeURIComponent(pid)}/programma/${encodeURIComponent(g.id)}">
         <span class="lijst-titel">${esc(g.titel)} <span class="label ${g.actief ? 'label-aan' : ''}">${g.actief ? 'Actief' : 'Gestopt'}</span>${g.fase_nummer ? ' <span class="label">opvolging</span>' : ''}</span>
         <span class="lijst-sub">${(g.programma_items || []).length} ${(g.programma_items || []).length === 1 ? 'oefening' : 'oefeningen'}${g.opmerking ? ' · ' + esc(g.opmerking) : ''}</span>
-      </a></li>`).join('')}</ul>` : '<div class="leeg">Nog geen programma. Maak er een aan.</div>'}`;
+      </a></li>`).join('')}</ul>` : '<div class="leeg">Nog geen programma. Maak er een aan.</div>'}
+    </section>
+    <section class="strook" id="strook-sessies"><div id="sessies-vak"><p class="ondertitel">Oefensessies laden…</p></div></section>`;
 
+  inhoud.querySelectorAll('[data-naar]').forEach(k => k.addEventListener('click', () =>
+    document.getElementById(k.dataset.naar)?.scrollIntoView({ block: 'start' })));
   if (ctx.opvolgingVoor) ctx.opvolgingVoor($('#opvolging'), p, () => patientScherm(pid, thuis));
   else $('#opvolging').innerHTML = '';
+  if (ctx.testenPaneel) ctx.testenPaneel($('#testresultaten-vak'), p);
+  else $('#testresultaten-vak').innerHTML = '';
+  if (ctx.sessiesPaneel) ctx.sessiesPaneel($('#sessies-vak'), p);
+  else $('#sessies-vak').innerHTML = '';
 
   $('#nieuw-programma').addEventListener('click', async () => {
     const r = await ctx.dialoog({
@@ -420,6 +439,8 @@ function toonToegangskaart({ code, wachtwoord, naam, nieuw = false }) {
 let programmas = [];
 let opvolging = [];  // per actief traject: fase, titel, doel, criteria, zichtbaar (enkel patiëntteksten)
 let resultaten = []; // testresultaten (enkel als zichtbaar), uit mijn_testresultaten()
+let sessies = [];    // eigen oefenkalender (een ingave per dag)
+const kalOpties = { verschuiving: 0, klikbaar: true };
 
 export async function startPatient() {
   const knop = id => { const k = $(id); if (k) k.hidden = true; };
@@ -428,6 +449,7 @@ export async function startPatient() {
   programmas = (await db.get('mijnProgrammas')) || [];
   opvolging = (await db.get('mijnOpvolging')) || [];
   resultaten = (await db.get('mijnTestresultaten')) || [];
+  sessies = (await db.get('mijnSessies')) || [];
   window.addEventListener('hashchange', toonPatient);
   $('#terug').addEventListener('click', () => { location.hash = '#/'; });
   toonPatient();
@@ -444,6 +466,7 @@ async function werkPatientBij() {
     const nieuw = await bron.mijnProgrammas();
     try { opvolging = await bron.mijnOpvolging(); await db.put('mijnOpvolging', opvolging); } catch { /* nog geen opvolging in de databank */ }
     try { resultaten = await bron.mijnTestresultaten(); await db.put('mijnTestresultaten', resultaten); } catch { /* nog geen testresultaten in de databank */ }
+    try { sessies = await bron.mijnSessies(); await db.put('mijnSessies', sessies); } catch { /* nog geen oefensessies in de databank */ }
     // Bestanden van de fiches lokaal bewaren, zodat het programma ook zonder internet werkt
     const nodig = new Set();
     for (const g of nieuw) for (const it of g.programma_items || []) {
@@ -519,10 +542,27 @@ function toonMijnProgramma() {
           </a></li>`).join('')}</ol>
       </section>`;
     }).join('') : (opvolging.length ? '' : `<div class="leeg">Je kinesitherapeut heeft nog geen programma voor je klaargezet.</div>`)}
+    ${zichtbaar.length ? `<section class="revalidatie oefenkalender">
+      <div class="strook-kop">
+        <h2>Mijn oefenkalender</h2>
+        <button class="knop knop-hoofd" id="vandaag-aanduiden">${sessies.some(s => s.datum === vandaagLokaal()) ? 'Vandaag aanpassen' : 'Vandaag aanduiden'}</button>
+      </div>
+      <p class="hulp">Tik op een dag om aan te duiden of je geoefend hebt, en vertel kort hoe het ging. Je kinesitherapeut leest mee.</p>
+      <div id="kal-vak"></div>
+    </section>` : ''}
     <div class="patient-voet">
       <button class="knop knop-plat" id="afmelden">Afmelden</button>
     </div>`;
   toonPatientResultaten($('#mijn-resultaten'), resultaten);
+  // Oefenkalender: tik op een dag (of "Vandaag aanduiden") om aan te duiden en feedback te geven
+  const aanduiden = async datum => {
+    if (!await dagAanduiden(ctx.profielId(), datum, sessies.find(s => s.datum === datum), zichtbaar)) return;
+    try { sessies = await bron.mijnSessies(); await db.put('mijnSessies', sessies); } catch { /* volgende keer */ }
+    toonMijnProgramma();
+  };
+  const kalVak = $('#kal-vak');
+  if (kalVak) koppelKalender(kalVak, () => sessies, kalOpties, aanduiden);
+  $('#vandaag-aanduiden')?.addEventListener('click', () => aanduiden(vandaagLokaal()));
   $('#afmelden').addEventListener('click', async () => {
     if (!await ctx.bevestig('Afmelden?', 'Je hebt daarna je code en wachtwoord nodig om opnieuw aan te melden.', 'Afmelden')) return;
     try { await bron.afmelden(); } catch { /* offline */ }
