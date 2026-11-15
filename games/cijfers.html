@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Cijferspel</title>
+<link rel="stylesheet" href="spel.css">
+<style>
+  :root { --rood: #e03131; --zwart: #111417; --papier: #f7f5ef; --lijn: #0f1c1d; }
+
+  /* Niveaus (zelfde stijl als Ballen volgen) */
+  .niveaus { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; width: min(640px, 100%); }
+  .niveaus button { min-height: 76px; border-radius: 14px; border: 2px solid #2d4547; background: var(--spel-vlak);
+                    color: var(--spel-tekst); font: inherit; cursor: pointer; display: grid; place-content: center; gap: 2px; }
+  .niveaus button b { font-size: 1.5rem; }
+  .niveaus button small { color: var(--spel-zacht); font-size: .75rem; }
+  .niveaus button[aria-pressed="true"] { border-color: var(--spel-hoofd); background: #1f4544; }
+  #niveau-uitleg { min-height: 1.4em; }
+  details.zelf { width: min(640px, 100%); text-align: left; }
+  details.zelf summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; font-weight: 600; color: var(--spel-hoofd); }
+  details.zelf .instellingen { margin-top: 8px; }
+  .keuzes button .r { color: #ff6b6b; font-weight: 700; }
+
+  /* Spelscherm */
+  #spel { padding: 0; justify-content: flex-start; gap: 0; overflow: hidden; }
+  .spel-boven { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top)); }
+  .spel-boven .info { flex: 1; text-align: left; font-size: 1.1rem; color: var(--spel-zacht); }
+  .spel-boven .info strong { color: var(--spel-tekst); }
+  .spel-boven .tijd { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 3.2em; }
+  .spel-boven .tijd.bijna { color: var(--spel-accent); }
+  .spel-boven .rechts { flex: 1; display: flex; justify-content: flex-end; gap: 10px; }
+  .klein-knop { min-height: 48px; padding: 0 18px; font-size: 1rem; }
+  .tijdbalk { width: 100%; height: 6px; background: #22383a; }
+  .tijdbalk div { height: 100%; width: 100%; background: var(--spel-hoofd); transform-origin: left; }
+
+  .speelveld { flex: 1; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 28px; padding: 16px; }
+  @media (orientation: portrait) { .speelveld { flex-direction: column; gap: 18px; } }
+
+  /* Opdracht */
+  .opdracht { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+              padding: 18px 26px; border-radius: 20px; background: var(--spel-vlak); border: 3px solid transparent; min-width: 280px; }
+  @media (orientation: landscape) { .opdracht { width: 30%; max-width: 360px; align-self: stretch; } }
+  @media (orientation: portrait) { .opdracht { width: 100%; max-width: 640px; } }
+  .opdracht .label { font-size: 1rem; color: var(--spel-zacht); text-transform: uppercase; letter-spacing: .08em; }
+  .opdracht .kleur { display: flex; align-items: center; gap: 12px; font-size: 2.1rem; font-weight: 800; }
+  .opdracht .stip { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #f2f5f4; flex: none; }
+  .opdracht .stip.rood { background: var(--rood); }
+  .opdracht .stip.zwart { background: var(--zwart); }
+  .opdracht .stip.alle { background: linear-gradient(90deg, var(--rood) 50%, var(--zwart) 50%); }
+  .opdracht .richting { font-size: 2.6rem; font-weight: 800; color: var(--spel-accent); line-height: 1.1; }
+  .opdracht .wacht { font-size: 1.6rem; color: var(--spel-zacht); }
+  .opdracht.nieuw { animation: nieuw 1.2s ease-out; }
+  @keyframes nieuw { 0%, 40% { border-color: var(--spel-accent); transform: scale(1.04); } 100% { border-color: transparent; transform: none; } }
+
+  /* Raster: wit papier met zwarte lijnen, zoals op de oefenfiche */
+  .bord { display: grid; background: var(--lijn); gap: 6px; padding: 6px; border-radius: 10px; flex: none; }
+  .vak { background: var(--papier); display: grid; place-items: center; position: relative;
+         font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .vak.rood { color: var(--rood); }
+  .vak.zwart { color: var(--zwart); }
+  .bord.wissel .vak { animation: wissel .5s ease-out; }
+  @keyframes wissel { 0% { opacity: 0; } 100% { opacity: 1; } }
+  .vak .nr { position: absolute; top: 6%; left: 8%; font-size: .26em; font-weight: 700; color: #fff; background: #2b6f69;
+             border-radius: 999px; min-width: 1.6em; height: 1.6em; display: grid; place-items: center; padding: 0 .3em; }
+
+  .spel-onder { display: flex; gap: 10px; justify-content: center; padding: 0 16px calc(12px + env(safe-area-inset-bottom)); }
+  .klein-knop[aria-pressed="true"] { border-color: var(--spel-hoofd); background: #1f4544; }
+
+  /* Rust */
+  .rust-getal { font-size: 7rem; font-weight: 800; color: var(--spel-hoofd); line-height: 1; font-variant-numeric: tabular-nums; }
+  .pauze-melding { position: absolute; inset: 0; background: rgba(15, 28, 29, .8); display: grid; place-items: center; z-index: 1; pointer-events: none;
+                   font-size: 3rem; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<section class="scherm" id="start">
+  <h1>Cijferspel</h1>
+  <p>Er verschijnen rode en zwarte getallen in een raster. Voer de oefening uit in de richting van de getallen, in de volgorde van de opdracht, bv. "enkel rood, van hoog naar laag". Opgelet: de opdracht en de getallen kunnen onderweg veranderen.</p>
+  <div class="niveaus" id="niveaus"></div>
+  <p id="niveau-uitleg"></p>
+  <details class="zelf" id="zelf">
+    <summary>Zelf instellen</summary>
+    <div class="instellingen">
+      <div class="instelling"><span>Raster</span><div class="keuzes" data-instelling="raster"></div></div>
+      <div class="instelling"><span>Getallen van 1 tot</span><div class="keuzes" data-instelling="maxGetal"></div></div>
+      <div class="instelling"><span>Midden leeg</span><div class="keuzes" data-instelling="middenLeeg"></div>
+        <small>Het middelste vak (bij 4x4 de middelste 4) blijft leeg: daar staat de patiënt.</small></div>
+      <div class="instelling"><span>Extra lege vakken</span><div class="keuzes" data-instelling="leeg"></div></div>
+      <div class="instelling"><span>Opdrachten</span><div class="keuzes" id="opdrachten"></div>
+        <small>Het spel kiest telkens één van de aangeduide opdrachten. Duid er minstens één aan.</small></div>
+      <div class="instelling"><span>Opdracht verschijnt</span><div class="keuzes" data-instelling="opdrachtNa"></div>
+        <small>Later tonen: de patiënt ziet eerst enkel de getallen en moet dan snel schakelen.</small></div>
+      <div class="instelling"><span>Opdracht wisselt</span><div class="keuzes" data-instelling="opdrachtWissel"></div></div>
+      <div class="instelling"><span>Getallen wisselen</span><div class="keuzes" data-instelling="rasterWissel"></div>
+        <small>Het raster blijft even groot, enkel de getallen en kleuren veranderen.</small></div>
+    </div>
+  </details>
+  <div class="instellingen">
+    <div class="instelling"><span>Werktijd per ronde</span><div class="keuzes" data-instelling="werktijd"></div></div>
+    <div class="instelling"><span>Rust tussen de rondes</span><div class="keuzes" data-instelling="rust"></div></div>
+    <div class="instelling"><span>Rondes</span><div class="keuzes" data-instelling="rondes"></div></div>
+    <div class="instelling"><span>Geluid</span><div class="keuzes" data-instelling="geluid"></div>
+      <small>Een piep bij een nieuwe opdracht, nieuwe getallen en de laatste 3 seconden.</small></div>
+  </div>
+  <button class="spel-knop" id="begin">Start</button>
+</section>
+
+<section class="scherm" id="aftellen" hidden>
+  <div class="aftellen" id="aftel-getal">3</div>
+</section>
+
+<section class="scherm" id="spel" hidden>
+  <div class="spel-boven">
+    <div class="info">Ronde <strong id="ronde-nr">1</strong> van <strong id="ronde-tot">3</strong></div>
+    <div class="tijd" id="tijd">0:30</div>
+    <div class="rechts">
+      <button class="spel-knop plat klein-knop" id="pauze">Pauze</button>
+      <button class="spel-knop plat klein-knop" id="stop">Stoppen</button>
+    </div>
+  </div>
+  <div class="tijdbalk"><div id="tijdbalk"></div></div>
+  <div class="speelveld">
+    <div class="opdracht" id="opdracht"></div>
+    <div class="bord" id="bord"></div>
+  </div>
+  <div class="spel-onder">
+    <button class="spel-knop plat klein-knop" id="volgorde" aria-pressed="false">Toon volgorde</button>
+    <button class="spel-knop plat klein-knop" id="nieuw-raster">Nieuwe getallen</button>
+  </div>
+  <div class="pauze-melding" id="pauze-melding" hidden>Pauze</div>
+</section>
+
+<section class="scherm" id="rust" hidden>
+  <h1>Rust</h1>
+  <div class="rust-getal" id="rust-getal">30</div>
+  <p id="rust-tekst">Straks ronde 2.</p>
+  <div class="knoppen">
+    <button class="spel-knop" id="rust-klaar">Nu verder</button>
+    <button class="spel-knop plat" id="rust-stop">Stoppen</button>
+  </div>
+</section>
+
+<section class="scherm" id="resultaat" hidden>
+  <h1>Goed gedaan!</h1>
+  <div class="resultaat-getal" id="res-rondes-tekst">3 rondes</div>
+  <p id="res-niveau"></p>
+  <p id="res-tekst"></p>
+  <div class="knoppen">
+    <button class="spel-knop" id="opnieuw">Opnieuw</button>
+    <button class="spel-knop plat" id="naar-start">Instellingen</button>
+  </div>
+</section>
+
+<script type="module">
+import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, wacht, aftellen } from './spel.js';
+
+// ---------- Instellingen en niveaus ----------
+
+const SLEUTEL = 'spel-cijfers';
+
+// Mogelijke opdrachten: kleur (alle, rood, zwart) × richting (af = hoog naar laag, op = laag naar hoog).
+const OPDRACHTEN = {
+  'alle-af':  { kleur: 'alle',  richting: 'af' },
+  'alle-op':  { kleur: 'alle',  richting: 'op' },
+  'rood-af':  { kleur: 'rood',  richting: 'af' },
+  'rood-op':  { kleur: 'rood',  richting: 'op' },
+  'zwart-af': { kleur: 'zwart', richting: 'af' },
+  'zwart-op': { kleur: 'zwart', richting: 'op' }
+};
+const ALLE = Object.keys(OPDRACHTEN);
+const KLEUR_TEKST = { alle: 'Rood en zwart', rood: 'Enkel rood', zwart: 'Enkel zwart' };
+const RICHTING_TEKST = { af: 'Hoog → laag', op: 'Laag → hoog' };
+
+// ===== PAS HIER DE NIVEAUS AAN =====
+// Een niveau zet deze instellingen in één tik. Wijzig je er zelf één, dan wordt het "Eigen".
+//   raster: 3 of 4 (3x3 of 4x4) · maxGetal: 20, 50 of 100 · middenLeeg: true/false · leeg: 0–3 extra lege vakken
+//   opdrachten: lijst uit OPDRACHTEN hierboven
+//   opdrachtNa: na hoeveel seconden de opdracht verschijnt (0 = meteen)
+//   opdrachtWissel: elke hoeveel seconden een nieuwe opdracht komt (0 = nooit)
+//   rasterWissel: elke hoeveel seconden nieuwe getallen komen (0 = nooit, 'opdracht' = samen met de opdracht)
+// Werktijd, rust en rondes horen niet bij een niveau: die kies je apart, afgestemd op de oefening.
+const NIVEAUS = {
+  1: { raster: 3, maxGetal: 20,  middenLeeg: true, leeg: 0, opdrachten: ['alle-af', 'alle-op'], opdrachtNa: 0, opdrachtWissel: 0,  rasterWissel: 0 },
+  2: { raster: 3, maxGetal: 50,  middenLeeg: true, leeg: 1, opdrachten: ALLE, opdrachtNa: 0, opdrachtWissel: 0,  rasterWissel: 20 },
+  3: { raster: 3, maxGetal: 100, middenLeeg: true, leeg: 1, opdrachten: ALLE, opdrachtNa: 0, opdrachtWissel: 20, rasterWissel: 'opdracht' },
+  4: { raster: 4, maxGetal: 100, middenLeeg: true, leeg: 2, opdrachten: ALLE, opdrachtNa: 3, opdrachtWissel: 15, rasterWissel: 15 },
+  5: { raster: 4, maxGetal: 100, middenLeeg: true, leeg: 2, opdrachten: ALLE, opdrachtNa: 5, opdrachtWissel: 10, rasterWissel: 'opdracht' }
+};
+const NIVEAU_VELDEN = Object.keys(NIVEAUS[1]);
+const gelijk = (a, b) => Array.isArray(a) ? JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()) : a === b;
+
+const instellingen = laadInstellingen(SLEUTEL, {
+  niveau: 1, ...NIVEAUS[1], werktijd: 30, rust: 30, rondes: 3, geluid: true
+});
+// Oude of onvolledige opdrachtenlijst? Dan alle opdrachten.
+instellingen.opdrachten = (instellingen.opdrachten || []).filter(k => OPDRACHTEN[k]);
+if (!instellingen.opdrachten.length) instellingen.opdrachten = [...ALLE];
+
+const aanUit = [{ waarde: true, label: 'Aan' }, { waarde: false, label: 'Uit' }];
+const sec = s => s === 0 ? 'nooit' : `elke ${s} s`;
+
+function niveauOmschrijving(n) {
+  const v = n === 'eigen' ? instellingen : NIVEAUS[n];
+  const delen = [`${v.raster}x${v.raster}`, `1–${v.maxGetal}`];
+  const kleuren = new Set(v.opdrachten.map(k => OPDRACHTEN[k].kleur));
+  delen.push(kleuren.size === 1 && kleuren.has('alle') ? 'alle kleuren' : 'per kleur');
+  if (v.opdrachtNa) delen.push(`opdracht na ${v.opdrachtNa} s`);
+  delen.push(v.opdrachtWissel ? `opdracht ${sec(v.opdrachtWissel)}` : 'vaste opdracht');
+  delen.push(v.rasterWissel === 'opdracht' ? 'getallen wisselen mee'
+    : v.rasterWissel ? `getallen ${sec(v.rasterWissel)}` : 'vaste getallen');
+  return delen.join(' · ');
+}
+
+function pasNiveauAan() {
+  const past = Object.entries(NIVEAUS).find(([, v]) => NIVEAU_VELDEN.every(k => gelijk(v[k], instellingen[k])));
+  instellingen.niveau = past ? Number(past[0]) : 'eigen';
+}
+
+function bouwNiveaus() {
+  const vak = document.getElementById('niveaus');
+  vak.innerHTML = '';
+  for (const n of [1, 2, 3, 4, 5, 'eigen']) {
+    const knop = document.createElement('button');
+    knop.type = 'button';
+    knop.innerHTML = n === 'eigen' ? '<b>Eigen</b><small>zelf instellen</small>' : `<b>${n}</b><small>niveau</small>`;
+    knop.setAttribute('aria-pressed', String(instellingen.niveau === n));
+    knop.addEventListener('click', () => {
+      if (n === 'eigen') document.getElementById('zelf').open = true;
+      else Object.assign(instellingen, structuredClone(NIVEAUS[n]));
+      instellingen.niveau = n;
+      bewaarInstellingen(SLEUTEL, instellingen);
+      bouwAlles();
+    });
+    vak.appendChild(knop);
+  }
+  document.getElementById('niveau-uitleg').textContent = niveauOmschrijving(instellingen.niveau);
+}
+
+// Opdrachten: meerdere tegelijk aan te duiden (de gedeelde keuzeknoppen kennen maar één keuze).
+function bouwOpdrachten() {
+  const vak = document.getElementById('opdrachten');
+  vak.innerHTML = '';
+  for (const [sleutel, o] of Object.entries(OPDRACHTEN)) {
+    const knop = document.createElement('button');
+    knop.type = 'button';
+    const kleur = o.kleur === 'alle' ? 'Alle' : o.kleur === 'rood' ? '<span class="r">Rood</span>' : 'Zwart';
+    knop.innerHTML = `${kleur} · ${o.richting === 'af' ? 'hoog → laag' : 'laag → hoog'}`;
+    knop.setAttribute('aria-pressed', String(instellingen.opdrachten.includes(sleutel)));
+    knop.addEventListener('click', () => {
+      const aan = instellingen.opdrachten.includes(sleutel);
+      if (aan && instellingen.opdrachten.length === 1) return;   // minstens één opdracht
+      instellingen.opdrachten = aan ? instellingen.opdrachten.filter(k => k !== sleutel) : [...instellingen.opdrachten, sleutel];
+      pasNiveauAan();
+      bewaarInstellingen(SLEUTEL, instellingen);
+      bouwAlles();
+    });
+    vak.appendChild(knop);
+  }
+}
+
+function bouwAlles() {
+  bouwNiveaus();
+  bouwOpdrachten();
+  bouwKeuzes({
+    raster: [3, 4].map(n => ({ waarde: n, label: `${n}x${n}` })),
+    maxGetal: [20, 50, 100].map(n => ({ waarde: n, label: String(n) })),
+    middenLeeg: aanUit,
+    leeg: [0, 1, 2, 3].map(n => ({ waarde: n, label: String(n) })),
+    opdrachtNa: [0, 3, 5, 10].map(n => ({ waarde: n, label: n ? `na ${n} s` : 'Meteen' })),
+    opdrachtWissel: [0, 10, 15, 20, 30].map(n => ({ waarde: n, label: n ? `elke ${n} s` : 'Nooit' })),
+    rasterWissel: [
+      { waarde: 0, label: 'Nooit' },
+      ...[10, 15, 20, 30].map(n => ({ waarde: n, label: `elke ${n} s` })),
+      { waarde: 'opdracht', label: 'Samen met de opdracht' }
+    ],
+    werktijd: [20, 30, 45, 60, 90, 120].map(n => ({ waarde: n, label: n < 60 ? `${n} s` : `${n / 60 === 1.5 ? '1,5' : n / 60} min` })),
+    rust: [0, 15, 30, 60].map(n => ({ waarde: n, label: n ? `${n} s` : 'Geen' })),
+    rondes: [1, 2, 3, 5].map(n => ({ waarde: n, label: String(n) })),
+    geluid: aanUit
+  }, instellingen, (w, naam) => {
+    if (NIVEAU_VELDEN.includes(naam)) { pasNiveauAan(); bouwNiveaus(); }
+    bewaarInstellingen(SLEUTEL, w);
+  });
+}
+bouwAlles();
+
+// ---------- Raster ----------
+
+const bord = document.getElementById('bord');
+const opdrachtVak = document.getElementById('opdracht');
+let raster = [];          // per vak: null (leeg) of { getal, kleur }
+let opdracht = null;      // sleutel uit OPDRACHTEN, of null zolang ze nog niet zichtbaar is
+let toonVolgorde = false;
+
+const schud = lijst => {
+  for (let i = lijst.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lijst[i], lijst[j]] = [lijst[j], lijst[i]];
+  }
+  return lijst;
+};
+
+function middenVakken(n) {
+  if (n % 2) return [Math.floor(n * n / 2)];
+  const h = n / 2;
+  return [(h - 1) * n + h - 1, (h - 1) * n + h, h * n + h - 1, h * n + h];
+}
+
+function maakRaster() {
+  const n = instellingen.raster;
+  const midden = instellingen.middenLeeg ? middenVakken(n) : [];
+  const vrij = schud([...Array(n * n).keys()].filter(i => !midden.includes(i)));
+  const extraLeeg = Math.min(instellingen.leeg, Math.max(0, vrij.length - 4));
+  const gevuld = vrij.slice(extraLeeg);
+  // Unieke getallen, kleuren ongeveer half rood half zwart (minstens 2 van elk, zodat elke opdracht kan).
+  const getallen = schud([...Array(instellingen.maxGetal).keys()].map(i => i + 1)).slice(0, gevuld.length);
+  const rood = Math.round(gevuld.length / 2 + (Math.random() - 0.5) * 2);
+  const kleuren = schud(gevuld.map((_, i) => i < Math.min(Math.max(rood, 2), gevuld.length - 2) ? 'rood' : 'zwart'));
+  raster = Array(n * n).fill(null);
+  gevuld.forEach((vak, i) => { raster[vak] = { getal: getallen[i], kleur: kleuren[i] }; });
+}
+
+// Volgorde voor de therapeut: positie in de reeks per vak, of 0 als het vak niet meedoet.
+function volgordeVan(sleutel) {
+  if (!sleutel) return raster.map(() => 0);
+  const { kleur, richting } = OPDRACHTEN[sleutel];
+  const mee = raster.filter(v => v && (kleur === 'alle' || v.kleur === kleur))
+    .sort((a, b) => richting === 'af' ? b.getal - a.getal : a.getal - b.getal);
+  return raster.map(v => (v && mee.includes(v) ? mee.indexOf(v) + 1 : 0));
+}
+
+function tekenRaster(animeer) {
+  const n = instellingen.raster;
+  const volgorde = toonVolgorde ? volgordeVan(opdracht) : null;
+  bord.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  bord.innerHTML = raster.map((v, i) => {
+    if (!v) return '<div class="vak"></div>';
+    const nr = volgorde?.[i] ? `<span class="nr">${volgorde[i]}</span>` : '';
+    return `<div class="vak ${v.kleur}">${v.getal}${nr}</div>`;
+  }).join('');
+  if (animeer) { bord.classList.remove('wissel'); void bord.offsetWidth; bord.classList.add('wissel'); }
+  meetBord();
+}
+
+function meetBord() {
+  const veld = document.querySelector('.speelveld');
+  if (!veld || veld.offsetParent === null) return;
+  const staand = matchMedia('(orientation: portrait)').matches;
+  const ruimte = veld.getBoundingClientRect();
+  const extra = opdrachtVak.getBoundingClientRect();
+  const beschikbaarB = staand ? ruimte.width - 32 : ruimte.width - extra.width - 28 - 32;
+  const beschikbaarH = staand ? ruimte.height - extra.height - 18 - 32 : ruimte.height - 32;
+  const maat = Math.max(200, Math.floor(Math.min(beschikbaarB, beschikbaarH)));
+  bord.style.width = bord.style.height = `${maat}px`;
+  const vak = maat / instellingen.raster;
+  bord.style.fontSize = `${Math.floor(vak * (instellingen.maxGetal === 100 ? 0.4 : 0.48))}px`;
+}
+addEventListener('resize', meetBord);
+
+function tekenOpdracht(nieuw) {
+  if (!opdracht) {
+    opdrachtVak.innerHTML = '<div class="label">Opdracht</div><div class="wacht">Kijk naar de getallen…</div>';
+  } else {
+    const { kleur, richting } = OPDRACHTEN[opdracht];
+    opdrachtVak.innerHTML = `<div class="label">Opdracht</div>
+      <div class="kleur"><span class="stip ${kleur}"></span>${KLEUR_TEKST[kleur]}</div>
+      <div class="richting">${RICHTING_TEKST[richting]}</div>`;
+  }
+  if (nieuw) { opdrachtVak.classList.remove('nieuw'); void opdrachtVak.offsetWidth; opdrachtVak.classList.add('nieuw'); }
+}
+
+function kiesOpdracht() {
+  const lijst = instellingen.opdrachten.filter(k => k !== opdracht);
+  return lijst.length ? lijst[Math.floor(Math.random() * lijst.length)] : opdracht;
+}
+
+// ---------- Ronde ----------
+
+let beurt = 0;            // volgnummer van het lopende spel; Stoppen of Start verhoogt het
+let gepauzeerd = false;
+let wachtend = null;
+const wachtOp = () => new Promise(r => { wachtend = r; });
+function los(waarde) { const r = wachtend; wachtend = null; r?.(waarde); }
+
+const tijdTekst = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+function nieuweOpdracht(teller) {
+  opdracht = kiesOpdracht();
+  teller.opdrachten++;
+  tekenOpdracht(true);
+  tekenRaster(false);
+  piep(instellingen.geluid, 990, 0.1);
+  setTimeout(() => piep(instellingen.geluid, 1320, 0.14), 140);
+}
+
+function nieuwRaster(teller) {
+  maakRaster();
+  teller.rasters++;
+  tekenRaster(true);
+  piep(instellingen.geluid, 520, 0.15);
+}
+
+function speelRonde(mijn, teller) {
+  const duur = instellingen.werktijd * 1000;
+  const na = instellingen.opdrachtNa * 1000;
+  const opdrachtStap = instellingen.opdrachtWissel * 1000;
+  const rasterStap = typeof instellingen.rasterWissel === 'number' ? instellingen.rasterWissel * 1000 : 0;
+  const metOpdracht = instellingen.rasterWissel === 'opdracht';
+  const MARGE = 2000;     // geen wissel meer in de laatste 2 seconden
+
+  opdracht = null;
+  maakRaster();
+  teller.rasters++;
+  tekenOpdracht(false);
+  tekenRaster(true);
+
+  let verstreken = 0, vorige = performance.now();
+  let volgendeOpdracht = na;          // eerste opdracht verschijnt
+  let volgendRaster = rasterStap || Infinity;
+  let laatstePiep = Infinity;
+  const tijd = document.getElementById('tijd');
+  const balk = document.getElementById('tijdbalk');
+
+  const klaar = wachtOp();
+  function stap(nu) {
+    if (mijn !== beurt) return;
+    if (!gepauzeerd) verstreken += nu - vorige;
+    vorige = nu;
+
+    if (verstreken >= volgendeOpdracht) {
+      const eerste = opdracht === null;
+      if (eerste || duur - verstreken > MARGE) {
+        if (!eerste && metOpdracht) nieuwRaster(teller);
+        nieuweOpdracht(teller);
+      }
+      volgendeOpdracht = opdrachtStap ? volgendeOpdracht + opdrachtStap : Infinity;
+    }
+    if (verstreken >= volgendRaster) {
+      if (duur - verstreken > MARGE) nieuwRaster(teller);
+      volgendRaster += rasterStap;
+    }
+
+    const over = Math.max(0, Math.ceil((duur - verstreken) / 1000));
+    tijd.textContent = tijdTekst(over);
+    tijd.classList.toggle('bijna', over <= 3);
+    balk.style.transform = `scaleX(${Math.max(0, 1 - verstreken / duur)})`;
+    if (over <= 3 && over >= 1 && over < laatstePiep) { laatstePiep = over; piep(instellingen.geluid, 660); }
+
+    if (verstreken >= duur) { piep(instellingen.geluid, 440, 0.6); los(true); return; }
+    requestAnimationFrame(stap);
+  }
+  requestAnimationFrame(stap);
+  return klaar;
+}
+
+async function rust(seconden, volgende, mijn) {
+  toonScherm('rust');
+  document.getElementById('rust-tekst').textContent = `Straks ronde ${volgende}.`;
+  const getal = document.getElementById('rust-getal');
+  let overgeslagen = false;
+  const klaar = wachtOp().then(() => { overgeslagen = true; });
+  for (let s = seconden; s > 0 && !overgeslagen; s--) {
+    getal.textContent = s;
+    await Promise.race([wacht(1000), klaar]);
+    if (mijn !== beurt) return false;
+  }
+  wachtend = null;
+  return mijn === beurt;
+}
+
+async function speel() {
+  startGeluid();
+  const mijn = ++beurt;
+  gepauzeerd = false;
+  toonVolgorde = false;
+  document.getElementById('volgorde').setAttribute('aria-pressed', 'false');
+  document.getElementById('pauze').textContent = 'Pauze';
+  document.getElementById('pauze-melding').hidden = true;
+  document.getElementById('ronde-tot').textContent = instellingen.rondes;
+  const teller = { opdrachten: 0, rasters: 0 };
+
+  for (let r = 1; r <= instellingen.rondes; r++) {
+    await aftellen(instellingen.geluid);
+    if (mijn !== beurt) return;
+    toonScherm('spel');
+    document.getElementById('ronde-nr').textContent = r;
+    await speelRonde(mijn, teller);
+    if (mijn !== beurt) return;
+    if (r < instellingen.rondes && instellingen.rust) {
+      if (!await rust(instellingen.rust, r + 1, mijn)) return;
+    }
+  }
+  toonResultaat(teller);
+}
+
+function toonResultaat(teller) {
+  const n = instellingen.rondes;
+  document.getElementById('res-rondes-tekst').textContent = `${n} ${n === 1 ? 'ronde' : 'rondes'}`;
+  document.getElementById('res-niveau').textContent =
+    `${instellingen.niveau === 'eigen' ? 'Eigen instelling' : `Niveau ${instellingen.niveau}`}: ${niveauOmschrijving(instellingen.niveau)} · ${instellingen.werktijd} s per ronde`;
+  const zinnen = [`Je hield ${n === 1 ? 'de ronde' : `alle ${n} rondes`} vol.`];
+  if (teller.opdrachten > n) zinnen.push(`Je schakelde ${teller.opdrachten - n} keer naar een nieuwe opdracht.`);
+  if (teller.rasters > n) zinnen.push(`Je kreeg ${teller.rasters - n} keer nieuwe getallen.`);
+  document.getElementById('res-tekst').textContent = zinnen.join(' ');
+  toonScherm('resultaat');
+}
+
+function stop() {
+  beurt++;
+  gepauzeerd = false;
+  los(false);
+  toonScherm('start');
+}
+
+document.getElementById('begin').addEventListener('click', speel);
+document.getElementById('opnieuw').addEventListener('click', speel);
+document.getElementById('naar-start').addEventListener('click', () => toonScherm('start'));
+document.getElementById('stop').addEventListener('click', stop);
+document.getElementById('rust-stop').addEventListener('click', stop);
+document.getElementById('rust-klaar').addEventListener('click', () => los(true));
+document.getElementById('pauze').addEventListener('click', e => {
+  gepauzeerd = !gepauzeerd;
+  e.currentTarget.textContent = gepauzeerd ? 'Verder' : 'Pauze';
+  document.getElementById('pauze-melding').hidden = !gepauzeerd;
+});
+document.getElementById('volgorde').addEventListener('click', e => {
+  toonVolgorde = !toonVolgorde;
+  e.currentTarget.setAttribute('aria-pressed', String(toonVolgorde));
+  tekenRaster(false);
+});
+document.getElementById('nieuw-raster').addEventListener('click', () => {
+  maakRaster();
+  tekenRaster(true);
+  piep(instellingen.geluid, 520, 0.15);
+});
+</script>
+</body>
+</html>

@@ -17,8 +17,8 @@
     {
       "id": "cijfers",
       "titel": "Cijferspel",
-      "omschrijving": "Wordt nog uitgewerkt",
-      "bestand": null
+      "omschrijving": "Getallen in volgorde, met wisselende opdrachten",
+      "bestand": "games/cijfers.html"
     }
   ]
 }
