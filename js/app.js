@@ -854,7 +854,7 @@ function toonTegels(keten, ids) {
   const titel = diepte === 0 ? structuur.appTitel : ouder.titel;
   const sub = diepte === 0 ? 'Kies een onderdeel.' : (diepte === 1 ? 'Kies een regio.' : 'Kies een categorie.');
 
-  const tegels = lijst.map((k, i) => {
+  const tegelVoor = (k, i) => {
     const aantal = diepte === 2 ? (k.fiches || []).length : null;
     const onder = diepte === 0 && k.omschrijving ? k.omschrijving
       : aantal !== null ? `${aantal} ${aantal === 1 ? 'fiche' : 'fiches'}` : '';
@@ -866,20 +866,41 @@ function toonTegels(keten, ids) {
         </a>
         ${beheer ? beheerKnoppen(i, lijst.length) : ''}
       </div>`;
-  }).join('');
+  };
+  const nieuwKnop = beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : '';
 
-  inhoud.innerHTML = `
+  if (diepte === 0 && gedeeld() && beheer) {
+    // Startscherm van het team: Patiënten, Revalidatieprotocols en Games bovenaan, fiches eronder
+    const isProtocolMap = k => /revalidatieprotocol/i.test(k.titel || '');
+    const boven = lijst.map((k, i) => isProtocolMap(k) ? tegelVoor(k, i) : '').join('');
+    const onder = lijst.map((k, i) => isProtocolMap(k) ? '' : tegelVoor(k, i)).join('');
+    inhoud.innerHTML = `
+    <h1>${esc(titel)}</h1>
+    <div class="tegels groot">
+      ${patientenTegel()}
+      ${boven}
+      ${games.games.length ? gamesTegel() : ''}
+    </div>
+    <h2 class="rij-titel">Fiches</h2>
+    ${zoekbalk('')}
+    <div class="tegels groot">
+      ${onder}
+      ${nieuwKnop}
+    </div>
+    ${startRijen()}`;
+  } else {
+    inhoud.innerHTML = `
     <h1>${esc(titel)}</h1>
     <p class="ondertitel">${sub}</p>
     ${diepte === 0 ? zoekbalk('') : ''}
     ${!lijst.length && !beheer ? `<div class="leeg">Hier staat nog niets. Zet <b>Beheer</b> aan om iets toe te voegen.</div>` : ''}
     <div class="tegels ${diepte === 0 ? 'groot' : ''}">
-      ${tegels}
+      ${lijst.map(tegelVoor).join('')}
       ${diepte === 0 && games.games.length ? gamesTegel() : ''}
-      ${diepte === 0 && gedeeld() && beheer ? patientenTegel() : ''}
-      ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
+      ${nieuwKnop}
     </div>
     ${diepte === 0 ? startRijen() : ''}`;
+  }
 
   if (diepte === 0) {
     koppelZoekbalk(false);
