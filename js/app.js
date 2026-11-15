@@ -375,7 +375,7 @@ async function standaardStructuur() {
   const maakRegio = titel => ({ id: nieuwId(), titel, kinderen: (cfg.standaardCategorieen || []).map(maakCat) });
   return {
     versie: cfg.versie || 1,
-    appTitel: cfg.appTitel || 'Praktijkfiches',
+    appTitel: cfg.appTitel || 'Rehab',
     niveauNamen: cfg.niveauNamen,
     secties: cfg.secties.map(s => ({
       id: nieuwId(),
@@ -386,7 +386,10 @@ async function standaardStructuur() {
   };
 }
 
-const LEGE_STRUCTUUR = () => ({ versie: 1, bron: 'gedeeld', appTitel: 'Praktijkfiches', niveauNamen: ['Onderdeel', 'Regio', 'Categorie'], secties: [] });
+// De app heette vroeger Praktijkfiches: een bewaarde oude naam wordt Rehab (een zelf gekozen naam blijft)
+const nieuweNaam = s => { if (s && (!s.appTitel || s.appTitel === 'Praktijkfiches')) s.appTitel = 'Rehab'; return s; };
+
+const LEGE_STRUCTUUR = () => ({ versie: 1, bron: 'gedeeld', appTitel: 'Rehab', niveauNamen: ['Onderdeel', 'Regio', 'Categorie'], secties: [] });
 
 async function start() {
   $('#dialoog-annuleer').addEventListener('click', () => $('#dialoog').close('annuleer'));
@@ -409,7 +412,7 @@ async function start() {
 
   hulp = {
     esc, melding, dialoog, bevestig, link, pad, inhoud, toon, ficheVlak, alleFichesMetPlaats, knoopPad,
-    appTitel: () => structuur?.appTitel || 'Praktijkfiches', profielId: () => profiel?.id || null
+    appTitel: () => structuur?.appTitel || 'Rehab', profielId: () => profiel?.id || null
   };
   initPatienten(hulp);
   initProtocollen(hulp);
@@ -431,12 +434,12 @@ async function start() {
     if (linkFout) linkMelding = 'De link uit je mail werkt niet (meer). Vraag een nieuwe aan.';
     profiel = await laadProfiel(sessie);
     if (!profiel) {
-      structuur = (await db.getStructuur()) || LEGE_STRUCTUUR();
+      structuur = nieuweNaam(await db.getStructuur()) || LEGE_STRUCTUUR();
       toonAanmelden(linkMelding, qr);
       return;
     }
     if (profiel.rol === 'patient') {
-      structuur = (await db.getStructuur()) || LEGE_STRUCTUUR();
+      structuur = nieuweNaam(await db.getStructuur()) || LEGE_STRUCTUUR();
       bron.bijSessieWijziging(event => { if (event === 'SIGNED_OUT') location.reload(); });
       await startPatient();
       return;
@@ -445,7 +448,7 @@ async function start() {
     bron.bijSessieWijziging(event => { if (event === 'SIGNED_OUT') location.reload(); });
   }
 
-  structuur = await db.getStructuur();
+  structuur = nieuweNaam(await db.getStructuur());
   if (!structuur) {
     structuur = gedeeld() ? LEGE_STRUCTUUR() : await standaardStructuur();
     await bewaar();

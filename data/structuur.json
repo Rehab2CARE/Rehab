@@ -1,6 +1,6 @@
 {
   "versie": 1,
-  "appTitel": "Praktijkfiches",
+  "appTitel": "Rehab",
   "niveauNamen": ["Onderdeel", "Regio", "Categorie"],
   "standaardRegios": ["Lage rug", "Heup", "Knie", "Enkel"],
   "standaardCategorieen": ["Algemeen"],

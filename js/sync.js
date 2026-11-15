@@ -38,7 +38,7 @@ export function bouwStructuur(knopen, fiches, vorige = {}) {
   return {
     versie: 1,
     bron: 'gedeeld',
-    appTitel: vorige.appTitel || 'Praktijkfiches',
+    appTitel: vorige.appTitel && vorige.appTitel !== 'Praktijkfiches' ? vorige.appTitel : 'Rehab',
     niveauNamen: ['Onderdeel', 'Regio', 'Categorie'],
     secties: (kinderenVan.get(null) || []).filter(k => k.niveau === 0).sort(volgens).map(k => knoop(k, 0))
   };
