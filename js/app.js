@@ -221,6 +221,7 @@ function dialoog({ titel, velden, okTekst = 'OK', gevaar = false }) {
       el.type = v.type || 'text';
     }
     if (v.inputmode) el.inputMode = v.inputmode;
+    if (v.rijen) el.style.minHeight = v.rijen * 1.6 + 'em';
     if (v.autocomplete) el.autocomplete = v.autocomplete;
     el.value = v.waarde || '';
     if (v.verplicht) el.required = true;
@@ -526,7 +527,7 @@ function toonAanmelden(foutTekst, qr = null) {
   inhoud.innerHTML = `
     <div class="aanmelden">
       <h1>Aanmelden</h1>
-      <p class="ondertitel">Meld je aan met je account van de praktijk, of met de patiëntcode van je kiné.</p>
+      <p class="ondertitel">Meld je aan met je account van de praktijk, of met de patiëntcode van je kinesitherapeut.</p>
       <form id="aanmeld-form" class="paneel">
         <label>E-mailadres of patiëntcode<input type="text" name="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
         <label>Wachtwoord<input type="password" name="wachtwoord" autocomplete="current-password" required></label>
@@ -561,7 +562,7 @@ function toonAanmelden(foutTekst, qr = null) {
     }
   });
   $('#vergeten').addEventListener('click', async () => {
-    if (bron.isPatientCode(form.email.value)) { melding('Vraag je kiné om een nieuwe toegangscode.'); return; }
+    if (bron.isPatientCode(form.email.value)) { melding('Vraag je kinesitherapeut om een nieuwe toegangscode.'); return; }
     const r = await dialoog({
       titel: 'Wachtwoord vergeten',
       velden: [
@@ -615,7 +616,7 @@ function toonGeenToegang() {
         <p>${patient
           ? 'Je oefenprogramma verschijnt hier binnenkort.'
           : /@patienten\./.test(profiel.email || '')
-            ? `Je account met code <b>${esc(profiel.email.split('@')[0].toUpperCase())}</b> is nog niet klaar. Vraag je kiné om het na te kijken en open de app daarna opnieuw.`
+            ? `Je account met code <b>${esc(profiel.email.split('@')[0].toUpperCase())}</b> is nog niet klaar. Vraag je kinesitherapeut om het na te kijken en open de app daarna opnieuw.`
             : `Je bent aangemeld als <b>${esc(profiel.email)}</b>, maar je account is nog niet geactiveerd. Vraag de beheerder van de praktijk om je toegang te geven en open de app daarna opnieuw.`}</p>
         <div class="knoppen"><button class="knop knop-plat" id="afmelden">Afmelden</button></div>
       </div>

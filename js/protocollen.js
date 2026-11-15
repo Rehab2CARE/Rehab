@@ -133,6 +133,7 @@ async function faseScherm(pid, nummer, thuis) {
   inhoud.innerHTML = `
     <h1>Fase ${nummer}: ${esc(f.titel)}</h1>
     <p class="ondertitel">${esc(f.wanneer || '')}${f.ondergrens_weken != null ? ` · biologische ondergrens week ${String(f.ondergrens_weken).replace('.', ',')}` : ''}</p>
+    <div class="beheer-balk"><button class="knop knop-plat" id="wijzig-fase">Fasegegevens wijzigen</button></div>
 
     <div class="paneel">
       <h2>Zichtbaar voor de patiënt</h2>
@@ -183,8 +184,9 @@ async function faseScherm(pid, nummer, thuis) {
       <h2>Criteria om deze fase af te ronden (${crit.length})</h2>
       ${concepten ? `<p>${concepten} patiëntteksten zijn nog een <b>concept</b>. Lees ze na en keur ze goed.</p>
         <div class="knoppen"><button class="knop knop-plat" id="keur-alle">Alle ${concepten} goedkeuren</button></div>` : '<p>Alle patiëntteksten zijn goedgekeurd.</p>'}
+      <div class="knoppen"><button class="knop knop-hoofd" id="nieuw-criterium">+ Criterium toevoegen</button></div>
     </div>
-    <ol class="criteria">${crit.map(c => `
+    <ol class="criteria">${crit.map((c, i) => `
       <li class="criterium" data-crit="${esc(c.id)}">
         <div class="criterium-kop">
           <b>${esc(c.criterium)}</b>
@@ -195,17 +197,24 @@ async function faseScherm(pid, nummer, thuis) {
         <div class="criterium-patient">
           <span>Patiënt leest: “${esc(c.patient_tekst || '—')}” ${c.patient_concept ? '<span class="label label-concept">concept</span>' : ''}</span>
           <span class="criterium-knoppen">
-            <button class="knop knop-plat klein" data-crit-actie="wijzig">Wijzigen</button>
+            <button class="knop knop-plat klein" data-crit-actie="wijzig">Patiënttekst</button>
             ${c.patient_concept ? '<button class="knop knop-plat klein" data-crit-actie="keur">Goedkeuren</button>' : ''}
           </span>
         </div>
+        <div class="criterium-beheer">
+          <button class="knop knop-plat klein" data-crit-actie="bewerk">Criterium wijzigen</button>
+          <button class="knop knop-plat klein" data-crit-actie="op" ${i === 0 ? 'disabled' : ''} aria-label="Naar boven">▲</button>
+          <button class="knop knop-plat klein" data-crit-actie="neer" ${i === crit.length - 1 ? 'disabled' : ''} aria-label="Naar onder">▼</button>
+          <button class="knop knop-plat klein weg" data-crit-actie="wis">Wissen</button>
+        </div>
       </li>`).join('')}</ol>
 
-    ${f.scope || f.opmerkingen ? `<details class="paneel">
+    <details class="paneel">
       <summary><b>Scope en opmerkingen (enkel voor de therapeut)</b></summary>
       ${f.scope ? `<p>${esc(f.scope)}</p>` : ''}
       ${(f.opmerkingen || '').split(/\n\n+/).filter(Boolean).map(o => `<p>${esc(o)}</p>`).join('')}
-    </details>` : ''}`;
+      ${!f.scope && !f.opmerkingen ? '<p class="hulp">Nog niets ingevuld. Gebruik "Fasegegevens wijzigen".</p>' : ''}
+    </details>`;
 
   const opnieuw = () => faseScherm(pid, nummer, thuis);
   const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
@@ -244,13 +253,57 @@ async function faseScherm(pid, nummer, thuis) {
     try { await bron.keurCriteriaGoed(f.id); opnieuw(); } catch (e) { fout(e); }
   });
 
-  // Criteria: patiënttekst wijzigen of goedkeuren
+  // Fasegegevens (klinisch, enkel voor het team)
+  $('#wijzig-fase').addEventListener('click', async () => {
+    const r = await ctx.dialoog({
+      titel: `Fase ${nummer}: gegevens`, okTekst: 'Bewaren',
+      velden: [
+        { naam: 'titel', label: 'Titel (therapeut)', waarde: f.titel, verplicht: true },
+        { naam: 'wanneer', label: 'Wanneer', waarde: f.wanneer, placeholder: 'bv. Meestal week 6 tot 12' },
+        { naam: 'ondergrens', label: 'Biologische ondergrens (weken na operatie of letsel)', type: 'number', inputmode: 'decimal',
+          waarde: f.ondergrens_weken ?? '', hulp: 'Leeg = geen ondergrens. De verschuiving door een bijkomende ingreep komt er automatisch bij.' },
+        { naam: 'scope', label: 'Scope', soort: 'tekstvak', rijen: 4, waarde: f.scope },
+        { naam: 'opmerkingen', label: 'Opmerkingen en aandachtspunten', soort: 'tekstvak', rijen: 6, waarde: f.opmerkingen, hulp: 'Lege regel = nieuwe alinea.' }
+      ]
+    });
+    if (!r) return;
+    const grens = r.ondergrens === '' ? null : Number(String(r.ondergrens).replace(',', '.'));
+    if (grens !== null && (Number.isNaN(grens) || grens < 0)) { ctx.melding('De ondergrens moet een getal zijn.'); return; }
+    try { await bron.wijzigFase(f.id, { titel: r.titel, wanneer: r.wanneer, ondergrens_weken: grens, scope: r.scope, opmerkingen: r.opmerkingen }); ctx.melding('Bewaard.'); opnieuw(); }
+    catch (e) { fout(e); }
+  });
+
+  $('#nieuw-criterium').addEventListener('click', async () => {
+    const r = await ctx.dialoog({ titel: `Nieuw criterium in fase ${nummer}`, okTekst: 'Toevoegen', velden: criteriumVelden({}) });
+    if (!r) return;
+    try {
+      await bron.maakCriterium({ fase_id: f.id, volgorde: crit.reduce((m, c) => Math.max(m, c.volgorde + 1), 0), ...criteriumUit(r), patient_concept: !r.patient_tekst });
+      opnieuw();
+    } catch (e) { fout(e); }
+  });
+
+  // Criteria: patiënttekst, goedkeuren, volledig wijzigen, volgorde, wissen
   inhoud.querySelectorAll('.criterium').forEach(li => {
     const c = crit.find(x => x.id === li.dataset.crit);
     li.querySelectorAll('[data-crit-actie]').forEach(knop => knop.addEventListener('click', async () => {
+      const actie = knop.dataset.critActie;
       try {
-        if (knop.dataset.critActie === 'keur') {
+        if (actie === 'keur') {
           await bron.wijzigCriterium(c.id, { patient_concept: false });
+        } else if (actie === 'bewerk') {
+          const r = await ctx.dialoog({ titel: 'Criterium wijzigen', okTekst: 'Bewaren', velden: criteriumVelden(c) });
+          if (!r) return;
+          const velden = criteriumUit(r);
+          if (velden.patient_tekst !== c.patient_tekst) velden.patient_concept = false; // nieuwe tekst = nagelezen
+          await bron.wijzigCriterium(c.id, velden);
+        } else if (actie === 'op' || actie === 'neer') {
+          const i = crit.indexOf(c), j = actie === 'op' ? i - 1 : i + 1;
+          await bron.wijzigCriterium(crit[i].id, { volgorde: j });
+          await bron.wijzigCriterium(crit[j].id, { volgorde: i });
+          for (const [k, x] of crit.entries()) if (k !== i && k !== j && x.volgorde !== k) await bron.wijzigCriterium(x.id, { volgorde: k });
+        } else if (actie === 'wis') {
+          if (!await ctx.bevestig('Criterium wissen?', `"${c.criterium}" verdwijnt uit fase ${nummer}. Bij patiënten die dit criterium al afgevinkt hadden, verdwijnt die afvinking ook. Dit kan je niet ongedaan maken.`)) return;
+          await bron.wisCriterium(c.id);
         } else {
           const r = await ctx.dialoog({
             titel: 'Patiënttekst', okTekst: 'Bewaren en goedkeuren',
@@ -343,7 +396,9 @@ async function opvolgingVoor(box, p, herlaad) {
   const startLabel = prot?.id === 'enkel' ? 'Letsel' : 'Operatie';
   const details = [
     t.startdatum ? `${startLabel} ${datumTekst(t.startdatum)}${weken != null ? ` (week ${weken})` : ''}` : `${startLabel}datum niet ingevuld`,
-    t.zijde ? (t.zijde === 'L' ? 'links' : 'rechts') : '', t.graft, t.ingreep && t.ingreep !== 'Geen' ? t.ingreep : '', t.sportprofiel
+    t.zijde ? (t.zijde === 'L' ? 'links' : 'rechts') : '', t.graft,
+    t.meniscus_zijde ? `meniscus ${t.meniscus_zijde.toLowerCase()}${t.meniscus_letsel ? `, ${t.meniscus_letsel.toLowerCase()}` : ''}` : '',
+    t.ingreep && t.ingreep !== 'Geen' ? t.ingreep : '', t.sportprofiel
   ].filter(Boolean);
   const afwijkend = Object.keys(t.zichtbaar || {}).length;
   let statussen = [];
@@ -439,13 +494,18 @@ function gegevensVelden(prot, t = {}) {
     { naam: 'zijde', label: 'Zijde', soort: 'keuze', waarde: t.zijde || '', opties: [{ waarde: '', label: '—' }, { waarde: 'L', label: 'Links' }, { waarde: 'R', label: 'Rechts' }] }
   ];
   if (ins.grafttypes?.length) velden.push({ naam: 'graft', label: 'Grafttype', soort: 'keuze', waarde: t.graft || '', opties: keuze(ins.grafttypes) });
+  if (ins.meniscus) {
+    velden.push({ naam: 'meniscus_zijde', label: 'Meniscus', soort: 'keuze', waarde: t.meniscus_zijde || '', opties: keuze(ins.meniscus.zijden || [], 'Geen meniscusletsel') });
+    velden.push({ naam: 'meniscus_letsel', label: 'Type meniscusletsel', soort: 'keuze', waarde: t.meniscus_letsel || '', opties: keuze(ins.meniscus.letsels || []) });
+  }
   if (ins.verschuivingen) velden.push({ naam: 'ingreep', label: 'Bijkomende ingreep (verschuift de ondergrenzen)', soort: 'keuze', waarde: t.ingreep || 'Geen', opties: Object.keys(ins.verschuivingen).map(x => ({ waarde: x, label: x })) });
   if (ins.sportprofielen?.length) velden.push({ naam: 'sportprofiel', label: 'Sportprofiel', soort: 'keuze', waarde: t.sportprofiel || '', opties: keuze(ins.sportprofielen.map(s => s.naam)) });
   return velden;
 }
 const gegevensUit = r => {
   const uit = { startdatum: r.startdatum || null, zijde: r.zijde || '' };
-  ['graft', 'ingreep', 'sportprofiel'].forEach(k => { if (k in r) uit[k] = r[k] || ''; });
+  ['graft', 'ingreep', 'sportprofiel', 'meniscus_zijde', 'meniscus_letsel'].forEach(k => { if (k in r) uit[k] = r[k] || ''; });
+  if ('meniscus_zijde' in r && !r.meniscus_zijde) uit.meniscus_letsel = ''; // geen meniscusletsel = ook geen type
   return uit;
 };
 
@@ -583,3 +643,24 @@ async function criteriaScherm(pid, nummer, thuis) {
     }));
   });
 }
+
+
+// Velden voor een criterium (dialoog), en wat er bewaard wordt
+const NIVEAUS = ['', 'A', 'B', 'C', 'D'];
+function criteriumVelden(c) {
+  const niveaus = NIVEAUS.includes(c.niveau || '') ? NIVEAUS : [...NIVEAUS, c.niveau];
+  return [
+    { naam: 'criterium', label: 'Criterium', waarde: c.criterium, verplicht: true },
+    { naam: 'drempel', label: 'Drempel', waarde: c.drempel, placeholder: 'bv. LSI ≥ 80 %', hulp: 'Pas je de drempel aan, kijk dan ook de patiënttekst hieronder na.' },
+    { naam: 'testmethode', label: 'Testmethode', waarde: c.testmethode, placeholder: 'bv. Isometrisch 60°' },
+    { naam: 'niveau', label: 'Evidentieniveau', soort: 'keuze', waarde: c.niveau || '',
+      opties: niveaus.map(n => ({ waarde: n, label: n ? `Niveau ${n}` : '—' })) },
+    { naam: 'bron', label: 'Bron', waarde: c.bron, placeholder: 'bv. 9P, 2023, eigen' },
+    { naam: 'bij_niet_halen', label: 'Bij niet halen', soort: 'tekstvak', rijen: 3, waarde: c.bij_niet_halen },
+    { naam: 'patient_tekst', label: 'Wat de patiënt leest', waarde: c.patient_tekst, hulp: 'Eén korte zin, positief, zonder vakjargon. Leeg = later invullen.' }
+  ];
+}
+const criteriumUit = r => ({
+  criterium: r.criterium, drempel: r.drempel, testmethode: r.testmethode, niveau: r.niveau,
+  bron: r.bron, bij_niet_halen: r.bij_niet_halen, patient_tekst: r.patient_tekst
+});

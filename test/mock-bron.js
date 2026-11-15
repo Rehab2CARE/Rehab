@@ -283,7 +283,7 @@ export async function trajectenVan(pid) {
 }
 export async function maakTraject(v) {
   const s = server(); team(s);
-  const t = { id: id(), startdatum: null, zijde: '', graft: '', ingreep: '', sportprofiel: '', huidige_fase: 1, zichtbaar: {}, actief: true, ...v, aangemaakt: nu() };
+  const t = { id: id(), startdatum: null, zijde: '', graft: '', ingreep: '', sportprofiel: '', meniscus_zijde: '', meniscus_letsel: '', huidige_fase: 1, zichtbaar: {}, actief: true, ...v, aangemaakt: nu() };
   s.trajecten = s.trajecten || []; s.trajecten.push(t); schrijfServer(s); return { ...t };
 }
 export async function wijzigTraject(tid, v) { const s = server(); team(s); Object.assign(s.trajecten.find(x => x.id === tid), v); schrijfServer(s); }
@@ -327,3 +327,6 @@ export async function zetCriteriumStatus(tid, cid, v) {
   schrijfServer(s);
 }
 export async function wisCriteriumStatus(tid, cid) { const s = server(); team(s); s.criterium_status = (s.criterium_status || []).filter(x => !(x.traject_id === tid && x.criterium_id === cid)); schrijfServer(s); }
+
+export async function maakCriterium(v) { const s = server(); team(s); const c = { id: id(), testmethode: '', drempel: '', niveau: '', bron: '', bij_niet_halen: '', patient_tekst: '', patient_concept: true, ...v }; s.criteria.push(c); schrijfServer(s); return { ...c }; }
+export async function wisCriterium(cid) { const s = server(); team(s); s.criteria = s.criteria.filter(c => c.id !== cid); s.criterium_status = (s.criterium_status || []).filter(x => x.criterium_id !== cid); schrijfServer(s); }

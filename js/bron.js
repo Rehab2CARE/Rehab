@@ -247,6 +247,12 @@ export async function wijzigFase(id, velden) {
 export async function wijzigCriterium(id, velden) {
   ok(await sb.from('protocol_criteria').update(velden).eq('id', id));
 }
+export async function maakCriterium(velden) {
+  return ok(await sb.from('protocol_criteria').insert(velden).select().single());
+}
+export async function wisCriterium(id) {
+  ok(await sb.from('protocol_criteria').delete().eq('id', id));
+}
 export async function keurCriteriaGoed(faseId) {
   ok(await sb.from('protocol_criteria').update({ patient_concept: false }).eq('fase_id', faseId).eq('patient_concept', true));
 }

@@ -370,3 +370,5 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 .doel-vink { flex: 0 0 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rand); display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 700; }
 .doelen li.behaald .doel-vink { background: var(--hoofdkleur); border-color: var(--hoofdkleur); color: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.criterium-beheer { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }

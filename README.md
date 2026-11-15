@@ -96,6 +96,11 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
 - **Standaardoefeningen**: **+ Toevoegen** werkt zoals bij een programma (kiesbalk onderaan). Vul de dosering in.
 - **Criteria**: drempel, evidentieniveau, bron, wat je doet bij niet halen, en de patiënttekst.
   Teksten met het label **concept** zijn voorstellen: lees ze na en keur ze goed (één per één of allemaal samen).
+- **De app is de bron van je protocollen.** Je Excel-werkboek werd één keer ingelezen; aanpassingen doe je voortaan in de app:
+  - **Fasegegevens wijzigen**: klinische titel, wanneer, biologische ondergrens (weken), scope en opmerkingen.
+  - **Criterium wijzigen**: criterium, drempel, testmethode, evidentieniveau, bron, bij niet halen en patiënttekst.
+  - **+ Criterium toevoegen**, **▲ ▼** om de volgorde te wijzigen, **Wissen** (ook de afvinkingen bij patiënten verdwijnen).
+  - Een gewijzigde drempel past de patiënttekst niet vanzelf aan: kijk die zelf na.
 
 ## Opvolging per patiënt (stap 2)
 
@@ -104,7 +109,8 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
 
 ### Werken met de opvolging
 - Open een patiënt (in **Beheer → Patiënten**). In het paneel **Opvolging** tik je **Protocol toewijzen**:
-  kies het protocol, vul de operatie- of letseldatum in, de zijde en (bij VKB) graft, bijkomende ingreep en sportprofiel.
+  kies het protocol, vul de operatie- of letseldatum in, de zijde en (bij VKB) graft, meniscus (zijde en type letsel),
+  bijkomende ingreep en sportprofiel. De meniscuslijsten staan bij de instellingen van het protocol (SQL 008).
 - De app toont de **huidige fase**, de **fasebalk** en wanneer de volgende fase **ten vroegste** kan
   (ondergrens + verschuiving door de bijkomende ingreep).
 - **Fase vrijgeven**: jij beslist. Ligt de ondergrens nog niet achter de patiënt, dan krijg je een waarschuwing.

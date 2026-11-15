@@ -493,8 +493,8 @@ function toonMijnProgramma() {
             return `<li class="${ok ? 'behaald' : ''}"><span class="doel-vink" aria-hidden="true">${ok ? '✓' : ''}</span>${esc(tekst)}${ok ? '<span class="sr-only"> (behaald)</span>' : ''}</li>`;
           }).join('')}</ul>` : ''}
         <p class="hulp">${o.totaal && o.voldaan === o.totaal
-          ? 'Alles behaald voor deze fase. Je kiné bekijkt samen met jou de volgende stap.'
-          : 'Je kiné beslist samen met jou wanneer je naar de volgende fase gaat.'}</p>
+          ? 'Alles behaald voor deze fase. Je kinesitherapeut bekijkt samen met jou de volgende stap.'
+          : 'Je kinesitherapeut beslist samen met jou wanneer je naar de volgende fase gaat.'}</p>
       </section>`).join('')}
     ${zichtbaar.length ? zichtbaar.map(g => {
       const items = [...(g.programma_items || [])].filter(it => it.fiche).sort((a, b) => a.volgorde - b.volgorde);
@@ -508,7 +508,7 @@ function toonMijnProgramma() {
             ${it.notitie ? `<span class="kaart-notitie">${esc(it.notitie)}</span>` : ''}
           </a></li>`).join('')}</ol>
       </section>`;
-    }).join('') : (opvolging.length ? '' : `<div class="leeg">Je kiné heeft nog geen programma voor je klaargezet.</div>`)}
+    }).join('') : (opvolging.length ? '' : `<div class="leeg">Je kinesitherapeut heeft nog geen programma voor je klaargezet.</div>`)}
     <div class="patient-voet">
       <button class="knop knop-plat" id="afmelden">Afmelden</button>
     </div>`;
