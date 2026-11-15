@@ -322,3 +322,26 @@ body.kiesmodus .kies[aria-pressed="true"] { background: #6b5ca5; color: #fff; }
 .criterium-patient > span:first-child { flex: 1; min-width: 200px; font-style: italic; }
 .criterium-knoppen { display: flex; gap: 6px; }
 details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: flex; align-items: center; }
+
+/* Opvolging bij een patiënt (therapeut) */
+.opvolging { border-left: 4px solid #b7791f; }
+.fasebalk { list-style: none; margin: 12px 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.fasebalk li a, .fasebalk li span {
+  display: inline-flex; align-items: center; justify-content: center; width: var(--min-knop); height: var(--min-knop);
+  border-radius: 50%; border: 2px solid var(--rand); color: var(--tekst-zacht); font-weight: 600; text-decoration: none; background: var(--kaart);
+}
+.fasebalk li.klaar a, .fasebalk li.klaar span { background: var(--hoofdkleur-licht); border-color: var(--hoofdkleur); color: var(--hoofdkleur); }
+.fasebalk li.huidig a, .fasebalk li.huidig span { background: var(--hoofdkleur); border-color: var(--hoofdkleur); color: #fff; }
+.opvolging-fase { margin: 8px 0 4px; }
+.opvolging-volgende { margin: 0 0 12px; }
+.opvolging .ok { color: var(--hoofdkleur); font-weight: 600; }
+.opvolging .nog { color: #a86b00; font-weight: 600; }
+
+/* Opvolging in de patiëntweergave */
+.revalidatie { background: var(--kaart); border: 1px solid var(--rand); border-top: 4px solid var(--hoofdkleur); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 24px; box-shadow: var(--schaduw); }
+.revalidatie-fase { margin: 0; font-weight: 700; color: var(--hoofdkleur); text-transform: uppercase; letter-spacing: .05em; font-size: .85rem; }
+.revalidatie h2 { margin: 6px 0; font-size: 1.35rem; }
+.revalidatie h3 { margin: 16px 0 6px; font-size: 1.05rem; }
+.fasebalk-patient li span { width: 34px; height: 34px; font-size: .85rem; }
+.doelen { margin: 0 0 12px; padding-left: 1.2em; }
+.doelen li { margin-bottom: 4px; }

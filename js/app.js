@@ -512,7 +512,7 @@ function toonAanmelden(foutTekst, qr = null) {
   inhoud.innerHTML = `
     <div class="aanmelden">
       <h1>Aanmelden</h1>
-      <p class="ondertitel">Meld je aan met je account van de praktijk, of met de patiëntcode van je therapeut.</p>
+      <p class="ondertitel">Meld je aan met je account van de praktijk, of met de patiëntcode van je kiné.</p>
       <form id="aanmeld-form" class="paneel">
         <label>E-mailadres of patiëntcode<input type="text" name="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
         <label>Wachtwoord<input type="password" name="wachtwoord" autocomplete="current-password" required></label>
@@ -547,7 +547,7 @@ function toonAanmelden(foutTekst, qr = null) {
     }
   });
   $('#vergeten').addEventListener('click', async () => {
-    if (bron.isPatientCode(form.email.value)) { melding('Vraag je therapeut om een nieuwe toegangscode.'); return; }
+    if (bron.isPatientCode(form.email.value)) { melding('Vraag je kiné om een nieuwe toegangscode.'); return; }
     const r = await dialoog({
       titel: 'Wachtwoord vergeten',
       velden: [

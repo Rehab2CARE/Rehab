@@ -22,6 +22,7 @@ const ZICHTBAAR = [
 
 export function initProtocollen(hulp) {
   ctx = hulp;
+  ctx.opvolgingVoor = (...a) => opvolgingVoor(...a); // gebruikt op het scherm van een patiënt
   // Gekozen fiches toevoegen aan de standaardoefeningen van een fase
   registreerKiesDoel('fase', async (faseId, gekozen) => {
     const items = await bron.faseOefeningen(faseId);
@@ -287,4 +288,196 @@ async function faseScherm(pid, nummer, thuis) {
       } catch (e) { fout(e); }
     }));
   });
+}
+
+// ===================================================================================
+// Opvolging bij een patiënt (stap 2): protocol toewijzen, fase vrijgeven, zichtbaarheid per patiënt
+// Wordt getoond op het scherm van een patiënt (patienten.js roept ctx.opvolgingVoor op).
+// ===================================================================================
+
+const DAG = 24 * 60 * 60 * 1000;
+const datumTekst = d => d ? new Date(d).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+const wekenSinds = start => start ? Math.floor((Date.now() - new Date(start + 'T00:00:00').getTime()) / (7 * DAG)) : null;
+
+// Ondergrens (in weken) van een fase, met de verschuiving van de bijkomende ingreep
+function ondergrens(prot, fase, ingreep) {
+  if (!fase || fase.ondergrens_weken == null) return null;
+  const extra = prot.instellingen?.verschuivingen?.[ingreep || 'Geen']?.[fase.nummer - 1] || 0;
+  return Number(fase.ondergrens_weken) + extra;
+}
+
+async function opvolgingVoor(box, p, herlaad) {
+  const { esc } = ctx;
+  let trajecten, prots;
+  try {
+    [trajecten, prots] = await Promise.all([bron.trajectenVan(p.id), bron.protocollen()]);
+  } catch (e) {
+    box.innerHTML = /does not exist|schema cache|relation/i.test(e.message || '')
+      ? '<div class="paneel"><h2>Opvolging</h2><p>De opvolging staat nog niet in Supabase. Voer eerst <code>005_trajecten.sql</code> uit (zie README).</p></div>'
+      : `<div class="paneel"><h2>Opvolging</h2><p>${esc(e.message)}</p></div>`;
+    return;
+  }
+  const t = trajecten.find(x => x.actief);
+  if (!t) {
+    box.innerHTML = `
+      <div class="paneel">
+        <h2>Opvolging</h2>
+        <p>Deze patiënt volgt nog geen protocol. Wijs een protocol toe om fase per fase op te volgen.</p>
+        <div class="knoppen"><button class="knop knop-hoofd" id="wijs-toe" ${prots.length ? '' : 'disabled'}>Protocol toewijzen</button></div>
+        ${prots.length ? '' : '<p class="hulp">Er staan nog geen protocollen in Supabase.</p>'}
+      </div>`;
+    box.querySelector('#wijs-toe')?.addEventListener('click', () => toewijzen(p, prots, herlaad));
+    return;
+  }
+
+  const prot = prots.find(x => x.id === t.protocol_id);
+  const fasen = [...(prot?.protocol_fasen || [])].sort((a, b) => a.nummer - b.nummer);
+  const huidig = fasen.find(f => f.nummer === t.huidige_fase);
+  const volgende = fasen.find(f => f.nummer === t.huidige_fase + 1);
+  const vorige = fasen.find(f => f.nummer === t.huidige_fase - 1);
+  const weken = wekenSinds(t.startdatum);
+  const grens = ondergrens(prot, volgende, t.ingreep);
+  const grensDatum = grens != null && t.startdatum ? new Date(new Date(t.startdatum + 'T00:00:00').getTime() + grens * 7 * DAG) : null;
+  const sinds = (t.traject_fasen || []).filter(v => v.nummer === t.huidige_fase).map(v => v.vrijgegeven).sort().pop();
+  const startLabel = prot?.id === 'enkel' ? 'Letsel' : 'Operatie';
+  const details = [
+    t.startdatum ? `${startLabel} ${datumTekst(t.startdatum)}${weken != null ? ` (week ${weken})` : ''}` : `${startLabel}datum niet ingevuld`,
+    t.zijde ? (t.zijde === 'L' ? 'links' : 'rechts') : '', t.graft, t.ingreep && t.ingreep !== 'Geen' ? t.ingreep : '', t.sportprofiel
+  ].filter(Boolean);
+  const afwijkend = Object.keys(t.zichtbaar || {}).length;
+
+  box.innerHTML = `
+    <div class="paneel opvolging">
+      <h2>Opvolging: ${esc(prot?.naam || t.protocol_id)}</h2>
+      <p class="hulp" style="font-size:.95rem">${esc(details.join(' · '))}</p>
+      <ol class="fasebalk" aria-label="Fasen">${fasen.map(f => `
+        <li class="${f.nummer < t.huidige_fase ? 'klaar' : f.nummer === t.huidige_fase ? 'huidig' : ''}" title="Fase ${f.nummer}: ${esc(f.titel)}">
+          <a href="#/protocollen/${encodeURIComponent(t.protocol_id)}/fase/${f.nummer}">${f.nummer}</a>
+        </li>`).join('')}</ol>
+      <p class="opvolging-fase"><b>Fase ${t.huidige_fase}: ${esc(huidig?.titel || '')}</b><br>
+        <span class="hulp">De patiënt leest: “${esc(huidig?.titel_patient || '')}”${sinds ? ` · vrijgegeven op ${datumTekst(sinds)}` : ''}</span></p>
+      ${volgende ? `<p class="opvolging-volgende">Volgende: <b>fase ${volgende.nummer}</b> (${esc(volgende.titel)})${grens != null
+        ? ` · ten vroegste vanaf <b>week ${String(grens).replace('.', ',')}</b>${grensDatum ? ` (${datumTekst(grensDatum)})` : ''}${weken != null ? (weken >= grens ? ' · <span class="ok">ondergrens bereikt</span>' : ` · <span class="nog">nog ${Math.ceil(grens - weken)} weken</span>`) : ''}`
+        : ''}</p>` : '<p class="opvolging-volgende">Dit is de laatste fase.</p>'}
+      <div class="knoppen">
+        ${volgende ? `<button class="knop knop-hoofd" id="fase-vrij">Fase ${volgende.nummer} vrijgeven</button>` : ''}
+        ${vorige ? `<button class="knop knop-plat" id="fase-terug">Terug naar fase ${vorige.nummer}</button>` : ''}
+        <button class="knop knop-plat" id="zichtbaar-patient">Zichtbaar voor deze patiënt${afwijkend ? ` (${afwijkend} aangepast)` : ''}</button>
+        <button class="knop knop-plat" id="traject-gegevens">Gegevens</button>
+        <button class="knop knop-gevaar" id="traject-stop">Opvolging stoppen</button>
+      </div>
+    </div>`;
+
+  const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
+
+  box.querySelector('#fase-vrij')?.addEventListener('click', async () => {
+    let tekst = `De patiënt ziet daarna fase ${volgende.nummer}: “${volgende.titel_patient || volgende.titel}”, met de standaardoefeningen van die fase.`;
+    if (grens != null && weken != null && weken < grens) {
+      tekst = `Let op: de biologische ondergrens voor fase ${volgende.nummer} is week ${String(grens).replace('.', ',')}. De patiënt zit nu in week ${weken}. ` + tekst;
+    } else if (grens != null && weken == null) {
+      tekst = `Er is geen ${startLabel.toLowerCase()}datum ingevuld, dus de ondergrens (week ${String(grens).replace('.', ',')}) kan niet nagekeken worden. ` + tekst;
+    }
+    if (!await ctx.bevestig(`Fase ${volgende.nummer} vrijgeven?`, tekst, 'Vrijgeven')) return;
+    try { await zetFase(t, volgende.nummer); ctx.melding(`Fase ${volgende.nummer} vrijgegeven.`); herlaad(); } catch (e) { fout(e); }
+  });
+
+  box.querySelector('#fase-terug')?.addEventListener('click', async () => {
+    if (!await ctx.bevestig(`Terug naar fase ${vorige.nummer}?`, `De patiënt ziet weer fase ${vorige.nummer} en het oefenprogramma van die fase. Het programma van fase ${t.huidige_fase} wordt stopgezet (niet gewist).`, 'Terugzetten')) return;
+    try { await zetFase(t, vorige.nummer); herlaad(); } catch (e) { fout(e); }
+  });
+
+  box.querySelector('#zichtbaar-patient').addEventListener('click', async () => {
+    const z = t.zichtbaar || {};
+    const std = huidig?.zichtbaar || {};
+    const opties = k => [
+      { waarde: '', label: `Standaard van de fase (${std[k] ?? (k === 'testresultaten' ? false : true) ? 'aan' : 'uit'})` },
+      { waarde: 'aan', label: 'Aan voor deze patiënt' },
+      { waarde: 'uit', label: 'Uit voor deze patiënt' }
+    ];
+    const r = await ctx.dialoog({
+      titel: 'Zichtbaar voor deze patiënt', okTekst: 'Bewaren',
+      velden: [
+        { soort: 'uitleg', tekst: 'Standaard volgt de patiënt de instelling van de fase. Hier kan je dat voor deze patiënt anders zetten.' },
+        ...ZICHTBAAR.map(([k, l]) => ({ naam: k, label: l, soort: 'keuze', opties: opties(k), waarde: z[k] === true ? 'aan' : z[k] === false ? 'uit' : '' }))
+      ]
+    });
+    if (!r) return;
+    const nieuw = {};
+    ZICHTBAAR.forEach(([k]) => { if (r[k] === 'aan') nieuw[k] = true; else if (r[k] === 'uit') nieuw[k] = false; });
+    try { await bron.wijzigTraject(t.id, { zichtbaar: nieuw }); ctx.melding('Bewaard.'); herlaad(); } catch (e) { fout(e); }
+  });
+
+  box.querySelector('#traject-gegevens').addEventListener('click', async () => {
+    const r = await ctx.dialoog({ titel: 'Gegevens van de opvolging', okTekst: 'Bewaren', velden: gegevensVelden(prot, t) });
+    if (!r) return;
+    try { await bron.wijzigTraject(t.id, gegevensUit(r)); herlaad(); } catch (e) { fout(e); }
+  });
+
+  box.querySelector('#traject-stop').addEventListener('click', async () => {
+    if (!await ctx.bevestig('Opvolging stoppen?', 'De patiënt ziet zijn fase niet meer. Oefenprogramma\'s blijven bestaan; die kan je apart stopzetten.', 'Stoppen')) return;
+    try { await bron.wijzigTraject(t.id, { actief: false }); herlaad(); } catch (e) { fout(e); }
+  });
+}
+
+// Velden voor de gegevens van een traject (startdatum, zijde, graft, ingreep, sportprofiel)
+function gegevensVelden(prot, t = {}) {
+  const ins = prot?.instellingen || {};
+  const keuze = (lijst, leeg = '—') => [{ waarde: '', label: leeg }, ...lijst.map(x => ({ waarde: x, label: x }))];
+  const velden = [
+    { naam: 'startdatum', label: prot?.id === 'enkel' ? 'Datum van het letsel' : 'Datum van de operatie', type: 'date', waarde: t.startdatum || '' },
+    { naam: 'zijde', label: 'Zijde', soort: 'keuze', waarde: t.zijde || '', opties: [{ waarde: '', label: '—' }, { waarde: 'L', label: 'Links' }, { waarde: 'R', label: 'Rechts' }] }
+  ];
+  if (ins.grafttypes?.length) velden.push({ naam: 'graft', label: 'Grafttype', soort: 'keuze', waarde: t.graft || '', opties: keuze(ins.grafttypes) });
+  if (ins.verschuivingen) velden.push({ naam: 'ingreep', label: 'Bijkomende ingreep (verschuift de ondergrenzen)', soort: 'keuze', waarde: t.ingreep || 'Geen', opties: Object.keys(ins.verschuivingen).map(x => ({ waarde: x, label: x })) });
+  if (ins.sportprofielen?.length) velden.push({ naam: 'sportprofiel', label: 'Sportprofiel', soort: 'keuze', waarde: t.sportprofiel || '', opties: keuze(ins.sportprofielen.map(s => s.naam)) });
+  return velden;
+}
+const gegevensUit = r => {
+  const uit = { startdatum: r.startdatum || null, zijde: r.zijde || '' };
+  ['graft', 'ingreep', 'sportprofiel'].forEach(k => { if (k in r) uit[k] = r[k] || ''; });
+  return uit;
+};
+
+async function toewijzen(p, prots, herlaad) {
+  const r1 = await ctx.dialoog({
+    titel: 'Protocol toewijzen', okTekst: 'Verder',
+    velden: [{ naam: 'protocol', label: 'Welk protocol volgt deze patiënt?', soort: 'keuze', waarde: prots[0].id, opties: prots.map(x => ({ waarde: x.id, label: x.naam })) }]
+  });
+  if (!r1) return;
+  const prot = prots.find(x => x.id === r1.protocol);
+  const fasen = [...(prot.protocol_fasen || [])].sort((a, b) => a.nummer - b.nummer);
+  const r2 = await ctx.dialoog({
+    titel: `${prot.naam}: gegevens`, okTekst: 'Toewijzen',
+    velden: [
+      ...gegevensVelden(prot),
+      { naam: 'fase', label: 'Start in fase', soort: 'keuze', waarde: '1', opties: fasen.map(f => ({ waarde: String(f.nummer), label: `Fase ${f.nummer}: ${f.titel}` })) },
+      { soort: 'uitleg', tekst: 'Enkel wat nodig is voor de opvolging. Geen naam of medische notities.' }
+    ]
+  });
+  if (!r2) return;
+  try {
+    const t = await bron.maakTraject({ patient_id: p.id, protocol_id: prot.id, ...gegevensUit(r2), huidige_fase: Number(r2.fase), aangemaakt_door: ctx.profielId() });
+    await zetFase(t, Number(r2.fase));
+    ctx.melding(`${prot.naam} toegewezen. Fase ${r2.fase} is vrijgegeven.`);
+    herlaad();
+  } catch (e) { ctx.melding(e.message || 'Er liep iets mis.'); }
+}
+
+// Een fase vrijgeven (of terugzetten): huidige fase aanpassen, loggen, en het oefenprogramma van die fase klaarzetten.
+// Bestaat er al een programma voor die fase, dan wordt dat opnieuw actief; anders komt er een nieuw uit de standaardoefeningen.
+async function zetFase(t, nummer) {
+  await bron.wijzigTraject(t.id, { huidige_fase: nummer });
+  await bron.logFase(t.id, nummer, ctx.profielId());
+  await bron.stopFaseProgrammas(t.id, nummer);
+  const bestaand = await bron.programmaVoorFase(t.id, nummer);
+  if (bestaand) { await bron.wijzigProgramma(bestaand.id, { actief: true }); return; }
+  const f = await bron.faseMetOefeningen(t.protocol_id, nummer);
+  const g = await bron.maakProgramma({
+    patient_id: t.patient_id, titel: `Fase ${nummer}: ${f.titel_patient || f.titel}`, opmerking: '', actief: true,
+    aangemaakt_door: ctx.profielId(), traject_id: t.id, fase_nummer: nummer
+  });
+  const oef = [...(f.fase_oefeningen || [])].sort((a, b) => a.volgorde - b.volgorde);
+  if (oef.length) await bron.voegItemsToe(oef.map((o, i) => ({
+    programma_id: g.id, fiche_id: o.fiche_id, sets: o.sets, herhalingen: o.herhalingen, frequentie: o.frequentie, notitie: o.notitie, volgorde: i
+  })));
 }

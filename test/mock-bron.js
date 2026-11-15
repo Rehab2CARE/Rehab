@@ -185,7 +185,8 @@ export async function verwijderPatient(pid) {
 }
 export async function patienten() {
   const s = server(); team(s);
-  return (s.patienten || []).slice().reverse().map(p => ({ ...p, programmas: (s.programmas || []).filter(g => g.patient_id === p.id).map(g => ({ id: g.id, actief: g.actief })) }));
+  return (s.patienten || []).slice().reverse().map(p => ({ ...p, programmas: (s.programmas || []).filter(g => g.patient_id === p.id).map(g => ({ id: g.id, actief: g.actief })),
+    patient_trajecten: (s.trajecten || []).filter(t => t.patient_id === p.id).map(t => ({ protocol_id: t.protocol_id, huidige_fase: t.huidige_fase, actief: t.actief })) }));
 }
 export async function wijzigPatient(pid, v) {
   const s = server(); team(s);
@@ -274,3 +275,40 @@ export async function voegFaseOefeningenToe(rijen) {
 }
 export async function wijzigFaseOefening(oid, v) { const s = server(); team(s); Object.assign(s.fase_oef.find(x => x.id === oid), v); schrijfServer(s); }
 export async function wisFaseOefening(oid) { const s = server(); team(s); s.fase_oef = s.fase_oef.filter(x => x.id !== oid); schrijfServer(s); }
+
+// ---------- Trajecten (nagebootst) ----------
+export async function trajectenVan(pid) {
+  const s = server(); team(s);
+  return (s.trajecten || []).filter(t => t.patient_id === pid).map(t => ({ ...t, traject_fasen: (s.traject_fasen || []).filter(v => v.traject_id === t.id) }));
+}
+export async function maakTraject(v) {
+  const s = server(); team(s);
+  const t = { id: id(), startdatum: null, zijde: '', graft: '', ingreep: '', sportprofiel: '', huidige_fase: 1, zichtbaar: {}, actief: true, ...v, aangemaakt: nu() };
+  s.trajecten = s.trajecten || []; s.trajecten.push(t); schrijfServer(s); return { ...t };
+}
+export async function wijzigTraject(tid, v) { const s = server(); team(s); Object.assign(s.trajecten.find(x => x.id === tid), v); schrijfServer(s); }
+export async function logFase(tid, nummer, door) { const s = server(); team(s); s.traject_fasen = s.traject_fasen || []; s.traject_fasen.push({ id: id(), traject_id: tid, nummer, door, vrijgegeven: nu() }); schrijfServer(s); }
+export async function stopFaseProgrammas(tid, n) { const s = server(); team(s); (s.programmas || []).filter(g => g.traject_id === tid && g.fase_nummer !== n).forEach(g => { g.actief = false; }); schrijfServer(s); }
+export async function programmaVoorFase(tid, n) { const s = server(); team(s); const g = (s.programmas || []).find(x => x.traject_id === tid && x.fase_nummer === n); return g ? { id: g.id } : null; }
+export async function faseMetOefeningen(pid, n) {
+  const s = server(); team(s);
+  const f = s.fasen.find(x => x.protocol_id === pid && x.nummer === n);
+  return { id: f.id, titel: f.titel, titel_patient: f.titel_patient, fase_oefeningen: (s.fase_oef || []).filter(o => o.fase_id === f.id).map(o => ({ ...o })) };
+}
+// Zoals de functie mijn_opvolging() in de databank: enkel patiëntteksten en wat zichtbaar staat
+export async function mijnOpvolging() {
+  const s = server(); const u = sessie();
+  if (!u) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  return (s.trajecten || []).filter(t => t.patient_id === u.user.id && t.actief).map(t => {
+    const f = s.fasen.find(x => x.protocol_id === t.protocol_id && x.nummer === t.huidige_fase);
+    const std = f.zichtbaar || {};
+    const z = {};
+    ['oefeningen', 'doel', 'criteria', 'testresultaten'].forEach(k => { z[k] = t.zichtbaar?.[k] ?? std[k] ?? (k !== 'testresultaten'); });
+    return {
+      traject_id: t.id, protocol: s.protocollen.find(p => p.id === t.protocol_id).naam, fase: t.huidige_fase,
+      aantal_fasen: s.fasen.filter(x => x.protocol_id === t.protocol_id).length, zichtbaar: z,
+      titel: z.doel ? f.titel_patient : null, doel: z.doel ? f.doel_patient : null,
+      criteria: z.criteria ? s.criteria.filter(c => c.fase_id === f.id && c.patient_tekst).sort((a, b) => a.volgorde - b.volgorde).map(c => c.patient_tekst) : null
+    };
+  });
+}

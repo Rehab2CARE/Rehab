@@ -179,7 +179,7 @@ export const nieuweCode = id => patientFunctie({ actie: 'nieuwe-code', id });
 export const verwijderPatient = id => patientFunctie({ actie: 'verwijder', id });
 
 export async function patienten() {
-  return ok(await sb.from('patienten').select('id, code, naam, aangemaakt, programmas(id, actief)').order('aangemaakt', { ascending: false }));
+  return ok(await sb.from('patienten').select('id, code, naam, aangemaakt, programmas(id, actief), patient_trajecten(protocol_id, huidige_fase, actief)').order('aangemaakt', { ascending: false }));
 }
 
 export async function wijzigPatient(id, velden) {
@@ -223,7 +223,7 @@ export async function wisItem(id) {
 // Voor de aangemelde patiënt: zijn actieve programma's met de fiches erin (RLS laat niets anders door)
 export async function mijnProgrammas() {
   return ok(await sb.from('programmas')
-    .select(`id, titel, opmerking, aangemaakt, programma_items(${ITEM_VELDEN}, fiche:fiches(${FICHE_VELDEN}))`)
+    .select(`id, titel, opmerking, aangemaakt, traject_id, fase_nummer, programma_items(${ITEM_VELDEN}, fiche:fiches(${FICHE_VELDEN}))`)
     .eq('actief', true).order('aangemaakt'));
 }
 
@@ -231,7 +231,7 @@ export async function mijnProgrammas() {
 
 export async function protocollen() {
   return ok(await sb.from('protocollen')
-    .select('id, naam, versie, status, volgorde, protocol_fasen(id, nummer, titel, titel_patient, ondergrens_weken, zichtbaar, doel_concept, protocol_criteria(id, patient_concept), fase_oefeningen(id))')
+    .select('id, naam, versie, status, volgorde, instellingen, protocol_fasen(id, nummer, titel, titel_patient, ondergrens_weken, zichtbaar, doel_concept, protocol_criteria(id, patient_concept), fase_oefeningen(id))')
     .order('volgorde'));
 }
 
@@ -261,6 +261,38 @@ export async function wijzigFaseOefening(id, velden) {
 }
 export async function wisFaseOefening(id) {
   ok(await sb.from('fase_oefeningen').delete().eq('id', id));
+}
+
+// ---------- Trajecten: een patiënt volgt een protocol (opvolging stap 2) ----------
+
+export async function trajectenVan(patientId) {
+  return ok(await sb.from('patient_trajecten').select('*, traject_fasen(nummer, vrijgegeven)').eq('patient_id', patientId).order('aangemaakt'));
+}
+export async function maakTraject(velden) {
+  return ok(await sb.from('patient_trajecten').insert(velden).select().single());
+}
+export async function wijzigTraject(id, velden) {
+  ok(await sb.from('patient_trajecten').update(velden).eq('id', id));
+}
+export async function logFase(trajectId, nummer, door) {
+  ok(await sb.from('traject_fasen').insert({ traject_id: trajectId, nummer, door }));
+}
+// Programma's van andere fasen van dit traject stopzetten
+export async function stopFaseProgrammas(trajectId, behalveNummer) {
+  ok(await sb.from('programmas').update({ actief: false }).eq('traject_id', trajectId).neq('fase_nummer', behalveNummer));
+}
+export async function programmaVoorFase(trajectId, nummer) {
+  const rijen = ok(await sb.from('programmas').select('id').eq('traject_id', trajectId).eq('fase_nummer', nummer).limit(1));
+  return rijen[0] || null;
+}
+export async function faseMetOefeningen(protocolId, nummer) {
+  return ok(await sb.from('protocol_fasen')
+    .select('id, titel, titel_patient, fase_oefeningen(fiche_id, sets, herhalingen, frequentie, notitie, volgorde)')
+    .eq('protocol_id', protocolId).eq('nummer', nummer).single());
+}
+// Voor de aangemelde patiënt: enkel patiëntteksten en wat zichtbaar staat (functie in de databank)
+export async function mijnOpvolging() {
+  return ok(await sb.rpc('mijn_opvolging')) || [];
 }
 
 export async function download(pad) {

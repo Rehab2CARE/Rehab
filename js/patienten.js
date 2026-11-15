@@ -149,9 +149,10 @@ async function lijst(thuis) {
     <div class="beheer-balk"><button class="knop knop-hoofd" id="nieuwe-patient">+ Patiënt toevoegen</button></div>
     ${rijen.length ? `<ul class="lijst">${rijen.map(p => {
       const actief = (p.programmas || []).filter(x => x.actief).length;
+      const t = (p.patient_trajecten || []).find(x => x.actief);
       return `<li><a href="#/patienten/${encodeURIComponent(p.id)}">
         <span class="lijst-titel">${esc(p.naam || p.code)}</span>
-        <span class="lijst-sub">${esc(p.code)} · ${actief} ${actief === 1 ? 'actief programma' : "actieve programma's"}</span>
+        <span class="lijst-sub">${esc(p.code)}${t ? ` · ${esc(t.protocol_id.toUpperCase())} fase ${t.huidige_fase}` : ''} · ${actief} ${actief === 1 ? 'actief programma' : "actieve programma's"}</span>
       </a></li>`;
     }).join('')}</ul>` : '<div class="leeg">Nog geen patiënten.</div>'}`;
 
@@ -189,11 +190,16 @@ async function patientScherm(pid, thuis) {
       <button class="knop knop-plat" id="nieuwe-code">Nieuwe toegangscode</button>
       <button class="knop knop-gevaar" id="verwijder">Patiënt verwijderen</button>
     </div>
+    <div id="opvolging"><p class="ondertitel">Opvolging laden…</p></div>
+    <h2 class="rij-titel">Oefenprogramma's</h2>
     ${progs.length ? `<ul class="lijst">${progs.map(g => `
       <li><a href="#/patienten/${encodeURIComponent(pid)}/programma/${encodeURIComponent(g.id)}">
-        <span class="lijst-titel">${esc(g.titel)} <span class="label ${g.actief ? 'label-aan' : ''}">${g.actief ? 'Actief' : 'Gestopt'}</span></span>
+        <span class="lijst-titel">${esc(g.titel)} <span class="label ${g.actief ? 'label-aan' : ''}">${g.actief ? 'Actief' : 'Gestopt'}</span>${g.fase_nummer ? ' <span class="label">opvolging</span>' : ''}</span>
         <span class="lijst-sub">${(g.programma_items || []).length} ${(g.programma_items || []).length === 1 ? 'oefening' : 'oefeningen'}${g.opmerking ? ' · ' + esc(g.opmerking) : ''}</span>
       </a></li>`).join('')}</ul>` : '<div class="leeg">Nog geen programma. Maak er een aan.</div>'}`;
+
+  if (ctx.opvolgingVoor) ctx.opvolgingVoor($('#opvolging'), p, () => patientScherm(pid, thuis));
+  else $('#opvolging').innerHTML = '';
 
   $('#nieuw-programma').addEventListener('click', async () => {
     const r = await ctx.dialoog({
@@ -405,12 +411,14 @@ function toonToegangskaart({ code, wachtwoord, naam, nieuw = false }) {
 // ===================================================================================
 
 let programmas = [];
+let opvolging = [];  // per actief traject: fase, titel, doel, criteria, zichtbaar (enkel patiëntteksten)
 
 export async function startPatient() {
   const knop = id => { const k = $(id); if (k) k.hidden = true; };
   knop('#beheer'); knop('#instellingen');
   document.body.classList.add('patient-modus');
   programmas = (await db.get('mijnProgrammas')) || [];
+  opvolging = (await db.get('mijnOpvolging')) || [];
   window.addEventListener('hashchange', toonPatient);
   $('#terug').addEventListener('click', () => { location.hash = '#/'; });
   toonPatient();
@@ -425,6 +433,7 @@ async function werkPatientBij() {
   bezig = true;
   try {
     const nieuw = await bron.mijnProgrammas();
+    try { opvolging = await bron.mijnOpvolging(); await db.put('mijnOpvolging', opvolging); } catch { /* nog geen opvolging in de databank */ }
     // Bestanden van de fiches lokaal bewaren, zodat het programma ook zonder internet werkt
     const nodig = new Set();
     for (const g of nieuw) for (const it of g.programma_items || []) {
@@ -460,9 +469,23 @@ function toonMijnProgramma() {
   $('#terug').hidden = true;
   $('#kruimels').innerHTML = `<span class="huidig">Mijn programma</span>`;
   document.title = 'Mijn programma';
+  // Programma's van een fase waarvan de therapeut de oefeningen verborg, niet tonen
+  const verborgen = new Set(opvolging.filter(o => o.zichtbaar && !o.zichtbaar.oefeningen).map(o => o.traject_id));
+  const zichtbaar = programmas.filter(g => !(g.traject_id && verborgen.has(g.traject_id)));
   inhoud.innerHTML = `
     <h1>Mijn programma</h1>
-    ${programmas.length ? programmas.map(g => {
+    ${opvolging.map(o => `
+      <section class="revalidatie">
+        <p class="revalidatie-fase">Fase ${o.fase} van ${o.aantal_fasen}</p>
+        <ol class="fasebalk fasebalk-patient" aria-hidden="true">${Array.from({ length: o.aantal_fasen }, (_, i) =>
+          `<li class="${i + 1 < o.fase ? 'klaar' : i + 1 === o.fase ? 'huidig' : ''}"><span>${i + 1}</span></li>`).join('')}</ol>
+        ${o.titel ? `<h2>${esc(o.titel)}</h2>` : ''}
+        ${o.doel ? `<p>${esc(o.doel)}</p>` : ''}
+        ${o.criteria?.length ? `<h3>Hier werk je naartoe</h3>
+          <ul class="doelen">${o.criteria.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+        <p class="hulp">Je kiné beslist samen met jou wanneer je naar de volgende fase gaat.</p>
+      </section>`).join('')}
+    ${zichtbaar.length ? zichtbaar.map(g => {
       const items = [...(g.programma_items || [])].filter(it => it.fiche).sort((a, b) => a.volgorde - b.volgorde);
       return `<section class="programma">
         <h2>${esc(g.titel)}</h2>
@@ -474,7 +497,7 @@ function toonMijnProgramma() {
             ${it.notitie ? `<span class="kaart-notitie">${esc(it.notitie)}</span>` : ''}
           </a></li>`).join('')}</ol>
       </section>`;
-    }).join('') : `<div class="leeg">Je therapeut heeft nog geen programma voor je klaargezet.</div>`}
+    }).join('') : (opvolging.length ? '' : `<div class="leeg">Je kiné heeft nog geen programma voor je klaargezet.</div>`)}
     <div class="patient-voet">
       <button class="knop knop-plat" id="afmelden">Afmelden</button>
     </div>`;

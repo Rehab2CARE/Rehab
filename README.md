@@ -97,6 +97,25 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
 - **Criteria**: drempel, evidentieniveau, bron, wat je doet bij niet halen, en de patiënttekst.
   Teksten met het label **concept** zijn voorstellen: lees ze na en keur ze goed (één per één of allemaal samen).
 
+## Opvolging per patiënt (stap 2)
+
+### Eenmalig instellen in Supabase
+- **SQL Editor**: plak `supabase/migraties/005_trajecten.sql` en klik **Run**.
+
+### Werken met de opvolging
+- Open een patiënt (in **Beheer → Patiënten**). In het paneel **Opvolging** tik je **Protocol toewijzen**:
+  kies het protocol, vul de operatie- of letseldatum in, de zijde en (bij VKB) graft, bijkomende ingreep en sportprofiel.
+- De app toont de **huidige fase**, de **fasebalk** en wanneer de volgende fase **ten vroegste** kan
+  (ondergrens + verschuiving door de bijkomende ingreep).
+- **Fase vrijgeven**: jij beslist. Ligt de ondergrens nog niet achter de patiënt, dan krijg je een waarschuwing.
+  Bij elke fase zet de app een **oefenprogramma** klaar met de standaardoefeningen van die fase; dat programma kan je
+  daarna voor deze patiënt aanpassen. Het programma van de vorige fase wordt stopgezet (niet gewist).
+- **Terug naar de vorige fase** kan ook; het programma van die fase wordt dan opnieuw actief.
+- **Zichtbaar voor deze patiënt**: per onderdeel de standaard van de fase volgen, of aan/uit zetten voor deze patiënt.
+- De patiënt ziet in **Mijn programma**: "Fase 2 van 9", de titel en het doel in patiënttaal, waar hij naartoe werkt
+  (de criteria in patiënttaal) en zijn oefeningen, telkens enkel als dat zichtbaar staat.
+  Drempels, testmethodes en je opmerkingen ziet een patiënt nooit (de databank geeft enkel patiëntteksten door).
+
 ## Opbouw
 
 **Onderdeel → Regio → Categorie → Fiches**
