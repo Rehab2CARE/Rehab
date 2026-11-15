@@ -490,3 +490,10 @@ button.kal-dag:active { background: var(--hoofdkleur-licht); }
 .kal-legende { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
 .sessie-raster { display: grid; gap: 16px; grid-template-columns: minmax(260px, 520px) minmax(0, 1fr); align-items: start; margin-bottom: 12px; }
 @media (max-width: 800px) { .sessie-raster { grid-template-columns: 1fr; } }
+
+/* Patiënt: startscherm met drie knoppen */
+.patient-knoppen { list-style: none; padding: 0; margin: 0 0 16px; }
+.patient-knoppen .tegel { border-top: 5px solid var(--hoofdkleur); }
+.patient-knop { gap: 6px; }
+.patient-knop .tegel-titel::after { content: ' ›'; color: var(--hoofdkleur); }
+.knop-licht { display: inline-flex; align-items: center; gap: 6px; font-size: .95rem; font-weight: 600; margin-top: 4px; }

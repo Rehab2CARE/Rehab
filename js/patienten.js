@@ -452,7 +452,7 @@ export async function startPatient() {
   resultaten = (await db.get('mijnTestresultaten')) || [];
   sessies = (await db.get('mijnSessies')) || [];
   window.addEventListener('hashchange', toonPatient);
-  $('#terug').addEventListener('click', () => { location.hash = '#/'; });
+  $('#terug').addEventListener('click', () => { location.hash = ctx.pad()[0] === 'oefening' ? '#/oefenen' : '#/'; });
   toonPatient();
   await werkPatientBij();
   window.addEventListener('online', werkPatientBij);
@@ -494,15 +494,21 @@ function toonPatient() {
   if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
   const delen = ctx.pad();
   if (delen[0] === 'oefening' && delen[1]) return toonOefening(delen[1]);
+  if (PAGINAS[delen[0]]) return toonMijnProgramma(delen[0]);
   if (delen.length) { history.replaceState(null, '', '#/'); }
-  toonMijnProgramma();
+  toonMijnProgramma(null);
 }
 
-function toonMijnProgramma() {
+// Patiënt: startscherm met drie knoppen; elke knop opent een eigen pagina.
+const PAGINAS = { vooruitgang: 'Mijn vooruitgang', resultaten: 'Jouw testresultaten', oefenen: 'Oefenprogramma en kalender' };
+
+function toonMijnProgramma(pagina = null) {
   const { esc, inhoud } = ctx;
-  $('#terug').hidden = true;
-  $('#kruimels').innerHTML = `<span class="huidig">Mijn programma</span>`;
-  document.title = 'Mijn programma';
+  $('#terug').hidden = !pagina;
+  $('#kruimels').innerHTML = pagina
+    ? `<a href="#/">Mijn programma</a> <span class="sep">›</span> <span class="huidig">${PAGINAS[pagina]}</span>`
+    : `<span class="huidig">Mijn programma</span>`;
+  document.title = pagina ? PAGINAS[pagina] : 'Mijn programma';
   // Programma's van een fase waarvan de therapeut de oefeningen verborg, niet tonen
   const verborgen = new Set(opvolging.filter(o => o.zichtbaar && !o.zichtbaar.oefeningen).map(o => o.traject_id));
   const zichtbaar = programmas.filter(g => !(g.traject_id && verborgen.has(g.traject_id)));
@@ -510,8 +516,38 @@ function toonMijnProgramma() {
   const deel = opvolging.some(o => /enkel/i.test(o.protocol || '')) && !opvolging.some(o => /vkb|knie|kruisband|menisc/i.test(o.protocol || '')) ? 'enkel' : 'knie';
   const licht = huidigLicht(sessies, vandaagLokaal());
   const lichtTekst = licht && patientTekst(licht.kleur, deel);
-  inhoud.innerHTML = `
-    <h1>Mijn programma</h1>
+  const heeftResultaten = resultaten.some(r => (r.tests || []).length);
+  const beschikbaar = { vooruitgang: opvolging.length > 0, resultaten: heeftResultaten, oefenen: zichtbaar.length > 0 };
+  if (pagina && !beschikbaar[pagina]) { location.replace('#/'); return; }
+  if (!pagina) {
+    const o = opvolging[0];
+    const aantalTesten = resultaten.reduce((t, r) => t + (r.tests || []).length, 0);
+    const tegel = (sleutel, sub, extra = '') => beschikbaar[sleutel] ? `<li class="tegel"><a class="tegel-link patient-knop" href="#/${sleutel}">
+      <span class="tegel-titel">${PAGINAS[sleutel]}</span><span class="tegel-sub">${sub}</span>${extra}</a></li>` : '';
+    inhoud.innerHTML = `
+      <h1>Mijn programma</h1>
+      ${Object.values(beschikbaar).some(Boolean) ? `<ul class="tegels groot patient-knoppen">
+        ${tegel('vooruitgang', o ? `Fase ${o.fase} van ${o.aantal_fasen}${o.totaal ? ` · ${o.voldaan || 0} van ${o.totaal} behaald` : ''}` : '')}
+        ${tegel('resultaten', `${aantalTesten} ${aantalTesten === 1 ? 'test' : 'testen'}`)}
+        ${tegel('oefenen', `${zichtbaar.length} ${zichtbaar.length === 1 ? 'programma' : "programma's"}${sessies.some(x => x.datum === vandaagLokaal()) ? ' · vandaag aangeduid' : ''}`,
+          licht ? `<span class="knop-licht"><i class="licht-bol licht-${licht.kleur}"></i> ${LICHT[licht.kleur].naam}: ${esc(patientTekst(licht.kleur, deel).titel.toLowerCase())}</span>` : '')}
+      </ul>` : `<div class="leeg">Je kinesitherapeut heeft nog geen programma voor je klaargezet.</div>`}
+      <div class="patient-voet">
+        <button class="knop knop-plat" id="afmelden">Afmelden</button>
+      </div>`;
+    $('#afmelden').addEventListener('click', async () => {
+      if (!await ctx.bevestig('Afmelden?', 'Je hebt daarna je code en wachtwoord nodig om opnieuw aan te melden.', 'Afmelden')) return;
+      try { await bron.afmelden(); } catch { /* offline */ }
+      await db.del('profiel');
+      await db.del('mijnProgrammas');
+      location.replace(location.pathname + '#/');
+      location.reload();
+    });
+    return;
+  }
+  if (pagina === 'vooruitgang') {
+    inhoud.innerHTML = `
+      <h1>${PAGINAS.vooruitgang}</h1>
     ${opvolging.map(o => `
       <section class="revalidatie">
         <p class="revalidatie-fase">Fase ${o.fase} van ${o.aantal_fasen}</p>
@@ -533,7 +569,18 @@ function toonMijnProgramma() {
           ? 'Alles behaald voor deze fase. Je kinesitherapeut bekijkt samen met jou de volgende stap.'
           : 'Je kinesitherapeut beslist samen met jou wanneer je naar de volgende fase gaat.'}</p>
       </section>`).join('')}
-    <div id="mijn-resultaten"></div>
+      <div class="patient-voet"><a class="knop knop-plat" href="#/">‹ Terug naar Mijn programma</a></div>`;
+    return;
+  }
+  if (pagina === 'resultaten') {
+    inhoud.innerHTML = `<div id="mijn-resultaten"></div>
+      <div class="patient-voet"><a class="knop knop-plat" href="#/">‹ Terug naar Mijn programma</a></div>`;
+    toonPatientResultaten($('#mijn-resultaten'), resultaten);
+    return;
+  }
+  // pagina === 'oefenen'
+  inhoud.innerHTML = `
+    <h1>${PAGINAS.oefenen}</h1>
     ${zichtbaar.length ? zichtbaar.map(g => {
       const items = [...(g.programma_items || [])].filter(it => it.fiche).sort((a, b) => a.volgorde - b.volgorde);
       return `<section class="programma">
@@ -546,7 +593,7 @@ function toonMijnProgramma() {
             ${it.notitie ? `<span class="kaart-notitie">${esc(it.notitie)}</span>` : ''}
           </a></li>`).join('')}</ol>
       </section>`;
-    }).join('') : (opvolging.length ? '' : `<div class="leeg">Je kinesitherapeut heeft nog geen programma voor je klaargezet.</div>`)}
+    }).join('') : ''}
     ${zichtbaar.length ? `<section class="revalidatie oefenkalender">
       <div class="strook-kop">
         <h2>Mijn oefenkalender</h2>
@@ -561,39 +608,28 @@ function toonMijnProgramma() {
           <p>${esc(lichtTekst.uitleg)}</p>
           ${licht.redenen.length ? `<p class="vl-reden">Jouw feedback: <b>${esc(redenenPatient(licht.redenen))}</b></p>` : ''}
         </div>
-      </div>` : `<p class="hulp vl-leeg">Vul na het oefenen je pijn en zwelling in. Dan zie je hier met een kleur hoe je ${deel} reageert: groen, oranje of rood.</p>`}
+      </div>` : `<p class="hulp vl-leeg">Vul na het oefenen je pijn, zwelling en stijfheid in. Dan zie je hier met een kleur hoe je ${deel} reageert: groen, oranje of rood.</p>`}
       <div id="kal-vak"></div>
     </section>` : ''}
-    <div class="patient-voet">
-      <button class="knop knop-plat" id="afmelden">Afmelden</button>
-    </div>`;
-  toonPatientResultaten($('#mijn-resultaten'), resultaten);
+    <div class="patient-voet"><a class="knop knop-plat" href="#/">‹ Terug naar Mijn programma</a></div>`;
   // Oefenkalender: tik op een dag (of "Vandaag aanduiden") om aan te duiden en feedback te geven
   const aanduiden = async datum => {
     if (!await dagAanduiden(ctx.profielId(), datum, sessies.find(s => s.datum === datum), zichtbaar, deel)) return;
     try { sessies = await bron.mijnSessies(); await db.put('mijnSessies', sessies); } catch { /* volgende keer */ }
-    toonMijnProgramma();
+    toonMijnProgramma('oefenen');
   };
   const kalVak = $('#kal-vak');
   if (kalVak) koppelKalender(kalVak, () => sessies, kalOpties, aanduiden);
   $('#vandaag-aanduiden')?.addEventListener('click', () => aanduiden(vandaagLokaal()));
-  $('#afmelden').addEventListener('click', async () => {
-    if (!await ctx.bevestig('Afmelden?', 'Je hebt daarna je code en wachtwoord nodig om opnieuw aan te melden.', 'Afmelden')) return;
-    try { await bron.afmelden(); } catch { /* offline */ }
-    await db.del('profiel');
-    await db.del('mijnProgrammas');
-    location.replace(location.pathname + '#/');
-    location.reload();
-  });
 }
 
 async function toonOefening(itemId) {
   const { esc, inhoud } = ctx;
   let it = null, g = null;
   for (const p of programmas) for (const x of p.programma_items || []) if (x.id === itemId) { it = x; g = p; }
-  if (!it || !it.fiche) { location.hash = '#/'; return; }
+  if (!it || !it.fiche) { location.hash = '#/oefenen'; return; }
   $('#terug').hidden = false;
-  $('#kruimels').innerHTML = `<a href="#/">Mijn programma</a> <span class="sep">›</span> <span class="huidig">${esc(it.fiche.titel)}</span>`;
+  $('#kruimels').innerHTML = `<a href="#/">Mijn programma</a> <span class="sep">›</span> <a href="#/oefenen">Oefenprogramma</a> <span class="sep">›</span> <span class="huidig">${esc(it.fiche.titel)}</span>`;
   const pagina = location.hash;
   const inh = await db.getFiche(it.fiche.id);
   if (location.hash !== pagina) return;
@@ -608,6 +644,6 @@ async function toonOefening(itemId) {
       </div>` : ''}
       ${it.fiche.omschrijving ? `<p class="viewer-omschrijving">${esc(it.fiche.omschrijving)}</p>` : ''}
       ${inh ? html : '<div class="leeg">Deze fiche is nog niet binnengehaald. Open de app eens met internet.</div>'}
-      <div class="viewer-nav"><a class="knop knop-plat" href="#/">‹ Terug naar ${esc(g.titel)}</a><span></span></div>
+      <div class="viewer-nav"><a class="knop knop-plat" href="#/oefenen">‹ Terug naar ${esc(g.titel)}</a><span></span></div>
     </div>`;
 }
