@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Ballen volgen</title>
+<link rel="stylesheet" href="spel.css">
+<style>
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #spel { padding: 0; }
+  .stop-knop { position: absolute; top: 10px; right: 16px; z-index: 3; min-height: 48px; padding: 0 18px; font-size: 1rem; }
+  .spel-balk { padding-right: 140px; }
+  #onderaan { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); left: 0; right: 0; z-index: 2;
+              display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none; }
+  #onderaan button { pointer-events: auto; }
+  body.afstand .spel-melding { font-size: 2.4rem; }
+  body.afstand .spel-balk { font-size: 1.5rem; }
+
+  /* Niveaus */
+  .niveaus { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; width: min(640px, 100%); }
+  .niveaus button { min-height: 76px; border-radius: 14px; border: 2px solid #2d4547; background: var(--spel-vlak);
+                    color: var(--spel-tekst); font: inherit; cursor: pointer; display: grid; place-content: center; gap: 2px; }
+  .niveaus button b { font-size: 1.5rem; }
+  .niveaus button small { color: var(--spel-zacht); font-size: .75rem; }
+  .niveaus button[aria-pressed="true"] { border-color: var(--spel-hoofd); background: #1f4544; }
+  #niveau-uitleg { min-height: 1.4em; }
+  details.zelf { width: min(640px, 100%); text-align: left; }
+  details.zelf summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; font-weight: 600; color: var(--spel-hoofd); }
+  details.zelf .instellingen { margin-top: 8px; }
+
+  /* Vraag naar de kleur die flitste */
+  #kleurvraag { position: absolute; inset: 0; z-index: 4; background: rgba(15, 28, 29, .92);
+                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 20px; }
+  #kleurvraag h2 { margin: 0; font-size: 2rem; }
+  .kleur-knoppen { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; max-width: 720px; }
+  .kleur-knoppen button { width: 116px; height: 116px; border-radius: 50%; border: 4px solid transparent; cursor: pointer;
+                          font: inherit; font-weight: 700; font-size: 1.05rem; color: #0f1c1d;
+                          box-shadow: inset -10px -14px 24px rgba(0,0,0,.35), inset 8px 10px 18px rgba(255,255,255,.35); }
+  .kleur-knoppen button.donker { color: #fff; }
+  .kleur-knoppen button:active { border-color: #fff; }
+
+  #bewaren { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 16px; background: var(--spel-vlak); }
+  #bewaren p { color: var(--spel-tekst); }
+</style>
+</head>
+<body>
+
+<section class="scherm" id="start">
+  <h1>Ballen volgen</h1>
+  <p>Onthoud de gele ballen. Daarna krijgen alle ballen dezelfde kleur en bewegen ze. Volg ze met je ogen. Als ze stilstaan, tik je de ballen aan die je volgde.</p>
+  <div class="niveaus" id="niveaus"></div>
+  <p id="niveau-uitleg"></p>
+  <details class="zelf" id="zelf">
+    <summary>Zelf instellen</summary>
+    <div class="instellingen">
+      <div class="instelling"><span>Te volgen ballen</span><div class="keuzes" data-instelling="doelwitten"></div></div>
+      <div class="instelling"><span>Ballen in totaal</span><div class="keuzes" data-instelling="ballen"></div></div>
+      <div class="instelling"><span>Snelheid</span><div class="keuzes" data-instelling="snelheid"></div></div>
+      <div class="instelling"><span>Afleiding: kleur onthouden</span><div class="keuzes" data-instelling="afleiding"></div>
+        <small>Tijdens het volgen flitst één bal even in een kleur. Achteraf vraagt het spel welke kleur dat was.</small></div>
+      <div class="instelling"><span>Aantal mogelijke kleuren</span><div class="keuzes" data-instelling="kleuren"></div>
+        <small>Hoe meer kleuren, hoe moeilijker het onthouden.</small></div>
+    </div>
+  </details>
+  <div class="instellingen">
+    <div class="instelling"><span>Volgtijd per ronde</span><div class="keuzes" data-instelling="volgtijd"></div>
+      <small>Stem dit af op de test, bv. 30 s bij een single-leg stand als dubbeltaak.</small></div>
+    <div class="instelling"><span>Rondes</span><div class="keuzes" data-instelling="rondes"></div></div>
+    <div class="instelling"><span>Meegroeien</span><div class="keuzes" data-instelling="meegroeien"></div>
+      <small>Na een ronde zonder fouten gaat het wat sneller, na een moeilijke ronde wat trager.</small></div>
+    <div class="instelling"><span>Waar staat de patiënt?</span><div class="keuzes" data-instelling="afstand"></div>
+      <small>Op afstand: grotere ballen en tekst. De patiënt zegt welke ballen het zijn, de therapeut tikt.</small></div>
+    <div class="instelling"><span>Geluid</span><div class="keuzes" data-instelling="geluid"></div></div>
+  </div>
+  <button class="spel-knop" id="begin">Start</button>
+</section>
+
+<section class="scherm" id="aftellen" hidden>
+  <div class="aftellen" id="aftel-getal">3</div>
+</section>
+
+<section class="scherm" id="spel" hidden>
+  <canvas id="veld"></canvas>
+  <div class="spel-balk"><span>Ronde <strong id="ronde-nr">1</strong> van <strong id="ronde-tot">5</strong></span><span>Score <strong id="score">0</strong></span></div>
+  <button class="spel-knop plat stop-knop" id="stop">Stoppen</button>
+  <div id="onderaan">
+    <div id="melding" class="spel-melding"></div>
+    <button class="spel-knop" id="volgende" hidden>Volgende ronde</button>
+  </div>
+  <div id="kleurvraag" hidden>
+    <h2>Welke kleur flitste er?</h2>
+    <div class="kleur-knoppen" id="kleur-knoppen"></div>
+  </div>
+</section>
+
+<section class="scherm" id="resultaat" hidden>
+  <h1>Goed gedaan!</h1>
+  <div class="resultaat-getal" id="res-score">0</div>
+  <p id="res-niveau"></p>
+  <p id="res-tekst"></p>
+  <div class="resultaat-lijst" id="res-rondes"></div>
+  <div id="bewaren" hidden>
+    <p id="bewaar-tekst">Deze score bij een patiënt bewaren, bv. als dubbeltaak bij een test?</p>
+    <div class="knoppen" id="bewaar-knoppen">
+      <button class="spel-knop" id="bewaar-ja">Score toevoegen aan patiënt</button>
+      <button class="spel-knop plat" id="bewaar-nee">Overslaan</button>
+    </div>
+  </div>
+  <div class="knoppen">
+    <button class="spel-knop" id="opnieuw">Opnieuw</button>
+    <button class="spel-knop plat" id="naar-start">Instellingen</button>
+  </div>
+</section>
+
+<script type="module">
+import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, wacht, aftellen } from './spel.js';
+
+// ---------- Instellingen en niveaus ----------
+
+const SLEUTEL = 'spel-ballen';
+// ===== PAS HIER DE NIVEAUS AAN =====
+// Een niveau zet deze instellingen in één tik. Wijzig je er zelf één, dan wordt het "Eigen".
+//   doelwitten: 1–4 · ballen: 4, 6, 8 of 10 · snelheid: 'traag', 'gemiddeld' of 'snel'
+//   afleiding: true/false (kleur onthouden) · kleuren: 4, 6 of 8
+// De volgtijd hoort niet bij een niveau: die kies je apart, afgestemd op de test.
+const NIVEAUS = {
+  1: { doelwitten: 2, ballen: 6, snelheid: 'traag', afleiding: false, kleuren: 4 },
+  2: { doelwitten: 3, ballen: 8, snelheid: 'traag', afleiding: false, kleuren: 4 },
+  3: { doelwitten: 3, ballen: 8, snelheid: 'gemiddeld', afleiding: false, kleuren: 4 },
+  4: { doelwitten: 4, ballen: 8, snelheid: 'gemiddeld', afleiding: true, kleuren: 6 },
+  5: { doelwitten: 4, ballen: 10, snelheid: 'snel', afleiding: true, kleuren: 8 }
+};
+const NIVEAU_VELDEN = Object.keys(NIVEAUS[1]);
+const SNELHEID_TEKST = { traag: 'traag', gemiddeld: 'gemiddeld', snel: 'snel' };
+
+const instellingen = laadInstellingen(SLEUTEL, {
+  niveau: 2, ...NIVEAUS[2], volgtijd: 10, meegroeien: false, rondes: 5, afstand: false, geluid: true
+});
+const aanUit = [{ waarde: true, label: 'Aan' }, { waarde: false, label: 'Uit' }];
+
+function niveauOmschrijving(n) {
+  const v = n === 'eigen' ? instellingen : NIVEAUS[n];
+  return `${v.doelwitten} van ${v.ballen} ballen · ${SNELHEID_TEKST[v.snelheid]}` +
+    (v.afleiding ? ` · kleur onthouden (${v.kleuren} kleuren)` : '');
+}
+
+function bouwNiveaus() {
+  const vak = document.getElementById('niveaus');
+  vak.innerHTML = '';
+  for (const n of [1, 2, 3, 4, 5, 'eigen']) {
+    const knop = document.createElement('button');
+    knop.type = 'button';
+    knop.innerHTML = n === 'eigen' ? '<b>Eigen</b><small>zelf instellen</small>' : `<b>${n}</b><small>niveau</small>`;
+    knop.setAttribute('aria-pressed', String(instellingen.niveau === n));
+    knop.addEventListener('click', () => {
+      if (n === 'eigen') { document.getElementById('zelf').open = true; }
+      else Object.assign(instellingen, NIVEAUS[n]);
+      instellingen.niveau = n;
+      bewaarInstellingen(SLEUTEL, instellingen);
+      bouwAlles();
+    });
+    vak.appendChild(knop);
+  }
+  document.getElementById('niveau-uitleg').textContent = niveauOmschrijving(instellingen.niveau);
+}
+
+function bouwAlles() {
+  bouwNiveaus();
+  bouwKeuzes({
+    doelwitten: [1, 2, 3, 4].map(n => ({ waarde: n, label: String(n) })),
+    ballen: [4, 6, 8, 10].map(n => ({ waarde: n, label: String(n) })),
+    snelheid: [
+      { waarde: 'traag', label: 'Traag' },
+      { waarde: 'gemiddeld', label: 'Gemiddeld' },
+      { waarde: 'snel', label: 'Snel' }
+    ],
+    volgtijd: [6, 10, 15, 30, 45].map(n => ({ waarde: n, label: `${n} s` })),
+    afleiding: aanUit,
+    kleuren: [4, 6, 8].map(n => ({ waarde: n, label: String(n) })),
+    rondes: [3, 5, 8].map(n => ({ waarde: n, label: String(n) })),
+    meegroeien: aanUit,
+    afstand: [{ waarde: false, label: 'Bij de iPad' }, { waarde: true, label: 'Op afstand' }],
+    geluid: aanUit
+  }, instellingen, (w, naam) => {
+    // Een niveau-instelling zelf gewijzigd? Dan past het misschien nog bij een niveau, anders "Eigen".
+    if (NIVEAU_VELDEN.includes(naam)) {
+      const past = Object.entries(NIVEAUS).find(([, v]) => NIVEAU_VELDEN.every(k => v[k] === w[k]));
+      w.niveau = past ? Number(past[0]) : 'eigen';
+      bouwNiveaus();
+    }
+    bewaarInstellingen(SLEUTEL, w);
+  });
+}
+bouwAlles();
+
+// ---------- Spelconstanten ----------
+
+// Snelheid als deel van de kortste zijde van de ruimte per seconde.
+const TEMPO = { traag: 0.16, gemiddeld: 0.26, snel: 0.4 };
+// Meegroeien: vermenigvuldiger op de gekozen snelheid, binnen deze grenzen.
+const GROEI = { op: 1.15, af: 0.9, min: 0.6, max: 2 };
+const KLEUR = { bal: '#5fb8d3', doel: '#f2c14e', goed: '#4cc283', fout: '#e2706a' };
+// Flitskleuren: verschillen duidelijk van blauw (bal) en geel (doelwit). De eerste 4, 6 of 8 worden gebruikt.
+const FLITS = [
+  { naam: 'Rood', kleur: '#e5484d' },
+  { naam: 'Groen', kleur: '#3fa34d' },
+  { naam: 'Paars', kleur: '#9b6bdf' },
+  { naam: 'Wit', kleur: '#f4f4f4' },
+  { naam: 'Oranje', kleur: '#f76b15' },
+  { naam: 'Roze', kleur: '#ff7eb6' },
+  { naam: 'Bruin', kleur: '#8d5a3b', donker: true },
+  { naam: 'Grijs', kleur: '#8b8d98' }
+];
+const FLITS_MS = 700;
+// De ruimte is 3D (wanden, vloer, schaduw), maar de ballen bewegen in één vlak op deze diepte (0 = voor, 1 = achter).
+const VLAK_Z = 0.35;
+const TOON_DOEL_MS = 2500;
+
+// ---------- 3D-ruimte ----------
+// Wereld: x van -B/2 tot B/2, y van -H/2 (plafond) tot H/2 (vloer), z van 0 (voorkant) tot D (achterwand).
+// De camera staat op z = -F en kijkt de ruimte in. Op z = 0 is 1 wereldeenheid = 1 pixel.
+
+const veld = document.getElementById('veld');
+const ctx = veld.getContext('2d');
+const melding = document.getElementById('melding');
+const volgendeKnop = document.getElementById('volgende');
+const kleurvraag = document.getElementById('kleurvraag');
+let breedte = 0, hoogte = 0;           // canvas in pixels
+let B = 0, H = 0, D = 0, F = 0;        // ruimte en camera
+let mx = 0, my = 0;                    // middelpunt van de voorkant op het scherm
+let straal = 40;                       // straal van een bal in wereldeenheden
+let ballen = [];
+let fase = 'stil';                     // 'tonen' | 'bewegen' | 'kiezen' | 'uitkomst'
+let gekozen = new Set();
+let flits = null;                      // { bal, kleur, naam, van, tot } in ms sinds start beweging
+let flitsNu = false;
+let tempoFactor = 1;
+let beurt = 0;                         // volgnummer van het lopende spel; Stoppen of Start verhoogt het
+let wachtend = null;                   // resolve van wat we nu afwachten (tik, knop, kleurkeuze)
+
+const wachtOp = () => new Promise(r => { wachtend = r; });
+function los(waarde) { const r = wachtend; wachtend = null; r?.(waarde); }
+
+const boven = () => instellingen.afstand ? 80 : 66;   // ruimte voor de bovenbalk
+const onder = () => instellingen.afstand ? 110 : 90;  // ruimte voor melding en knop
+
+function meetVeld() {
+  const dpr = window.devicePixelRatio || 1;
+  breedte = veld.clientWidth; hoogte = veld.clientHeight;
+  veld.width = Math.round(breedte * dpr); veld.height = Math.round(hoogte * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  B = breedte - 24;
+  H = hoogte - boven() - onder();
+  mx = breedte / 2; my = boven() + H / 2;
+  D = Math.min(B, H) * 1.1;
+  F = Math.min(B, H) * 1.3;            // achterwand op ~54 % van de voorkant
+  const veel = instellingen.ballen >= 10;
+  const factor = instellingen.afstand ? (veel ? 0.1 : 0.115) : (veel ? 0.072 : 0.085);
+  straal = Math.max(28, Math.min(B, H) * factor);
+}
+
+function projecteer(x, y, z) {
+  const s = F / (F + z);
+  return { x: mx + x * s, y: my + y * s, s };
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('spel').hidden) return;
+  const oud = { B, H, D };
+  meetVeld();
+  for (const b of ballen) { b.x *= B / oud.B; b.y *= H / oud.H; b.z *= D / oud.D; houdBinnen(b); }
+  teken();
+});
+
+function houdBinnen(b) {
+  b.x = Math.min(Math.max(b.x, -B / 2 + straal), B / 2 - straal);
+  b.y = Math.min(Math.max(b.y, -H / 2 + straal), H / 2 - straal);
+  b.z = Math.min(Math.max(b.z, straal), D - straal);
+}
+
+function maakBallen() {
+  const snel = TEMPO[instellingen.snelheid] * tempoFactor * Math.min(B, H);
+  const lijst = [];
+  for (let i = 0; i < instellingen.ballen; i++) {
+    let x, y, z, pogingen = 0;
+    do {
+      x = (Math.random() - 0.5) * (B - 2 * straal);
+      y = (Math.random() - 0.5) * (H - 2 * straal);
+      z = VLAK_Z * D;                   // alle ballen in hetzelfde vlak: ze bewegen enkel in 2D
+      pogingen++;
+      // Bij het tonen mogen ballen elkaar op het scherm niet bedekken.
+    } while (pogingen < 800 && lijst.some(b => {
+      const p = projecteer(x, y, z), q = projecteer(b.x, b.y, b.z);
+      return Math.hypot(p.x - q.x, p.y - q.y) < straal * (p.s + q.s) * 1.15;
+    }));
+    // Willekeurige richting in het vlak (links-rechts en op-neer), geen beweging in de diepte.
+    const hoek = Math.random() * Math.PI * 2;
+    lijst.push({ x, y, z, vx: Math.cos(hoek) * snel, vy: Math.sin(hoek) * snel, vz: 0,
+                 doel: i < instellingen.doelwitten });
+  }
+  return lijst;
+}
+
+function beweeg(dt) {
+  for (const b of ballen) {
+    b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    if (b.x < -B / 2 + straal && b.vx < 0 || b.x > B / 2 - straal && b.vx > 0) b.vx *= -1;
+    if (b.y < -H / 2 + straal && b.vy < 0 || b.y > H / 2 - straal && b.vy > 0) b.vy *= -1;
+    if (b.z < straal && b.vz < 0 || b.z > D - straal && b.vz > 0) b.vz *= -1;
+    houdBinnen(b);
+  }
+  // Botsingen tussen ballen in 3D: snelheden langs de verbindingslijn wisselen (gelijke massa).
+  for (let i = 0; i < ballen.length; i++) {
+    for (let j = i + 1; j < ballen.length; j++) {
+      const a = ballen[i], b = ballen[j];
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const afstand = Math.hypot(dx, dy, dz) || 0.01;
+      if (afstand >= straal * 2) continue;
+      const nx = dx / afstand, ny = dy / afstand, nz = dz / afstand;
+      const va = a.vx * nx + a.vy * ny + a.vz * nz, vb = b.vx * nx + b.vy * ny + b.vz * nz;
+      if (va - vb > 0) {
+        const d = vb - va;
+        a.vx += d * nx; a.vy += d * ny; a.vz += d * nz;
+        b.vx -= d * nx; b.vy -= d * ny; b.vz -= d * nz;
+      }
+      const overlap = (straal * 2 - afstand) / 2;
+      a.x -= nx * overlap; a.y -= ny * overlap; a.z -= nz * overlap;
+      b.x += nx * overlap; b.y += ny * overlap; b.z += nz * overlap;
+    }
+  }
+}
+
+// ---------- Tekenen ----------
+
+function vlak(punten, vulling) {
+  ctx.beginPath();
+  punten.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fillStyle = vulling;
+  ctx.fill();
+}
+
+function tekenRuimte() {
+  const x0 = -B / 2, x1 = B / 2, y0 = -H / 2, y1 = H / 2;
+  const v = (x, y, z) => projecteer(x, y, z);
+  // Hoekpunten voor (z = 0) en achter (z = D)
+  const vlb = v(x0, y0, 0), vrb = v(x1, y0, 0), vlo = v(x0, y1, 0), vro = v(x1, y1, 0);
+  const alb = v(x0, y0, D), arb = v(x1, y0, D), alo = v(x0, y1, D), aro = v(x1, y1, D);
+
+  ctx.fillStyle = '#0b1617';
+  ctx.fillRect(0, 0, breedte, hoogte);
+
+  // Vloer met verloop: dichtbij lichter
+  const gv = ctx.createLinearGradient(0, aro.y, 0, vro.y);
+  gv.addColorStop(0, '#132729'); gv.addColorStop(1, '#1d3a3c');
+  vlak([vlo, vro, aro, alo], gv);
+  // Plafond, zijwanden en achterwand
+  vlak([vlb, vrb, arb, alb], '#0e1c1d');
+  vlak([vlb, alb, alo, vlo], '#112223');
+  vlak([vrb, arb, aro, vro], '#112223');
+  const ga = ctx.createRadialGradient(mx, (alb.y + alo.y) / 2, 0, mx, (alb.y + alo.y) / 2, (arb.x - alb.x) * 0.7);
+  ga.addColorStop(0, '#183133'); ga.addColorStop(1, '#122526');
+  vlak([alb, arb, aro, alo], ga);
+
+  // Raster op de vloer en de achterwand voor dieptegevoel
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(111, 195, 217, 0.10)';
+  ctx.beginPath();
+  for (let i = 1; i < 6; i++) {
+    const z = D * i / 6;
+    const a = v(x0, y1, z), b = v(x1, y1, z);
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+  }
+  for (let i = 1; i < 8; i++) {
+    const x = x0 + B * i / 8;
+    const a = v(x, y1, 0), b = v(x, y1, D);
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+  }
+  ctx.stroke();
+  // Ribben van de ruimte
+  ctx.strokeStyle = 'rgba(111, 195, 217, 0.22)';
+  ctx.beginPath();
+  for (const [a, b] of [[vlb, alb], [vrb, arb], [vlo, alo], [vro, aro], [alb, arb], [arb, aro], [aro, alo], [alo, alb]]) {
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+  }
+  ctx.stroke();
+}
+
+function mengKleur(hex, factor) {
+  // factor > 0: lichter (naar wit), < 0: donkerder (naar zwart)
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const doel = factor > 0 ? 255 : 0, f = Math.abs(factor);
+  r = Math.round(r + (doel - r) * f); g = Math.round(g + (doel - g) * f); b = Math.round(b + (doel - b) * f);
+  return `rgb(${r},${g},${b})`;
+}
+
+function kleurVan(b) {
+  if (fase === 'tonen' && b.doel) return KLEUR.doel;
+  if (fase === 'bewegen' && flitsNu && flits?.bal === b) return flits.kleur;
+  if (fase === 'kiezen' && gekozen.has(b)) return KLEUR.doel;
+  if (fase === 'uitkomst' && gekozen.has(b)) return b.doel ? KLEUR.goed : KLEUR.fout;
+  return KLEUR.bal;
+}
+
+function tekenBal(b) {
+  const p = projecteer(b.x, b.y, b.z);
+  const r = straal * p.s;
+  const kleur = kleurVan(b);
+  // Diepte: verre ballen iets doffer
+  const diep = b.z / D;
+
+  // Schaduw op de vloer, vager naarmate de bal hoger zweeft
+  const vloer = projecteer(b.x, H / 2, b.z);
+  const hoogteBoven = (H / 2 - b.y - straal) / H;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.08, 0.45 - hoogteBoven * 0.5);
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(vloer.x, vloer.y, r * (1 - hoogteBoven * 0.3), r * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Bol met licht van linksboven
+  const g = ctx.createRadialGradient(p.x - r * 0.35, p.y - r * 0.4, r * 0.08, p.x, p.y, r);
+  g.addColorStop(0, mengKleur(kleur, 0.65));
+  g.addColorStop(0.35, mengKleur(kleur, 0.05 - diep * 0.1));
+  g.addColorStop(1, mengKleur(kleur, -0.55 - diep * 0.15));
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  // Gemiste doelwitten: gele ring zodat je ziet waar ze waren.
+  if (fase === 'uitkomst' && b.doel && !gekozen.has(b)) {
+    ctx.lineWidth = Math.max(4, r * 0.16);
+    ctx.strokeStyle = KLEUR.doel;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r + ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (fase === 'uitkomst' && gekozen.has(b)) {
+    ctx.fillStyle = '#0f1c1d';
+    ctx.font = `700 ${Math.round(r * 1.05)}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(b.doel ? '✓' : '✗', p.x, p.y + r * 0.05);
+  }
+}
+
+function teken() {
+  tekenRuimte();
+  // Verre ballen eerst, zodat dichte ballen ervoor komen.
+  [...ballen].sort((a, b) => b.z - a.z).forEach(tekenBal);
+}
+
+function zegMelding(tekst) { melding.textContent = tekst; }
+
+// ---------- Rondes ----------
+
+function kiesFlits(seconden) {
+  if (!instellingen.afleiding) return null;
+  const lijst = FLITS.slice(0, instellingen.kleuren);
+  const k = lijst[Math.floor(Math.random() * lijst.length)];
+  const van = seconden * 1000 * (0.3 + Math.random() * 0.4);   // ergens in het midden van de volgtijd
+  return { bal: ballen[Math.floor(Math.random() * ballen.length)], kleur: k.kleur, naam: k.naam, van, tot: van + FLITS_MS };
+}
+
+function speelBeweging(seconden, mijn) {
+  return new Promise(klaar => {
+    const begin = performance.now();
+    let vorige = begin;
+    function stap(nu) {
+      if (mijn !== beurt) return klaar();
+      beweeg(Math.min(0.05, (nu - vorige) / 1000));
+      vorige = nu;
+      const verstreken = nu - begin;
+      const wasFlits = flitsNu;
+      flitsNu = !!flits && verstreken >= flits.van && verstreken < flits.tot;
+      if (flitsNu && !wasFlits) piep(instellingen.geluid, 990, 0.08);
+      teken();
+      if (verstreken < seconden * 1000) requestAnimationFrame(stap); else { flitsNu = false; klaar(); }
+    }
+    requestAnimationFrame(stap);
+  });
+}
+
+veld.addEventListener('pointerdown', e => {
+  if (fase !== 'kiezen') return;
+  const rect = veld.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  // Alle ballen binnen een ruime tikzone; bij overlap wint de voorste bal.
+  const geraakt = ballen.map(b => {
+    const p = projecteer(b.x, b.y, b.z);
+    return { b, d: Math.hypot(p.x - x, p.y - y) / (straal * p.s) };
+  }).filter(t => t.d < 1.35);
+  if (!geraakt.length) return;
+  const binnen = geraakt.filter(t => t.d <= 1);
+  const beste = (binnen.length ? binnen.sort((a, c) => a.b.z - c.b.z) : geraakt.sort((a, c) => a.d - c.d))[0].b;
+  if (gekozen.has(beste)) gekozen.delete(beste); else gekozen.add(beste);
+  piep(instellingen.geluid, 740, 0.06);
+  teken();
+  const nog = instellingen.doelwitten - gekozen.size;
+  zegMelding(nog > 0 ? `Tik nog ${nog} ${nog === 1 ? 'bal' : 'ballen'} aan` : '');
+  if (nog <= 0) los();
+});
+
+// Kleurknoppen in willekeurige volgorde, zodat de positie niets verraadt.
+function vraagKleur() {
+  const vak = document.getElementById('kleur-knoppen');
+  vak.innerHTML = '';
+  for (const k of FLITS.slice(0, instellingen.kleuren).sort(() => Math.random() - 0.5)) {
+    const knop = document.createElement('button');
+    knop.type = 'button';
+    knop.textContent = k.naam;
+    knop.style.background = k.kleur;
+    if (k.donker) knop.classList.add('donker');
+    knop.addEventListener('click', () => { piep(instellingen.geluid, 740, 0.06); los(k.naam); });
+    vak.appendChild(knop);
+  }
+  kleurvraag.hidden = false;
+  return wachtOp().then(naam => { kleurvraag.hidden = true; return naam; });
+}
+
+async function speelRonde(laatste, mijn) {
+  ballen = maakBallen();
+  gekozen = new Set();
+  flits = kiesFlits(instellingen.volgtijd);
+  fase = 'tonen';
+  zegMelding(`Onthoud de ${instellingen.doelwitten} gele ballen`);
+  teken();
+  await wacht(TOON_DOEL_MS);
+  if (mijn !== beurt) return null;
+
+  fase = 'bewegen';
+  zegMelding(instellingen.afleiding ? 'Volg ze, en let op een kleur' : 'Volg ze met je ogen');
+  piep(instellingen.geluid, 880);
+  teken();
+  await speelBeweging(instellingen.volgtijd, mijn);
+  if (mijn !== beurt) return null;
+
+  fase = 'kiezen';
+  piep(instellingen.geluid, 520, 0.2);
+  zegMelding(`Tik de ${instellingen.doelwitten} ballen aan die je volgde`);
+  teken();
+  await wachtOp();
+  if (mijn !== beurt) return null;
+
+  let kleurJuist = null;
+  if (flits) {
+    const antwoord = await vraagKleur();
+    if (mijn !== beurt) return null;
+    kleurJuist = antwoord === flits.naam;
+  }
+
+  fase = 'uitkomst';
+  const goed = [...gekozen].filter(b => b.doel).length;
+  const alles = goed === instellingen.doelwitten;
+  let tekst = alles ? 'Allemaal juist!' : `${goed} van ${instellingen.doelwitten} juist`;
+  if (kleurJuist !== null) tekst += kleurJuist ? ` · kleur juist (${flits.naam})` : ` · de kleur was ${flits.naam.toLowerCase()}`;
+  zegMelding(tekst);
+  piep(instellingen.geluid, alles ? 1046 : 660, 0.18);
+  teken();
+
+  volgendeKnop.textContent = laatste ? 'Bekijk je resultaat' : 'Volgende ronde';
+  volgendeKnop.hidden = false;
+  await wachtOp();
+  volgendeKnop.hidden = true;
+  if (mijn !== beurt) return null;
+  return { goed, kleurJuist, tempo: Math.round(tempoFactor * 100) };
+}
+
+function pasTempoAan(goed) {
+  if (!instellingen.meegroeien) return;
+  if (goed === instellingen.doelwitten) tempoFactor = Math.min(GROEI.max, tempoFactor * GROEI.op);
+  else if (goed < instellingen.doelwitten / 2) tempoFactor = Math.max(GROEI.min, tempoFactor * GROEI.af);
+}
+
+async function speel() {
+  startGeluid();
+  const mijn = ++beurt;
+  tempoFactor = 1;
+  document.body.classList.toggle('afstand', instellingen.afstand);
+  await aftellen(instellingen.geluid);
+  if (mijn !== beurt) return;
+  toonScherm('spel');
+  meetVeld();
+  document.getElementById('ronde-tot').textContent = instellingen.rondes;
+  const rondes = [];
+  let totaal = 0;
+  document.getElementById('score').textContent = 0;
+  for (let r = 1; r <= instellingen.rondes; r++) {
+    document.getElementById('ronde-nr').textContent = r;
+    const uitkomst = await speelRonde(r === instellingen.rondes, mijn);
+    if (mijn !== beurt || !uitkomst) return;
+    rondes.push(uitkomst);
+    totaal += uitkomst.goed;
+    document.getElementById('score').textContent = totaal;
+    pasTempoAan(uitkomst.goed);
+  }
+  toonResultaat(rondes, totaal);
+}
+
+// ---------- Resultaat en bewaren bij een patiënt ----------
+
+let laatsteResultaat = null;
+let kanBewaren = false;     // de app laat weten of bewaren kan (enkel voor het team, in gedeelde modus)
+
+function toonResultaat(rondes, totaal) {
+  fase = 'stil';
+  const n = instellingen.doelwitten;
+  const max = rondes.length * n;
+  const perfect = rondes.filter(r => r.goed === n).length;
+  const metKleur = rondes.filter(r => r.kleurJuist !== null);
+  const kleurGoed = metKleur.filter(r => r.kleurJuist).length;
+
+  document.getElementById('res-score').textContent = `${totaal} / ${max}`;
+  document.getElementById('res-niveau').textContent =
+    `${instellingen.niveau === 'eigen' ? 'Eigen instelling' : `Niveau ${instellingen.niveau}`}: ${niveauOmschrijving(instellingen.niveau)} · ${instellingen.volgtijd} s per ronde`;
+  const zinnen = [
+    perfect === rondes.length ? 'Elke ronde alles juist.'
+    : perfect > 0 ? `${perfect} ${perfect === 1 ? 'ronde' : 'rondes'} helemaal juist.`
+    : 'Goed volgehouden. Elke ronde traint je concentratie.'
+  ];
+  if (metKleur.length) zinnen.push(`Kleur ${kleurGoed} van ${metKleur.length} keer juist.`);
+  if (instellingen.meegroeien) {
+    const eind = Math.round(tempoFactor * 100);
+    if (eind > 100) zinnen.push(`Het tempo ging mee omhoog tot ${eind} %.`);
+  } else if (perfect === rondes.length && instellingen.niveau !== 5) {
+    zinnen.push('Probeer eens een hoger niveau.');
+  }
+  document.getElementById('res-tekst').textContent = zinnen.join(' ');
+  document.getElementById('res-rondes').innerHTML = rondes.map((r, i) => {
+    let t = `Ronde ${i + 1}: ${r.goed}/${n}`;
+    if (r.kleurJuist !== null) t += r.kleurJuist ? ' · kleur ✓' : ' · kleur ✗';
+    if (instellingen.meegroeien) t += ` · ${r.tempo} %`;
+    return `<span>${t}</span>`;
+  }).join('');
+
+  // Geen patiëntgegevens in het spel zelf: de app koppelt het resultaat aan een patiënt.
+  laatsteResultaat = {
+    spel: 'ballen', spel_titel: 'Ballen volgen', datum: new Date().toISOString(),
+    niveau: instellingen.niveau, volgtijd: instellingen.volgtijd,
+    omschrijving: `${niveauOmschrijving(instellingen.niveau)} · ${instellingen.volgtijd} s per ronde`,
+    score: totaal, max, perfecte_rondes: perfect,
+    kleur: metKleur.length ? { juist: kleurGoed, van: metKleur.length } : null,
+    eindtempo: instellingen.meegroeien ? Math.round(tempoFactor * 100) : null,
+    rondes, instellingen: { ...instellingen }
+  };
+  document.getElementById('bewaren').hidden = !kanBewaren;
+  document.getElementById('bewaar-knoppen').hidden = false;
+  document.getElementById('bewaar-tekst').textContent = 'Deze score bij een patiënt bewaren, bv. als dubbeltaak bij een test?';
+  toonScherm('resultaat');
+}
+
+const inApp = window.parent !== window;
+const naarApp = bericht => { if (inApp) window.parent.postMessage(bericht, location.origin); };
+
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || e.source !== window.parent) return;
+  const m = e.data || {};
+  if (m.soort === 'spel-context') kanBewaren = !!m.kanBewaren;
+  if (m.soort === 'spel-bewaard') {
+    document.getElementById('bewaar-tekst').textContent = m.tekst || (m.ok ? 'Bewaard.' : 'Niet bewaard.');
+    document.getElementById('bewaar-knoppen').hidden = !!m.ok;
+  }
+});
+naarApp({ soort: 'spel-geladen', spel: 'ballen' });
+
+document.getElementById('bewaar-ja').addEventListener('click', () => {
+  if (laatsteResultaat) naarApp({ soort: 'spel-bewaar', resultaat: laatsteResultaat });
+});
+document.getElementById('bewaar-nee').addEventListener('click', () => { document.getElementById('bewaren').hidden = true; });
+
+function stop() {
+  beurt++;
+  fase = 'stil';
+  volgendeKnop.hidden = true;
+  kleurvraag.hidden = true;
+  los();
+  toonScherm('start');
+}
+
+document.getElementById('begin').addEventListener('click', speel);
+document.getElementById('opnieuw').addEventListener('click', speel);
+document.getElementById('naar-start').addEventListener('click', () => toonScherm('start'));
+document.getElementById('stop').addEventListener('click', stop);
+volgendeKnop.addEventListener('click', () => los());
+</script>
+</body>
+</html>

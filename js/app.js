@@ -412,7 +412,8 @@ async function start() {
 
   hulp = {
     esc, melding, dialoog, bevestig, link, pad, inhoud, toon, ficheVlak, alleFichesMetPlaats, knoopPad,
-    appTitel: () => structuur?.appTitel || 'Rehab', profielId: () => profiel?.id || null
+    appTitel: () => structuur?.appTitel || 'Rehab', profielId: () => profiel?.id || null,
+    spellen: () => games.games.filter(g => g.bestand)
   };
   initPatienten(hulp);
   initProtocollen(hulp);
@@ -766,6 +767,78 @@ function toonGames(spelId) {
     <h1>${esc(games.titel)}</h1>
     <p class="ondertitel">Kies een spel.</p>
     <div class="tegels groot">${tegels}</div>`;
+}
+
+// Een spel (in het iframe) kan zijn score laten bewaren bij een patiënt, als dubbeltaak bij een test.
+// Het spel kent geen patiënten: het stuurt enkel zijn resultaat, de app vraagt patiënt, testmoment en test.
+const magSpelBewaren = () => gedeeld() && isTeam() && profiel?.rol !== 'patient';
+
+window.addEventListener('message', async e => {
+  if (e.origin !== location.origin) return;
+  const frame = document.querySelector('iframe.spel');
+  if (!frame || e.source !== frame.contentWindow) return;
+  const m = e.data || {};
+  const antwoord = bericht => e.source.postMessage(bericht, location.origin);
+  if (m.soort === 'spel-geladen') antwoord({ soort: 'spel-context', kanBewaren: magSpelBewaren() });
+  if (m.soort === 'spel-bewaar' && magSpelBewaren() && m.resultaat) {
+    let uit;
+    try { uit = await bewaarSpelBijPatient(m.resultaat); }
+    catch (fout) { uit = { ok: false, tekst: /dubbeltaak/i.test(fout.message || '') ? 'De dubbeltaak staat nog niet in Supabase (015_dubbeltaak.sql).' : (fout.message || 'Er liep iets mis.') }; }
+    antwoord({ soort: 'spel-bewaard', ...uit });
+  }
+});
+
+async function bewaarSpelBijPatient(r) {
+  const naamVan = p => p.naam ? `${p.naam} (${p.code})` : p.code;
+  const lijst = (await bron.patienten()).sort((a, b) => naamVan(a).localeCompare(naamVan(b), 'nl'));
+  if (!lijst.length) return { ok: false, tekst: 'Er zijn nog geen patiënten.' };
+  const scoreTekst = `${r.spel_titel}: ${r.score}/${r.max}${r.niveau === 'eigen' ? ', eigen niveau' : `, niveau ${r.niveau}`}`;
+
+  const stap1 = await dialoog({
+    titel: 'Score toevoegen aan patiënt', okTekst: 'Verder',
+    velden: [
+      { soort: 'uitleg', tekst: scoreTekst },
+      { naam: 'patient', label: 'Patiënt', soort: 'keuze', waarde: lijst[0].id, opties: lijst.map(p => ({ waarde: p.id, label: naamVan(p) })) }
+    ]
+  });
+  if (!stap1) return { ok: false, tekst: 'Niet bewaard.' };
+  const p = lijst.find(x => x.id === stap1.patient);
+  const traject = (await bron.trajectenVan(p.id)).find(x => x.actief);
+  if (!traject) return { ok: false, tekst: `${naamVan(p)} heeft nog geen protocol. Wijs eerst een protocol toe bij Opvolging.` };
+  const [momenten, tests] = await Promise.all([bron.testmomentenVan(traject.id), bron.tests()]);
+  if (!tests.length) return { ok: false, tekst: 'Er staan nog geen tests in de testlijst.' };
+
+  const d = new Date();
+  const vandaagIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const datumTekst = iso => new Date(iso + 'T00:00:00').toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+  const vanVandaag = [...momenten].reverse().find(tm => tm.datum === vandaagIso);
+  const stap2 = await dialoog({
+    titel: 'Bij welke test hoort de dubbeltaak?', okTekst: 'Bewaren',
+    velden: [
+      { soort: 'uitleg', tekst: `${naamVan(p)} · ${scoreTekst}` },
+      { naam: 'moment', label: 'Testmoment', soort: 'keuze', waarde: vanVandaag?.id || 'nieuw',
+        opties: [{ waarde: 'nieuw', label: 'Nieuw testmoment vandaag' },
+          ...[...momenten].reverse().map(tm => ({ waarde: tm.id, label: datumTekst(tm.datum) + (tm.notitie ? ` · ${tm.notitie}` : '') }))] },
+      { naam: 'test', label: 'Test (motorische taak)', soort: 'keuze', waarde: tests[0]?.id,
+        opties: tests.map(x => ({ waarde: x.id, label: `${x.groep} · ${x.naam}` })),
+        hulp: 'De score van het spel komt bij deze test als dubbeltaak. De waarden van de test zelf vul je in bij het testmoment.' }
+    ]
+  });
+  if (!stap2) return { ok: false, tekst: 'Niet bewaard.' };
+
+  let tm = momenten.find(x => x.id === stap2.moment);
+  const bestaand = tm?.metingen?.find(x => x.test_id === stap2.test);
+  const test = tests.find(x => x.id === stap2.test);
+  if (bestaand?.dubbeltaak && !await bevestig('Dubbeltaak vervangen?',
+    `Bij ${test.naam} staat al een dubbeltaak (${bestaand.dubbeltaak.spel_titel || 'spel'}). Die wordt vervangen.`, 'Vervangen')) {
+    return { ok: false, tekst: 'Niet bewaard.' };
+  }
+  if (!tm) tm = await bron.maakTestmoment({ traject_id: traject.id, datum: vandaagIso, notitie: 'Dubbeltaak', door: profiel?.id || null });
+
+  const { spel, spel_titel, niveau, omschrijving, score, max, perfecte_rondes, kleur, eindtempo, datum } = r;
+  await bron.zetMeting(tm.id, test.id, { dubbeltaak: { spel, spel_titel, niveau, omschrijving, score, max, perfecte_rondes, kleur, eindtempo, datum } });
+  melding('Bewaard.');
+  return { ok: true, tekst: `Bewaard bij ${naamVan(p)}: ${test.naam}, testmoment ${datumTekst(tm.datum)}.` };
 }
 
 // ---------- Zoeken ----------

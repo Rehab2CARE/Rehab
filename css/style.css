@@ -382,6 +382,12 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 .testrij-uitkomst { font-size: .9rem; font-weight: 600; color: var(--tekst-zacht); }
 .testrij-uitkomst.lsi-ok { color: var(--hoofdkleur); }
 .testrij-uitkomst.lsi-nog { color: #a86b00; }
+.testrij-dt { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.dt-schakel { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; min-height: var(--min-knop); font-size: .9rem; color: var(--tekst-zacht); cursor: pointer; }
+.dt-schakel input { width: 22px; height: 22px; accent-color: var(--hoofdkleur); }
+.dt-velden { flex: 1 1 420px; }
+.dt-info { flex-basis: 100%; font-size: .85rem; }
+.dt-info:empty { display: none; }
 @media (max-width: 700px) { .testrij { grid-template-columns: 1fr; } }
 .grafieken { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .grafiek-kaart { background: var(--kaart); border: 1px solid var(--rand); border-radius: var(--radius); padding: 14px 16px; }

@@ -66,12 +66,40 @@ function uitkomst(test, m, zijde, gewicht) {
 }
 const uitkomstTekst = (test, m, zijde, gewicht) => uitkomst(test, m, zijde, gewicht).join(' · ');
 
+// Dubbeltaak bij een meting (bv. single-leg stand terwijl de patiënt een spel speelt), kort voor het team
+export function dubbeltaakTekst(dt) {
+  if (!dt) return '';
+  const niveau = dt.niveau === 'eigen' ? 'eigen niveau' : dt.niveau != null && dt.niveau !== '' ? `niveau ${dt.niveau}` : '';
+  const score = dt.score != null && dt.score !== '' ? `${fmt(getal(dt.score), 0)}${dt.max ? `/${fmt(getal(dt.max), 0)}` : ''}` : '';
+  const kleur = dt.kleur?.van ? `kleur ${dt.kleur.juist}/${dt.kleur.van}` : '';
+  return `met dubbeltaak: ${[dt.spel_titel || dt.spel || 'spel', niveau, score, kleur].filter(Boolean).join(', ')}`;
+}
+
+// Velden "Met dubbeltaak" onder een test in het testmoment
+function dubbeltaakVelden(dt) {
+  const { esc } = ctx;
+  const spellen = [...(ctx.spellen?.() || []).map(g => ({ id: g.id, titel: g.titel })), { id: 'andere', titel: 'Andere taak' }];
+  if (dt?.spel && !spellen.some(g => g.id === dt.spel)) spellen.unshift({ id: dt.spel, titel: dt.spel_titel || dt.spel });
+  const niveaus = [['', '—'], ...[1, 2, 3, 4, 5].map(n => [String(n), `Niveau ${n}`]), ['eigen', 'Eigen']];
+  return `<div class="testrij-dt">
+    <label class="dt-schakel"><input type="checkbox" name="dt-aan" ${dt ? 'checked' : ''}> Met dubbeltaak</label>
+    <div class="dt-velden testrij-velden" ${dt ? '' : 'hidden'}>
+      <label>Spel<select name="dt-spel">${spellen.map(g => `<option value="${esc(g.id)}" ${dt?.spel === g.id ? 'selected' : ''}>${esc(g.titel)}</option>`).join('')}</select></label>
+      <label>Niveau<select name="dt-niveau">${niveaus.map(([w, l]) => `<option value="${w}" ${String(dt?.niveau ?? '') === w ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label>Score<input name="dt-score" type="number" inputmode="decimal" step="any" value="${dt?.score ?? ''}"></label>
+      <label>Van<input name="dt-max" type="number" inputmode="decimal" step="any" value="${dt?.max ?? ''}"></label>
+    </div>
+    <div class="dt-info hulp">${esc(dt?.omschrijving || '')}</div>
+  </div>`;
+}
+
 // Korte tekst van een meting, voor het team
 export function metingTekst(test, m, zijde, gewicht) {
   if (!m) return '';
-  if (test.soort === 'keuze') return m.tekst || '—';
-  if (test.soort === 'enkel') return `${fmt(getal(m.waarde))} ${test.eenheid}`;
-  return [`L ${fmt(getal(m.links))} · R ${fmt(getal(m.rechts))} ${test.eenheid}`, ...uitkomst(test, m, zijde, gewicht)].join(' · ');
+  const dt = m.dubbeltaak ? ` · ${dubbeltaakTekst(m.dubbeltaak)}` : '';
+  if (test.soort === 'keuze') return (m.tekst || '—') + dt;
+  if (test.soort === 'enkel') return `${fmt(getal(m.waarde))} ${test.eenheid}` + dt;
+  return [`L ${fmt(getal(m.links))} · R ${fmt(getal(m.rechts))} ${test.eenheid}`, ...uitkomst(test, m, zijde, gewicht)].join(' · ') + dt;
 }
 
 // Laatste meting van een test over alle testmomenten (voor de criteria)
@@ -104,50 +132,68 @@ const doelzone = {
 export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = {}) {
   if (!window.Chart) return '';
   const labels = punten.map(p => datumKort(p.datum));
-  let datasets, zone = {}, y = {}, uitleg = '';
+  let datasets, zone, y, uitleg;
   const kleur = '#2f6f73', kleur2 = '#a86b00';
   const lijn = (label, data, k) => ({ label, data, borderColor: k, backgroundColor: k, tension: .25, pointRadius: 5, spanGaps: true });
 
-  if (test.soort === 'lr') {
-    // Absolute waarden van beide benen: zo zie je vooruitgang, ook als beide benen sterker worden.
-    // De LSI staat apart eronder (lsiBalkHtml) en in de tabel.
-    const kant = (p, welke) => {
-      const z = zijden(p.meting, zijde);
-      if (zijde) return welke === 'a' ? z.aangedaan : z.gezond;
-      return getal(welke === 'a' ? p.meting?.links : p.meting?.rechts);
-    };
-    const a = punten.map(p => kant(p, 'a')), g = punten.map(p => kant(p, 'g'));
-    const namen = zijde
-      ? (patient ? ['Je behandelde been', 'Je andere been'] : [`Aangedaan (${zijde})`, `Gezond (${zijde === 'L' ? 'R' : 'L'})`])
-      : ['Links', 'Rechts'];
-    datasets = [lijn(namen[0], a, kleur), { ...lijn(namen[1], g, '#8a9a9a'), borderDash: [6, 4], pointRadius: 4 }];
-    const eenheid = test.eenheid;
-    y = { suggestedMin: 0, ticks: { callback: v => `${fmt(v)} ${eenheid}` } };
-    const met = a.filter(v => v != null);
-    if (met.length >= 2 && met[met.length - 1] !== met[0]) {
-      const [eerst, laatst] = [met[0], met[met.length - 1]];
-      const beter = test.lsi_omgekeerd ? laatst < eerst : laatst > eerst;
-      const wat = zijde ? (patient ? 'Je behandelde been' : 'Aangedaan') : 'Links';
-      uitleg = beter
-        ? `${wat}: van ${fmt(eerst)} naar ${fmt(laatst)} ${eenheid}${test.lsi_omgekeerd ? ' (sneller)' : ''}.${patient ? ' Goed bezig!' : ''}`
-        : `Laatste meting: ${fmt(laatst)} ${eenheid}.`;
-    } else if (met.length === 1) uitleg = `Eerste meting: ${fmt(met[0])} ${eenheid}.`;
-  } else if (test.soort === 'keuze') {
-    const opties = test.opties || [];
-    datasets = [lijn(test.naam, punten.map(p => { const i = opties.indexOf(p.meting?.tekst); return i < 0 ? null : i; }), kleur)];
-    y = { min: 0, max: Math.max(1, opties.length - 1), ticks: { stepSize: 1, callback: v => opties[v] ?? '' } };
-  } else {
-    const w = punten.map(p => getal(p.meting?.waarde));
-    datasets = [lijn(test.naam, w, kleur)];
-    if (test.doel_waarde != null) zone = test.lager_beter ? { van: null, tot: test.doel_waarde } : { van: test.doel_waarde, tot: null };
-    const kort = test.eenheid.startsWith('/') || test.eenheid === '%';
-    y = { suggestedMin: 0, suggestedMax: Math.max(test.doel_waarde != null ? test.doel_waarde * 1.1 : 0, ...w.filter(v => v != null)),
-      ticks: { callback: v => kort ? v : v + ' ' + test.eenheid } };
-    const met = w.filter(v => v != null);
-    if (met.length >= 2 && met[met.length - 1] !== met[0]) {
-      const beter = test.lager_beter ? met[met.length - 1] < met[0] : met[met.length - 1] > met[0];
-      uitleg = beter ? `Van ${fmt(met[0])} naar ${fmt(met[met.length - 1])}${test.eenheid.startsWith('/') ? test.eenheid : ' ' + test.eenheid}.` : '';
+  // Metingen met dubbeltaak (bv. single-leg stand terwijl de patiënt een spel speelt) komen in een aparte reeks,
+  // zodat ze niet vermengd worden met de gewone metingen. De uitleg-tekst gaat over de gewone metingen.
+  const bouw = punten => {
+    let datasets, zone = {}, y = {}, uitleg = '';
+    if (test.soort === 'lr') {
+      // Absolute waarden van beide benen: zo zie je vooruitgang, ook als beide benen sterker worden.
+      // De LSI staat apart eronder (lsiBalkHtml) en in de tabel.
+      const kant = (p, welke) => {
+        const z = zijden(p.meting, zijde);
+        if (zijde) return welke === 'a' ? z.aangedaan : z.gezond;
+        return getal(welke === 'a' ? p.meting?.links : p.meting?.rechts);
+      };
+      const a = punten.map(p => kant(p, 'a')), g = punten.map(p => kant(p, 'g'));
+      const namen = zijde
+        ? (patient ? ['Je behandelde been', 'Je andere been'] : [`Aangedaan (${zijde})`, `Gezond (${zijde === 'L' ? 'R' : 'L'})`])
+        : ['Links', 'Rechts'];
+      datasets = [lijn(namen[0], a, kleur), { ...lijn(namen[1], g, '#8a9a9a'), borderDash: [6, 4], pointRadius: 4 }];
+      const eenheid = test.eenheid;
+      y = { suggestedMin: 0, ticks: { callback: v => `${fmt(v)} ${eenheid}` } };
+      const met = a.filter(v => v != null);
+      if (met.length >= 2 && met[met.length - 1] !== met[0]) {
+        const [eerst, laatst] = [met[0], met[met.length - 1]];
+        const beter = test.lsi_omgekeerd ? laatst < eerst : laatst > eerst;
+        const wat = zijde ? (patient ? 'Je behandelde been' : 'Aangedaan') : 'Links';
+        uitleg = beter
+          ? `${wat}: van ${fmt(eerst)} naar ${fmt(laatst)} ${eenheid}${test.lsi_omgekeerd ? ' (sneller)' : ''}.${patient ? ' Goed bezig!' : ''}`
+          : `Laatste meting: ${fmt(laatst)} ${eenheid}.`;
+      } else if (met.length === 1) uitleg = `Eerste meting: ${fmt(met[0])} ${eenheid}.`;
+    } else if (test.soort === 'keuze') {
+      const opties = test.opties || [];
+      datasets = [lijn(test.naam, punten.map(p => { const i = opties.indexOf(p.meting?.tekst); return i < 0 ? null : i; }), kleur)];
+      y = { min: 0, max: Math.max(1, opties.length - 1), ticks: { stepSize: 1, callback: v => opties[v] ?? '' } };
+    } else {
+      const w = punten.map(p => getal(p.meting?.waarde));
+      datasets = [lijn(test.naam, w, kleur)];
+      if (test.doel_waarde != null) zone = test.lager_beter ? { van: null, tot: test.doel_waarde } : { van: test.doel_waarde, tot: null };
+      const kort = test.eenheid.startsWith('/') || test.eenheid === '%';
+      y = { suggestedMin: 0, suggestedMax: Math.max(test.doel_waarde != null ? test.doel_waarde * 1.1 : 0, ...w.filter(v => v != null)),
+        ticks: { callback: v => kort ? v : v + ' ' + test.eenheid } };
+      const met = w.filter(v => v != null);
+      if (met.length >= 2 && met[met.length - 1] !== met[0]) {
+        const beter = test.lager_beter ? met[met.length - 1] < met[0] : met[met.length - 1] > met[0];
+        uitleg = beter ? `Van ${fmt(met[0])} naar ${fmt(met[met.length - 1])}${test.eenheid.startsWith('/') ? test.eenheid : ' ' + test.eenheid}.` : '';
+      }
     }
+
+    return { datasets, zone, y, uitleg };
+  };
+  const metDt = !patient && punten.some(p => p.meting?.dubbeltaak);
+  const zonder = metDt ? punten.map(p => p.meting?.dubbeltaak ? { ...p, meting: null } : p) : punten;
+  ({ datasets, zone, y, uitleg } = bouw(zonder));
+  if (metDt) {
+    const alleenDt = punten.map(p => p.meting?.dubbeltaak ? p : { ...p, meting: null });
+    const kleurenDt = ['#c2410c', '#e3a07a'];
+    datasets.push(...bouw(alleenDt).datasets.map((ds, i) => ({
+      ...ds, label: `${ds.label} · met dubbeltaak`, borderColor: kleurenDt[i] || kleurenDt[1], backgroundColor: kleurenDt[i] || kleurenDt[1],
+      pointStyle: 'triangle', pointRadius: 7
+    })));
   }
 
   if (canvas._grafiek) canvas._grafiek.destroy();
@@ -167,15 +213,21 @@ export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = 
 // LSI onder de grafiek: laatste waarde als balk met het doel (enkel bij tests met LSI)
 export function lsiBalkHtml(test, punten, zijde, { patient = false } = {}) {
   if (test.soort !== 'lr' || test.doel_lsi == null) return '';
-  const w = punten.map(p => lsi(test, p.meting, zijde)).filter(v => v != null);
-  if (!w.length) return zijde || patient ? '' : '<p class="hulp">Vul de zijde in bij de opvolging om de LSI te berekenen.</p>';
-  const nu = Math.round(w[w.length - 1]), eerst = Math.round(w[0]);
+  // Metingen met dubbeltaak tellen apart: de balk toont de gewone metingen, de dubbeltaak staat eronder.
+  const metDt = patient ? [] : punten.filter(p => p.meting?.dubbeltaak);
+  const gewoon = metDt.length ? punten.filter(p => !p.meting?.dubbeltaak) : punten;
   const doel = Number(test.doel_lsi);
-  const label = patient ? 'Verhouding met je andere been' : 'LSI';
+  const wDt = metDt.map(p => lsi(test, p.meting, zijde)).filter(v => v != null);
+  const dtRegel = wDt.length
+    ? `<p class="hulp lsi-dt">Met dubbeltaak: LSI <b>${Math.round(wDt[wDt.length - 1])} %</b>${wDt.length > 1 ? ` (was ${Math.round(wDt[0])} %)` : ''}</p>` : '';
+  const w = gewoon.map(p => lsi(test, p.meting, zijde)).filter(v => v != null);
+  if (!w.length) return (zijde || patient ? '' : '<p class="hulp">Vul de zijde in bij de opvolging om de LSI te berekenen.</p>') + dtRegel;
+  const nu = Math.round(w[w.length - 1]), eerst = Math.round(w[0]);
+  const label = patient ? 'Verhouding met je andere been' : metDt.length ? 'LSI zonder dubbeltaak' : 'LSI';
   return `<div class="lsi-balk ${nu >= doel ? 'lsi-ok' : 'lsi-nog'}">
     <div class="lsi-balk-tekst"><span>${label}: <b>${nu} %</b>${w.length > 1 && nu !== eerst ? ` <span class="hulp">(was ${eerst} %)</span>` : ''}</span><span class="hulp">doel ${patient ? '' : '≥ '}${doel} %</span></div>
     <div class="voortgang-balk"><span style="width:${Math.min(100, nu)}%"></span><i style="left:${Math.min(100, doel)}%"></i></div>
-  </div>`;
+  </div>${dtRegel}`;
 }
 
 // ===================================================================================
@@ -211,7 +263,10 @@ async function testenPaneel(box, p) {
     const reeks = momenten.filter(tm => (tm.metingen || []).some(m => m.test_id === x.id))
       .map(tm => ({ tm, m: tm.metingen.find(m => m.test_id === x.id) }));
     if (!reeks.length) return null;
-    const nu = reeks[reeks.length - 1], vorig = reeks[reeks.length - 2];
+    // Verloop: vergelijk met de vorige meting van dezelfde soort (met of zonder dubbeltaak)
+    const nu = reeks[reeks.length - 1];
+    const zelfdeSoort = reeks.filter(r => !!r.m.dubbeltaak === !!nu.m.dubbeltaak);
+    const vorig = zelfdeSoort[zelfdeSoort.length - 2];
     const w = lsi(x, nu.m, t.zijde), wv = vorig ? lsi(x, vorig.m, t.zijde) : null;
     let verloop = '';
     if (w != null && wv != null && Math.round(w) !== Math.round(wv)) {
@@ -358,6 +413,7 @@ async function testmomentScherm(pid, tmId, thuis) {
             <div class="testrij-naam"><b>${esc(x.naam)}</b> <span class="hulp">${esc(x.eenheid)}</span></div>
             <div class="testrij-velden">${velden}</div>
             <div class="testrij-uitkomst ${lsiKlasse(x, w)}">${esc(uitkomstTekst(x, perTest.get(x.id), t.zijde, gewicht))}</div>
+            ${dubbeltaakVelden(m.dubbeltaak)}
           </div>`;
         }).join('')}
       </details>`;
@@ -367,12 +423,13 @@ async function testmomentScherm(pid, tmId, thuis) {
 
   inhoud.querySelectorAll('.testrij').forEach(rij => {
     const x = testlijst.find(y => y.id === rij.dataset.test);
-    rij.querySelectorAll('input, select').forEach(veld => veld.addEventListener('change', async () => {
+    rij.querySelectorAll(':scope > .testrij-velden input, :scope > .testrij-velden select').forEach(veld => veld.addEventListener('change', async () => {
       const lees = n => { const v = rij.querySelector(`[name=${n}]`)?.value; return v === undefined || v === '' ? null : Number(String(v).replace(',', '.')); };
       const velden = x.soort === 'lr' ? { links: lees('links'), rechts: lees('rechts') }
         : x.soort === 'keuze' ? { tekst: rij.querySelector('[name=tekst]').value }
         : { waarde: lees('waarde') };
-      const leeg = Object.values(velden).every(v => v === null || v === '');
+      // Een meting met enkel een dubbeltaak blijft bestaan, ook als de waarden leeg zijn.
+      const leeg = Object.values(velden).every(v => v === null || v === '') && !perTest.get(x.id)?.dubbeltaak;
       try {
         if (leeg) { await bron.wisMeting(tm.id, x.id); perTest.delete(x.id); }
         else { await bron.zetMeting(tm.id, x.id, velden); perTest.set(x.id, { ...(perTest.get(x.id) || {}), test_id: x.id, ...velden }); }
@@ -383,6 +440,42 @@ async function testmomentScherm(pid, tmId, thuis) {
         ctx.melding('Bewaard.');
       } catch (e) { fout(e); }
     }));
+  });
+
+  // Dubbeltaak per test: aan/uit, spel, niveau en score. Elke wijziging wordt meteen bewaard.
+  inhoud.querySelectorAll('.testrij').forEach(rij => {
+    const x = testlijst.find(y => y.id === rij.dataset.test);
+    const box = rij.querySelector('.testrij-dt');
+    box.addEventListener('change', async () => {
+      const aan = box.querySelector('[name=dt-aan]').checked;
+      box.querySelector('.dt-velden').hidden = !aan;
+      const oud = perTest.get(x.id)?.dubbeltaak || {};
+      const getalOfNull = n => { const v = box.querySelector(`[name=${n}]`).value; return v === '' ? null : Number(String(v).replace(',', '.')); };
+      let dubbeltaak = null;
+      if (aan) {
+        const spel = box.querySelector('[name=dt-spel]').value;
+        const niveau = box.querySelector('[name=dt-niveau]').value;
+        const zelfdeSpel = oud.spel === spel;
+        dubbeltaak = {
+          ...(zelfdeSpel ? oud : {}),
+          spel,
+          spel_titel: (ctx.spellen?.() || []).find(g => g.id === spel)?.titel || (spel === 'andere' ? 'Andere taak' : spel),
+          niveau: niveau === '' ? null : niveau === 'eigen' ? 'eigen' : Number(niveau),
+          score: getalOfNull('dt-score'),
+          max: getalOfNull('dt-max')
+        };
+        // Niveau met de hand gewijzigd: de omschrijving uit het spel klopt dan niet meer.
+        if (String(oud.niveau ?? '') !== niveau) delete dubbeltaak.omschrijving;
+      }
+      const m = perTest.get(x.id);
+      const leeg = !dubbeltaak && (!m || [m.links, m.rechts, m.waarde].every(v => v == null) && !m.tekst);
+      try {
+        if (leeg && m) { await bron.wisMeting(tm.id, x.id); perTest.delete(x.id); }
+        else if (!leeg) { await bron.zetMeting(tm.id, x.id, { dubbeltaak }); perTest.set(x.id, { ...(m || {}), test_id: x.id, dubbeltaak }); }
+        box.querySelector('.dt-info').textContent = dubbeltaak?.omschrijving || '';
+        ctx.melding('Bewaard.');
+      } catch (e) { fout(e); }
+    });
   });
 
   $('#tm-gegevens').addEventListener('click', async () => {
