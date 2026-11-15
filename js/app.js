@@ -463,9 +463,13 @@ async function start() {
   } catch { /* offline zonder cache: geen games */ }
   pinActief = !!(await db.getPin());
   await laadFavorieten();
-  // Met een pincode start de app altijd in de patiëntweergave.
-  if (!pinActief) {
-    try { beheer = sessionStorage.getItem('beheer') === '1'; } catch { /* privémodus */ }
+  // Een teamlid start standaard in Beheer.
+  // Met een pincode enkel net na het aanmelden met wachtwoord; bij een volgende start eerst de pincode.
+  let netAangemeld = false;
+  try { netAangemeld = sessionStorage.getItem('netAangemeld') === '1'; sessionStorage.removeItem('netAangemeld'); } catch { /* privémodus */ }
+  if (pinActief) beheer = netAangemeld;
+  else {
+    try { beheer = sessionStorage.getItem('beheer') !== '0'; } catch { beheer = true; }
   }
   startDelen(melding);
 
@@ -487,6 +491,7 @@ async function start() {
   });
   window.addEventListener('hashchange', toon);
   toon();
+  herstartSlotTimer();
   if (linkMelding) melding(linkMelding);
 
   if (gedeeld()) werkBij(true);
@@ -569,6 +574,7 @@ function toonAanmelden(foutTekst, qr = null) {
     try {
       const id = form.email.value.trim();
       await bron.aanmelden(bron.isPatientCode(id) ? bron.codeNaarEmail(id) : id, form.wachtwoord.value.trim());
+      try { sessionStorage.setItem('netAangemeld', '1'); } catch { /* privémodus */ }
       location.reload();
     } catch (err) {
       fout.textContent = err.message;
