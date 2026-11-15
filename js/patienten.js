@@ -11,6 +11,7 @@
 import { db } from './db.js';
 import * as bron from './bron.js';
 import { gekozenFiches, leegSelectie, bijSelectieWijziging } from './delen.js';
+import { toonPatientResultaten } from './testen.js';
 
 let ctx = null;          // hulpmiddelen uit app.js (zie initPatienten)
 let blobUrl = null;      // blob-URL van de geopende fiche in de patiëntweergave
@@ -133,6 +134,8 @@ export async function toonTherapeut(delen) {
     if (!delen.length) return await lijst(thuis);
     if (delen[1] === 'programma' && delen[2]) return await programmaScherm(delen[0], delen[2], thuis);
     if (delen[1] === 'criteria' && ctx.criteriaScherm) return await ctx.criteriaScherm(delen[0], Number(delen[2]) || null, thuis);
+    if (delen[1] === 'testen' && ctx.testenScherm) return await ctx.testenScherm(delen[0], thuis);
+    if (delen[1] === 'test' && delen[2] && ctx.testmomentScherm) return await ctx.testmomentScherm(delen[0], delen[2], thuis);
     if (delen[1]) { location.hash = `#/patienten/${delen[0]}`; return; }
     return await patientScherm(delen[0], thuis);
   } catch (e) {
@@ -413,6 +416,7 @@ function toonToegangskaart({ code, wachtwoord, naam, nieuw = false }) {
 
 let programmas = [];
 let opvolging = [];  // per actief traject: fase, titel, doel, criteria, zichtbaar (enkel patiëntteksten)
+let resultaten = []; // testresultaten (enkel als zichtbaar), uit mijn_testresultaten()
 
 export async function startPatient() {
   const knop = id => { const k = $(id); if (k) k.hidden = true; };
@@ -420,6 +424,7 @@ export async function startPatient() {
   document.body.classList.add('patient-modus');
   programmas = (await db.get('mijnProgrammas')) || [];
   opvolging = (await db.get('mijnOpvolging')) || [];
+  resultaten = (await db.get('mijnTestresultaten')) || [];
   window.addEventListener('hashchange', toonPatient);
   $('#terug').addEventListener('click', () => { location.hash = '#/'; });
   toonPatient();
@@ -435,6 +440,7 @@ async function werkPatientBij() {
   try {
     const nieuw = await bron.mijnProgrammas();
     try { opvolging = await bron.mijnOpvolging(); await db.put('mijnOpvolging', opvolging); } catch { /* nog geen opvolging in de databank */ }
+    try { resultaten = await bron.mijnTestresultaten(); await db.put('mijnTestresultaten', resultaten); } catch { /* nog geen testresultaten in de databank */ }
     // Bestanden van de fiches lokaal bewaren, zodat het programma ook zonder internet werkt
     const nodig = new Set();
     for (const g of nieuw) for (const it of g.programma_items || []) {
@@ -496,6 +502,7 @@ function toonMijnProgramma() {
           ? 'Alles behaald voor deze fase. Je kinesitherapeut bekijkt samen met jou de volgende stap.'
           : 'Je kinesitherapeut beslist samen met jou wanneer je naar de volgende fase gaat.'}</p>
       </section>`).join('')}
+    <div id="mijn-resultaten"></div>
     ${zichtbaar.length ? zichtbaar.map(g => {
       const items = [...(g.programma_items || [])].filter(it => it.fiche).sort((a, b) => a.volgorde - b.volgorde);
       return `<section class="programma">
@@ -512,6 +519,7 @@ function toonMijnProgramma() {
     <div class="patient-voet">
       <button class="knop knop-plat" id="afmelden">Afmelden</button>
     </div>`;
+  toonPatientResultaten($('#mijn-resultaten'), resultaten);
   $('#afmelden').addEventListener('click', async () => {
     if (!await ctx.bevestig('Afmelden?', 'Je hebt daarna je code en wachtwoord nodig om opnieuw aan te melden.', 'Afmelden')) return;
     try { await bron.afmelden(); } catch { /* offline */ }

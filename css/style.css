@@ -372,3 +372,24 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 .criterium-beheer { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* Testresultaten */
+.testgroep summary { gap: 10px; }
+.testrij { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(200px, 1fr) minmax(160px, 1fr); gap: 8px 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--rand); }
+.testrij-velden { display: flex; gap: 8px; }
+.testrij-velden label { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: .75rem; color: var(--tekst-zacht); }
+.testrij-velden input, .testrij-velden select { font: inherit; font-size: 1rem; color: var(--tekst); min-height: var(--min-knop); padding: 6px 8px; border: 1px solid var(--rand); border-radius: 10px; background: #fff; min-width: 0; width: 100%; }
+.testrij-uitkomst { font-size: .9rem; font-weight: 600; color: var(--tekst-zacht); }
+.testrij-uitkomst.lsi-ok { color: var(--hoofdkleur); }
+.testrij-uitkomst.lsi-nog { color: #a86b00; }
+@media (max-width: 700px) { .testrij { grid-template-columns: 1fr; } }
+.grafieken { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grafiek-kaart { background: var(--kaart); border: 1px solid var(--rand); border-radius: var(--radius); padding: 14px 16px; }
+.grafiek-kaart h3 { margin: 0 0 8px; font-size: 1rem; }
+.grafiek-vlak { position: relative; height: 200px; }
+.grafiek-uitleg { margin: 8px 0 0; font-weight: 600; color: var(--hoofdkleur); }
+.meet-tabel { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .85rem; }
+.meet-tabel th, .meet-tabel td { text-align: left; padding: 4px 6px; border-top: 1px solid var(--rand); }
+.meet-tabel th { color: var(--tekst-zacht); font-weight: 600; }
+.laatste-meting { font-size: .9rem; background: var(--hoofdkleur-licht); border-radius: 8px; padding: 6px 10px; }
+.testresultaten .grafiek-kaart { box-shadow: none; }

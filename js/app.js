@@ -4,6 +4,7 @@ import * as bron from './bron.js';
 import { synchroniseer } from './sync.js';
 import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbalkBij } from './patienten.js';
 import { initProtocollen, toonProtocollen, protocollenTegel } from './protocollen.js';
+import { initTesten } from './testen.js';
 
 // Twee modi:
 // - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
@@ -403,6 +404,7 @@ async function start() {
   };
   initPatienten(hulp);
   initProtocollen(hulp);
+  initTesten(hulp);
 
   let linkMelding = null;
   if (bron.isIngesteld()) {

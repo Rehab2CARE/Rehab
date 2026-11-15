@@ -307,6 +307,32 @@ export async function wisCriteriumStatus(trajectId, criteriumId) {
   ok(await sb.from('criterium_status').delete().eq('traject_id', trajectId).eq('criterium_id', criteriumId));
 }
 
+// ---------- Testresultaten (opvolging stap 4) ----------
+export async function tests() {
+  return ok(await sb.from('tests').select('*').eq('actief', true).order('volgorde'));
+}
+export async function testmomentenVan(trajectId) {
+  return ok(await sb.from('testmomenten').select('*, metingen(*)').eq('traject_id', trajectId).order('datum'));
+}
+export async function maakTestmoment(velden) {
+  return ok(await sb.from('testmomenten').insert(velden).select().single());
+}
+export async function wijzigTestmoment(id, velden) {
+  ok(await sb.from('testmomenten').update(velden).eq('id', id));
+}
+export async function wisTestmoment(id) {
+  ok(await sb.from('testmomenten').delete().eq('id', id));
+}
+export async function zetMeting(testmomentId, testId, velden) {
+  ok(await sb.from('metingen').upsert({ testmoment_id: testmomentId, test_id: testId, ...velden }, { onConflict: 'testmoment_id,test_id' }));
+}
+export async function wisMeting(testmomentId, testId) {
+  ok(await sb.from('metingen').delete().eq('testmoment_id', testmomentId).eq('test_id', testId));
+}
+export async function mijnTestresultaten() {
+  return ok(await sb.rpc('mijn_testresultaten')) || [];
+}
+
 // Voor de aangemelde patiënt: enkel patiëntteksten en wat zichtbaar staat (functie in de databank)
 export async function mijnOpvolging() {
   return ok(await sb.rpc('mijn_opvolging')) || [];

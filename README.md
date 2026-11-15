@@ -136,6 +136,25 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
 - De patiënt ziet (als criteria zichtbaar staan) een voortgangsbalk en een vinkje bij wat behaald is.
   N.v.t. telt niet mee en wordt niet getoond. Je notities ziet een patiënt nooit.
 
+## Testresultaten en LSI (stap 4)
+
+### Eenmalig instellen in Supabase
+- **SQL Editor**: plak `supabase/migraties/009_testresultaten.sql` en klik **Run**.
+  Dit maakt de testlijst (48 tests uit de meetformulieren van het werkboek) en koppelt criteria aan de juiste test.
+
+### Werken met testresultaten
+- Paneel **Opvolging** bij een patiënt → **+ Testmoment**: datum, lichaamsgewicht (voor de waarden per kg) en een notitie.
+- Per test vul je **links en rechts** in (of één waarde, bv. IKDC, of een keuze, bv. stroke test). Alles wordt meteen bewaard.
+  De app berekent de **LSI** (aangedaan ÷ gezond × 100; bij de 6 m timed hop en time to stabilization omgekeerd)
+  en de waarde **per kg**. Groen = in de doelzone, oranje = nog niet. Een leeg veld wist de meting.
+  De aangedane zijde komt uit de opvolging: vul die in, anders kan de LSI niet berekend worden.
+- **Grafieken**: per test het verloop over de tijd met een gekleurde doelzone, en een tabel met de absolute waarden.
+- **Criteria bijhouden**: bij een criterium dat aan een test gekoppeld is, zie je meteen de laatste meting.
+  De koppeling pas je aan via **Protocollen → fase → Criterium wijzigen → Gekoppelde meting**.
+- De patiënt ziet zijn grafieken (in patiënttaal, bv. "Kracht voorkant bovenbeen") enkel als **Testresultaten**
+  zichtbaar staat voor zijn fase. Positieve uitleg ("van 69 % naar 81 %. Goed bezig!"), geen notities.
+- De grafieken gebruiken Chart.js 4.4.4 (MIT), lokaal meegeleverd in `js/vendor/`, dus ook offline.
+
 ## Opbouw
 
 **Onderdeel → Regio → Categorie → Fiches**

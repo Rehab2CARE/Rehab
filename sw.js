@@ -1,8 +1,8 @@
 // Offline-cache. Verhoog CACHE_VERSIE bij elke wijziging aan de app-bestanden.
-const CACHE_VERSIE = 'fiches-v18';
+const CACHE_VERSIE = 'fiches-v19';
 const BESTANDEN = [
   './', 'index.html', 'css/style.css', 'js/app.js', 'js/db.js', 'js/delen.js',
-  'js/bron.js', 'js/sync.js', 'js/config.js', 'js/vendor/supabase.js', 'js/vendor/qrcode.js', 'js/patienten.js', 'js/protocollen.js',
+  'js/bron.js', 'js/sync.js', 'js/config.js', 'js/vendor/supabase.js', 'js/vendor/qrcode.js', 'js/patienten.js', 'js/protocollen.js', 'js/testen.js', 'js/vendor/chart.umd.js',
   'data/structuur.json', 'data/games.json', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];

@@ -9,6 +9,7 @@
 
 import * as bron from './bron.js';
 import { startKiesModus, registreerKiesDoel } from './patienten.js';
+import { laatsteMeting, metingTekst, nieuwTestmoment } from './testen.js';
 
 let ctx = null;
 const $ = sel => document.querySelector(sel);
@@ -121,6 +122,8 @@ async function faseScherm(pid, nummer, thuis) {
   const { esc, inhoud } = ctx;
   const f = await bron.protocolFase(pid, nummer);
   const crit = [...(f.protocol_criteria || [])].sort((a, b) => a.volgorde - b.volgorde);
+  let testlijst = [];
+  try { testlijst = await bron.tests(); } catch { /* stap 4 nog niet in de databank */ }
   const oef = [...(f.fase_oefeningen || [])].sort((a, b) => a.volgorde - b.volgorde);
   const perId = new Map(ctx.alleFichesMetPlaats().map(x => [x.f.id, x]));
   const zichtbaar = { oefeningen: true, doel: true, criteria: true, testresultaten: false, ...(f.zichtbaar || {}) };
@@ -193,6 +196,7 @@ async function faseScherm(pid, nummer, thuis) {
           <span class="criterium-meta">${esc(c.drempel)}${c.niveau ? ` · niveau ${esc(c.niveau)}` : ''}${c.bron ? ` · ${esc(c.bron)}` : ''}</span>
         </div>
         ${c.testmethode ? `<div class="hulp">Test: ${esc(c.testmethode)}</div>` : ''}
+        ${c.test_id ? `<div class="hulp">Gekoppeld aan de meting: ${esc(testlijst.find(x => x.id === c.test_id)?.naam || c.test_id)}</div>` : ''}
         ${c.bij_niet_halen ? `<div class="criterium-actie">Bij niet halen: ${esc(c.bij_niet_halen)}</div>` : ''}
         <div class="criterium-patient">
           <span>Patiënt leest: “${esc(c.patient_tekst || '—')}” ${c.patient_concept ? '<span class="label label-concept">concept</span>' : ''}</span>
@@ -274,7 +278,7 @@ async function faseScherm(pid, nummer, thuis) {
   });
 
   $('#nieuw-criterium').addEventListener('click', async () => {
-    const r = await ctx.dialoog({ titel: `Nieuw criterium in fase ${nummer}`, okTekst: 'Toevoegen', velden: criteriumVelden({}) });
+    const r = await ctx.dialoog({ titel: `Nieuw criterium in fase ${nummer}`, okTekst: 'Toevoegen', velden: criteriumVelden({}, testlijst) });
     if (!r) return;
     try {
       await bron.maakCriterium({ fase_id: f.id, volgorde: crit.reduce((m, c) => Math.max(m, c.volgorde + 1), 0), ...criteriumUit(r), patient_concept: !r.patient_tekst });
@@ -291,7 +295,7 @@ async function faseScherm(pid, nummer, thuis) {
         if (actie === 'keur') {
           await bron.wijzigCriterium(c.id, { patient_concept: false });
         } else if (actie === 'bewerk') {
-          const r = await ctx.dialoog({ titel: 'Criterium wijzigen', okTekst: 'Bewaren', velden: criteriumVelden(c) });
+          const r = await ctx.dialoog({ titel: 'Criterium wijzigen', okTekst: 'Bewaren', velden: criteriumVelden(c, testlijst) });
           if (!r) return;
           const velden = criteriumUit(r);
           if (velden.patient_tekst !== c.patient_tekst) velden.patient_concept = false; // nieuwe tekst = nagelezen
@@ -401,8 +405,10 @@ async function opvolgingVoor(box, p, herlaad) {
     t.ingreep && t.ingreep !== 'Geen' ? t.ingreep : '', t.sportprofiel
   ].filter(Boolean);
   const afwijkend = Object.keys(t.zichtbaar || {}).length;
-  let statussen = [];
+  let statussen = [], momenten = null;
   try { statussen = await bron.criteriumStatussen(t.id); } catch { /* stap 3 nog niet in de databank */ }
+  try { momenten = await bron.testmomentenVan(t.id); } catch { /* stap 4 nog niet in de databank */ }
+  const laatste = momenten?.length ? momenten[momenten.length - 1] : null;
   const vg = voortgang(huidig, statussen);
 
   box.innerHTML = `
@@ -420,6 +426,11 @@ async function opvolgingVoor(box, p, herlaad) {
         <span>Criteria fase ${t.huidige_fase}: <b>${vg.voldaan} van ${vg.totaal} voldaan</b>${vg.nietVoldaan ? ` · ${vg.nietVoldaan} niet voldaan` : ''}</span>
         <a class="knop knop-plat klein" href="#/patienten/${encodeURIComponent(p.id)}/criteria/${t.huidige_fase}">Criteria bijhouden</a>
       </div>
+      ${momenten ? `<div class="voortgang">
+        <span>Testresultaten: ${laatste ? `laatste testmoment <b>${datumTekst(laatste.datum)}</b> (${(laatste.metingen || []).length} tests)` : 'nog geen testmoment'}</span>
+        <button class="knop knop-plat klein" id="nieuw-tm">+ Testmoment</button>
+        ${momenten.length ? `<a class="knop knop-plat klein" href="#/patienten/${encodeURIComponent(p.id)}/testen">Grafieken</a>` : ''}
+      </div>` : ''}
       ${volgende ? `<p class="opvolging-volgende">Volgende: <b>fase ${volgende.nummer}</b> (${esc(volgende.titel)})${grens != null
         ? ` · ten vroegste vanaf <b>week ${String(grens).replace('.', ',')}</b>${grensDatum ? ` (${datumTekst(grensDatum)})` : ''}${weken != null ? (weken >= grens ? ' · <span class="ok">ondergrens bereikt</span>' : ` · <span class="nog">nog ${Math.ceil(grens - weken)} ${Math.ceil(grens - weken) === 1 ? 'week' : 'weken'}</span>`) : ''}`
         : ''}</p>` : '<p class="opvolging-volgende">Dit is de laatste fase.</p>'}
@@ -433,6 +444,8 @@ async function opvolgingVoor(box, p, herlaad) {
     </div>`;
 
   const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
+
+  box.querySelector('#nieuw-tm')?.addEventListener('click', () => nieuwTestmoment(p.id, t, momenten || []));
 
   box.querySelector('#fase-vrij')?.addEventListener('click', async () => {
     let tekst = `De patiënt ziet daarna fase ${volgende.nummer}: “${volgende.titel_patient || volgende.titel}”, met de standaardoefeningen van die fase.`;
@@ -581,6 +594,13 @@ async function criteriaScherm(pid, nummer, thuis) {
   if (!t) { location.hash = `#/patienten/${encodeURIComponent(pid)}`; return; }
   const fNr = nummer || t.huidige_fase;
   const [f, prots, statussen] = await Promise.all([bron.protocolFase(t.protocol_id, fNr), bron.protocollen(), bron.criteriumStatussen(t.id)]);
+  let testlijst = [], momenten = [];
+  try { [testlijst, momenten] = await Promise.all([bron.tests(), bron.testmomentenVan(t.id)]); } catch { /* stap 4 nog niet in de databank */ }
+  const metingBij = c => {
+    const x = c.test_id && testlijst.find(y => y.id === c.test_id);
+    const l = x && laatsteMeting(x.id, momenten);
+    return l ? `${x.naam} (${datumTekst(l.moment.datum)}): ${metingTekst(x, l.meting, t.zijde, l.moment.gewicht_kg ? Number(l.moment.gewicht_kg) : null)}` : '';
+  };
   const aantal = (prots.find(x => x.id === t.protocol_id)?.protocol_fasen || []).length;
   const crit = [...(f.protocol_criteria || [])].sort((a, b) => a.volgorde - b.volgorde);
   const perCrit = new Map(statussen.map(x => [x.criterium_id, x]));
@@ -607,6 +627,7 @@ async function criteriaScherm(pid, nummer, thuis) {
           <span class="criterium-meta">${esc(c.drempel)}${c.niveau ? ` · niveau ${esc(c.niveau)}` : ''}</span>
         </div>
         ${c.testmethode ? `<div class="hulp">Test: ${esc(c.testmethode)}</div>` : ''}
+        ${metingBij(c) ? `<div class="laatste-meting">Laatste meting · ${esc(metingBij(c))}</div>` : ''}
         <div class="statusknoppen" role="group" aria-label="Status">${STATUS.map(([w, l]) =>
           `<button type="button" class="knop knop-plat klein status-${w}" data-status="${w}" aria-pressed="${st?.status === w}">${l}</button>`).join('')}
           ${st ? '<button type="button" class="knop knop-plat klein" data-status="" aria-label="Status wissen">✕</button>' : ''}
@@ -619,7 +640,10 @@ async function criteriaScherm(pid, nummer, thuis) {
         <div class="hulp">Patiënt leest: “${esc(c.patient_tekst || '—')}”</div>
       </li>`;
     }).join('')}</ol>
-    <div class="knoppen"><a class="knop knop-plat" href="#/patienten/${encodeURIComponent(pid)}">‹ Terug naar ${esc(naam)}</a></div>`;
+    <div class="knoppen">
+      <a class="knop knop-plat" href="#/patienten/${encodeURIComponent(pid)}">‹ Terug naar ${esc(naam)}</a>
+      ${momenten.length ? `<a class="knop knop-plat" href="#/patienten/${encodeURIComponent(pid)}/testen">Testresultaten</a>` : ''}
+    </div>`;
 
   const opnieuw = async () => { const y = window.scrollY; await criteriaScherm(pid, fNr, thuis); window.scrollTo(0, y); };
   const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
@@ -647,8 +671,10 @@ async function criteriaScherm(pid, nummer, thuis) {
 
 // Velden voor een criterium (dialoog), en wat er bewaard wordt
 const NIVEAUS = ['', 'A', 'B', 'C', 'D'];
-function criteriumVelden(c) {
+function criteriumVelden(c, testlijst = []) {
   const niveaus = NIVEAUS.includes(c.niveau || '') ? NIVEAUS : [...NIVEAUS, c.niveau];
+  const koppeling = testlijst.length ? [{ naam: 'test_id', label: 'Gekoppelde meting (toont de laatste meting bij dit criterium)', soort: 'keuze', waarde: c.test_id || '',
+    opties: [{ waarde: '', label: '— geen —' }, ...testlijst.map(x => ({ waarde: x.id, label: `${x.groep}: ${x.naam}` }))] }] : [];
   return [
     { naam: 'criterium', label: 'Criterium', waarde: c.criterium, verplicht: true },
     { naam: 'drempel', label: 'Drempel', waarde: c.drempel, placeholder: 'bv. LSI ≥ 80 %', hulp: 'Pas je de drempel aan, kijk dan ook de patiënttekst hieronder na.' },
@@ -657,10 +683,15 @@ function criteriumVelden(c) {
       opties: niveaus.map(n => ({ waarde: n, label: n ? `Niveau ${n}` : '—' })) },
     { naam: 'bron', label: 'Bron', waarde: c.bron, placeholder: 'bv. 9P, 2023, eigen' },
     { naam: 'bij_niet_halen', label: 'Bij niet halen', soort: 'tekstvak', rijen: 3, waarde: c.bij_niet_halen },
-    { naam: 'patient_tekst', label: 'Wat de patiënt leest', waarde: c.patient_tekst, hulp: 'Eén korte zin, positief, zonder vakjargon. Leeg = later invullen.' }
+    { naam: 'patient_tekst', label: 'Wat de patiënt leest', waarde: c.patient_tekst, hulp: 'Eén korte zin, positief, zonder vakjargon. Leeg = later invullen.' },
+    ...koppeling
   ];
 }
-const criteriumUit = r => ({
-  criterium: r.criterium, drempel: r.drempel, testmethode: r.testmethode, niveau: r.niveau,
-  bron: r.bron, bij_niet_halen: r.bij_niet_halen, patient_tekst: r.patient_tekst
-});
+const criteriumUit = r => {
+  const uit = {
+    criterium: r.criterium, drempel: r.drempel, testmethode: r.testmethode, niveau: r.niveau,
+    bron: r.bron, bij_niet_halen: r.bij_niet_halen, patient_tekst: r.patient_tekst
+  };
+  if ('test_id' in r) uit.test_id = r.test_id || null;
+  return uit;
+};

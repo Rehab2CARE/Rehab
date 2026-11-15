@@ -330,3 +330,38 @@ export async function wisCriteriumStatus(tid, cid) { const s = server(); team(s)
 
 export async function maakCriterium(v) { const s = server(); team(s); const c = { id: id(), testmethode: '', drempel: '', niveau: '', bron: '', bij_niet_halen: '', patient_tekst: '', patient_concept: true, ...v }; s.criteria.push(c); schrijfServer(s); return { ...c }; }
 export async function wisCriterium(cid) { const s = server(); team(s); s.criteria = s.criteria.filter(c => c.id !== cid); s.criterium_status = (s.criterium_status || []).filter(x => x.criterium_id !== cid); schrijfServer(s); }
+
+// ---------- Testresultaten (nagebootst) ----------
+export async function tests() { const s = server(); team(s); return (s.tests || []).filter(x => x.actief !== false).sort((a, b) => a.volgorde - b.volgorde); }
+export async function testmomentenVan(tid) {
+  const s = server(); team(s);
+  return (s.testmomenten || []).filter(x => x.traject_id === tid).sort((a, b) => String(a.datum).localeCompare(String(b.datum)))
+    .map(tm => ({ ...tm, metingen: (s.metingen || []).filter(m => m.testmoment_id === tm.id) }));
+}
+export async function maakTestmoment(v) { const s = server(); team(s); const tm = { id: id(), gewicht_kg: null, notitie: '', ...v }; s.testmomenten = s.testmomenten || []; s.testmomenten.push(tm); schrijfServer(s); return { ...tm }; }
+export async function wijzigTestmoment(tmid, v) { const s = server(); team(s); Object.assign(s.testmomenten.find(x => x.id === tmid), v); schrijfServer(s); }
+export async function wisTestmoment(tmid) { const s = server(); team(s); s.testmomenten = s.testmomenten.filter(x => x.id !== tmid); s.metingen = (s.metingen || []).filter(m => m.testmoment_id !== tmid); schrijfServer(s); }
+export async function zetMeting(tmid, testId, v) {
+  const s = server(); team(s); s.metingen = s.metingen || [];
+  const m = s.metingen.find(x => x.testmoment_id === tmid && x.test_id === testId);
+  if (m) Object.assign(m, v); else s.metingen.push({ id: id(), testmoment_id: tmid, test_id: testId, links: null, rechts: null, waarde: null, tekst: '', ...v });
+  schrijfServer(s);
+}
+export async function wisMeting(tmid, testId) { const s = server(); team(s); s.metingen = (s.metingen || []).filter(x => !(x.testmoment_id === tmid && x.test_id === testId)); schrijfServer(s); }
+// Zoals mijn_testresultaten(): enkel als testresultaten zichtbaar staan voor de huidige fase
+export async function mijnTestresultaten() {
+  const s = server(); const u = sessie();
+  if (!u) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  return (s.trajecten || []).filter(t => t.patient_id === u.user.id && t.actief).filter(t => {
+    const f = s.fasen.find(x => x.protocol_id === t.protocol_id && x.nummer === t.huidige_fase);
+    return t.zichtbaar?.testresultaten ?? f.zichtbaar?.testresultaten ?? false;
+  }).map(t => {
+    const tms = (s.testmomenten || []).filter(x => x.traject_id === t.id);
+    const ms = (s.metingen || []).filter(m => tms.some(tm => tm.id === m.testmoment_id));
+    return { traject_id: t.id, zijde: t.zijde, tests: (s.tests || []).filter(x => ms.some(m => m.test_id === x.id)).sort((a, b) => a.volgorde - b.volgorde).map(x => ({
+      id: x.id, naam: x.naam_patient || x.naam, eenheid: x.eenheid, soort: x.soort, lsi_omgekeerd: x.lsi_omgekeerd, doel_lsi: x.doel_lsi, doel_waarde: x.doel_waarde, lager_beter: x.lager_beter, opties: x.opties || [],
+      metingen: ms.filter(m => m.test_id === x.id).map(m => ({ datum: tms.find(tm => tm.id === m.testmoment_id).datum, links: m.links, rechts: m.rechts, waarde: m.waarde, tekst: m.tekst }))
+        .sort((a, b) => String(a.datum).localeCompare(String(b.datum)))
+    })) };
+  });
+}
