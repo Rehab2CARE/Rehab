@@ -827,8 +827,24 @@ async function bewaarSpelBijPatient(r) {
   if (!stap2) return { ok: false, tekst: 'Niet bewaard.' };
 
   let tm = momenten.find(x => x.id === stap2.moment);
-  const bestaand = tm?.metingen?.find(x => x.test_id === stap2.test);
   const test = tests.find(x => x.id === stap2.test);
+  const metingVan = moment => moment?.metingen?.find(x => x.test_id === test.id);
+  // Gewone waarden (zonder dubbeltaak) van deze test op dit testmoment?
+  const heeftWaarden = m => !!m && ([m.links, m.rechts, m.waarde].some(v => v != null) || !!m.tekst);
+  let bestaand = metingVan(tm);
+  if (heeftWaarden(bestaand) && !bestaand.dubbeltaak) {
+    // Per testmoment heeft een test één meting. De score hier bijzetten zou de gewone meting omzetten naar een
+    // meting met dubbeltaak. Daarom komt de dubbeltaak in een apart testmoment.
+    if (!await bevestig('Apart testmoment voor de dubbeltaak?',
+      `Op ${datumTekst(tm.datum)} staat bij ${test.naam} al een gewone meting, zonder dubbeltaak. Die blijft zoals ze is. ` +
+      'De score komt in een apart testmoment van vandaag ("Dubbeltaak"). Daar vul je de waarden van de test met dubbeltaak in.', 'Apart bewaren')) {
+      return { ok: false, tekst: 'Niet bewaard.' };
+    }
+    // Een eerder dubbeltaak-testmoment van vandaag waar deze test nog vrij is (of al een dubbeltaak heeft), anders een nieuw
+    tm = [...momenten].reverse().find(x => x.datum === vandaagIso && x.id !== tm.id && x.notitie === 'Dubbeltaak'
+      && (!metingVan(x) || metingVan(x).dubbeltaak)) || null;
+    bestaand = metingVan(tm);
+  }
   if (bestaand?.dubbeltaak && !await bevestig('Dubbeltaak vervangen?',
     `Bij ${test.naam} staat al een dubbeltaak (${bestaand.dubbeltaak.spel_titel || 'spel'}). Die wordt vervangen.`, 'Vervangen')) {
     return { ok: false, tekst: 'Niet bewaard.' };

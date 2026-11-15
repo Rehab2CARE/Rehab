@@ -447,6 +447,12 @@ export async function startPatient() {
   const knop = id => { const k = $(id); if (k) k.hidden = true; };
   knop('#beheer'); knop('#instellingen');
   document.body.classList.add('patient-modus');
+  // De kopie op het toestel hoort bij één patiënt. Meldt een andere patiënt zich aan (bv. op de iPad van de praktijk),
+  // dan eerst de gegevens van de vorige wissen, zodat die nooit even zichtbaar zijn.
+  if ((await db.get('mijnEigenaar')) !== ctx.profielId()) {
+    await wisPatientKopie();
+    await db.put('mijnEigenaar', ctx.profielId());
+  }
   programmas = (await db.get('mijnProgrammas')) || [];
   opvolging = (await db.get('mijnOpvolging')) || [];
   resultaten = (await db.get('mijnTestresultaten')) || [];
@@ -457,6 +463,12 @@ export async function startPatient() {
   await werkPatientBij();
   window.addEventListener('online', werkPatientBij);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) werkPatientBij(); });
+}
+
+// Alle persoonlijke gegevens van de patiënt op dit toestel (de fiches zelf zijn niet persoonlijk)
+const PATIENT_SLEUTELS = ['mijnProgrammas', 'mijnOpvolging', 'mijnTestresultaten', 'mijnSessies', 'mijnEigenaar'];
+async function wisPatientKopie() {
+  for (const s of PATIENT_SLEUTELS) await db.del(s);
 }
 
 let bezig = false;
@@ -539,7 +551,7 @@ function toonMijnProgramma(pagina = null) {
       if (!await ctx.bevestig('Afmelden?', 'Je hebt daarna je code en wachtwoord nodig om opnieuw aan te melden.', 'Afmelden')) return;
       try { await bron.afmelden(); } catch { /* offline */ }
       await db.del('profiel');
-      await db.del('mijnProgrammas');
+      await wisPatientKopie();
       location.replace(location.pathname + '#/');
       location.reload();
     });
