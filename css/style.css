@@ -303,3 +303,22 @@ body.kiesmodus .kies[aria-pressed="true"] { background: #6b5ca5; color: #fff; }
   .kiesbalk-tekst { flex-basis: 100%; }
   .kiesbalk .knop { flex: 1; }
 }
+
+/* Opvolging: protocollen */
+.tegel-protocollen { border-top: 4px solid #b7791f; }
+.label-concept { background: #fdf0d5; color: #8a5a00; }
+.schakelaars { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.schakelaar { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--rand); border-radius: 12px; cursor: pointer; min-height: var(--min-knop); }
+.schakelaar input { width: 26px; height: 26px; margin: 2px 0 0; accent-color: var(--hoofdkleur); flex-shrink: 0; }
+.schakelaar:has(input:checked) { border-color: var(--hoofdkleur); background: var(--hoofdkleur-licht); }
+.patient-titel { font-size: 1.1rem; margin-bottom: 4px; }
+.paneel-ruimte { margin-top: 20px; }
+.criteria { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 10px; counter-reset: crit; }
+.criterium { background: var(--kaart); border: 1px solid var(--rand); border-radius: var(--radius); padding: 12px 16px; counter-increment: crit; display: flex; flex-direction: column; gap: 4px; }
+.criterium-kop b::before { content: counter(crit) ". "; color: var(--tekst-zacht); font-weight: 400; }
+.criterium-meta { color: var(--hoofdkleur); font-weight: 600; margin-left: 6px; }
+.criterium-actie { font-size: .9rem; color: var(--tekst-zacht); }
+.criterium-patient { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--rand); }
+.criterium-patient > span:first-child { flex: 1; min-width: 200px; font-style: italic; }
+.criterium-knoppen { display: flex; gap: 6px; }
+details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: flex; align-items: center; }

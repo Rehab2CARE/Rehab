@@ -3,6 +3,7 @@ import { startDelen, kiesKnop, koppelKiesKnoppen } from './delen.js';
 import * as bron from './bron.js';
 import { synchroniseer } from './sync.js';
 import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbalkBij } from './patienten.js';
+import { initProtocollen, toonProtocollen, protocollenTegel } from './protocollen.js';
 
 // Twee modi:
 // - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
@@ -381,10 +382,12 @@ async function start() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-  initPatienten({
+  const hulp = {
     esc, melding, dialoog, bevestig, link, pad, inhoud, toon, ficheVlak, alleFichesMetPlaats,
     appTitel: () => structuur?.appTitel || 'Praktijkfiches', profielId: () => profiel?.id || null
-  });
+  };
+  initPatienten(hulp);
+  initProtocollen(hulp);
 
   let linkMelding = null;
   if (bron.isIngesteld()) {
@@ -666,6 +669,10 @@ async function toon() {
     if (!gedeeld() || !beheer) { location.hash = '#/'; return; } // patiëntgegevens enkel in Beheer (achter de pincode)
     return toonTherapeut(delen.slice(1));
   }
+  if (delen[0] === 'protocollen') {
+    if (!gedeeld() || !beheer) { location.hash = '#/'; return; }
+    return toonProtocollen(delen.slice(1));
+  }
 
   const keten = zoek(delen);
   if (!keten) { location.hash = '#/'; return; }
@@ -831,7 +838,7 @@ function toonTegels(keten, ids) {
     <div class="tegels ${diepte === 0 ? 'groot' : ''}">
       ${tegels}
       ${diepte === 0 && games.games.length ? gamesTegel() : ''}
-      ${diepte === 0 && gedeeld() && beheer ? patientenTegel() : ''}
+      ${diepte === 0 && gedeeld() && beheer ? patientenTegel() + protocollenTegel() : ''}
       ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
     </div>
     ${diepte === 0 ? startRijen() : ''}`;

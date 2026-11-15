@@ -227,6 +227,42 @@ export async function mijnProgrammas() {
     .eq('actief', true).order('aangemaakt'));
 }
 
+// ---------- Protocollen (opvolging stap 1, enkel het team) ----------
+
+export async function protocollen() {
+  return ok(await sb.from('protocollen')
+    .select('id, naam, versie, status, volgorde, protocol_fasen(id, nummer, titel, titel_patient, ondergrens_weken, zichtbaar, doel_concept, protocol_criteria(id, patient_concept), fase_oefeningen(id))')
+    .order('volgorde'));
+}
+
+export async function protocolFase(protocolId, nummer) {
+  return ok(await sb.from('protocol_fasen')
+    .select('*, protocol:protocollen(id, naam), protocol_criteria(*), fase_oefeningen(*, fiche:fiches(id, titel))')
+    .eq('protocol_id', protocolId).eq('nummer', nummer).single());
+}
+
+export async function wijzigFase(id, velden) {
+  ok(await sb.from('protocol_fasen').update(velden).eq('id', id));
+}
+export async function wijzigCriterium(id, velden) {
+  ok(await sb.from('protocol_criteria').update(velden).eq('id', id));
+}
+export async function keurCriteriaGoed(faseId) {
+  ok(await sb.from('protocol_criteria').update({ patient_concept: false }).eq('fase_id', faseId).eq('patient_concept', true));
+}
+export async function faseOefeningen(faseId) {
+  return ok(await sb.from('fase_oefeningen').select('id, fiche_id, volgorde').eq('fase_id', faseId));
+}
+export async function voegFaseOefeningenToe(rijen) {
+  return ok(await sb.from('fase_oefeningen').insert(rijen).select());
+}
+export async function wijzigFaseOefening(id, velden) {
+  ok(await sb.from('fase_oefeningen').update(velden).eq('id', id));
+}
+export async function wisFaseOefening(id) {
+  ok(await sb.from('fase_oefeningen').delete().eq('id', id));
+}
+
 export async function download(pad) {
   const blob = ok(await sb.storage.from(BUCKET).download(pad));
   return blob.arrayBuffer();

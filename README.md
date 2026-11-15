@@ -78,6 +78,25 @@ andere weg geen fiches te zien. De bestanden staan in een privé-opslag (bucket 
 - Een patiënt ziet **enkel** de fiches in zijn eigen actieve programma's. Dat wordt afgedwongen in de databank (RLS).
 - Er worden geen mails naar patiënten gestuurd. Achter de code zit een intern adres (`…@patienten.praktijkfiches.invalid`).
 
+## Protocollen (opvolging, stap 1)
+
+Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en criteria. Enkel voor het team, in **Beheer**.
+
+### Eenmalig instellen in Supabase
+1. **SQL Editor**: plak `supabase/migraties/004_protocollen.sql` en klik **Run** (de structuur).
+2. **SQL Editor**: plak `local/protocollen/seed-protocollen.sql` en klik **Run** (de inhoud).
+   Dit bestand staat bewust **niet** in de openbare repo: het is gemaakt uit je eigen werkboek met
+   `python3 -I local/protocollen/bouw-seed.py`. Een protocol dat al bestaat, wordt overgeslagen.
+
+### Werken met protocollen
+- Tegel **Protocollen** → kies een protocol → kies een fase.
+- **Zichtbaar voor de patiënt**: vinkjes voor oefeningen, doel en uitleg, criteria en voortgang, testresultaten.
+  Dit is de standaard voor de fase; per patiënt aanpassen komt in stap 2.
+- **Wat de patiënt leest**: titel en doel in patiënttaal. **Wijzigen** of **Goedkeuren**.
+- **Standaardoefeningen**: **+ Toevoegen** werkt zoals bij een programma (kiesbalk onderaan). Vul de dosering in.
+- **Criteria**: drempel, evidentieniveau, bron, wat je doet bij niet halen, en de patiënttekst.
+  Teksten met het label **concept** zijn voorstellen: lees ze na en keur ze goed (één per één of allemaal samen).
+
 ## Opbouw
 
 **Onderdeel → Regio → Categorie → Fiches**

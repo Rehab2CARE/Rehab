@@ -240,3 +240,37 @@ export async function mijnProgrammas() {
   if (!u) throw new BronFout('Je hebt hiervoor geen toestemming.');
   return (s.programmas || []).filter(g => g.patient_id === u.user.id && g.actief).map(g => metItems(s, g, true));
 }
+
+// ---------- Protocollen (nagebootst, enkel team) ----------
+// s.protocollen, s.fasen, s.criteria, s.fase_oef: platte tabellen zoals in de databank
+export async function protocollen() {
+  const s = server(); team(s);
+  return (s.protocollen || []).slice().sort((a, b) => a.volgorde - b.volgorde).map(p => ({
+    ...p,
+    protocol_fasen: (s.fasen || []).filter(f => f.protocol_id === p.id).map(f => ({
+      ...f,
+      protocol_criteria: (s.criteria || []).filter(c => c.fase_id === f.id).map(c => ({ id: c.id, patient_concept: c.patient_concept })),
+      fase_oefeningen: (s.fase_oef || []).filter(o => o.fase_id === f.id).map(o => ({ id: o.id }))
+    }))
+  }));
+}
+export async function protocolFase(pid, nummer) {
+  const s = server(); team(s);
+  const f = (s.fasen || []).find(x => x.protocol_id === pid && x.nummer === Number(nummer));
+  if (!f) throw new BronFout('niet gevonden');
+  const p = s.protocollen.find(x => x.id === pid);
+  return { ...f, protocol: { id: p.id, naam: p.naam },
+    protocol_criteria: (s.criteria || []).filter(c => c.fase_id === f.id).map(c => ({ ...c })),
+    fase_oefeningen: (s.fase_oef || []).filter(o => o.fase_id === f.id).map(o => ({ ...o, fiche: (() => { const x = s.fiches.find(y => y.id === o.fiche_id); return x ? { id: x.id, titel: x.titel } : null; })() })) };
+}
+export async function wijzigFase(fid, v) { const s = server(); team(s); Object.assign(s.fasen.find(x => x.id === fid), v); schrijfServer(s); }
+export async function wijzigCriterium(cid, v) { const s = server(); team(s); Object.assign(s.criteria.find(x => x.id === cid), v); schrijfServer(s); }
+export async function keurCriteriaGoed(fid) { const s = server(); team(s); s.criteria.filter(c => c.fase_id === fid).forEach(c => { c.patient_concept = false; }); schrijfServer(s); }
+export async function faseOefeningen(fid) { const s = server(); team(s); return (s.fase_oef || []).filter(o => o.fase_id === fid).map(o => ({ id: o.id, fiche_id: o.fiche_id, volgorde: o.volgorde })); }
+export async function voegFaseOefeningenToe(rijen) {
+  const s = server(); team(s); s.fase_oef = s.fase_oef || [];
+  const nieuw = rijen.map(r => ({ id: id(), sets: '', herhalingen: '', frequentie: '', notitie: '', volgorde: 0, ...r }));
+  s.fase_oef.push(...nieuw); schrijfServer(s); return nieuw;
+}
+export async function wijzigFaseOefening(oid, v) { const s = server(); team(s); Object.assign(s.fase_oef.find(x => x.id === oid), v); schrijfServer(s); }
+export async function wisFaseOefening(oid) { const s = server(); team(s); s.fase_oef = s.fase_oef.filter(x => x.id !== oid); schrijfServer(s); }
