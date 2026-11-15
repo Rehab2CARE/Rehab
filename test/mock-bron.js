@@ -389,7 +389,7 @@ export async function bewaarSessie(v) {
   s.sessies = s.sessies || [];
   const bestaand = s.sessies.find(x => x.patient_id === v.patient_id && x.datum === v.datum);
   if (bestaand) { Object.assign(bestaand, v); schrijfServer(s); return { ...bestaand }; }
-  const r = { id: id(), gedaan: 'alles', pijn: null, zwelling: '', goed: '', moeilijk: '', ...v, aangemaakt: new Date().toISOString() };
+  const r = { id: id(), gedaan: 'alles', pijn: null, zwelling: '', stijfheid: '', goed: '', moeilijk: '', ...v, aangemaakt: new Date().toISOString() };
   s.sessies.push(r); schrijfServer(s); return { ...r };
 }
 export async function wisSessie(sid) { const s = server(); team(s); s.sessies = (s.sessies || []).filter(x => x.id !== sid); schrijfServer(s); }

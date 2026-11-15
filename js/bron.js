@@ -355,7 +355,7 @@ export async function sessiesVan(patientId) {
     .order('datum', { ascending: false }).order('aangemaakt', { ascending: false }).limit(90));
 }
 export async function mijnSessies() {
-  return ok(await sb.from('oefensessies').select('id, programma_id, datum, gedaan, pijn, zwelling, goed, moeilijk, aangemaakt')
+  return ok(await sb.from('oefensessies').select('id, programma_id, datum, gedaan, pijn, zwelling, stijfheid, goed, moeilijk, aangemaakt')
     .order('datum', { ascending: false }).limit(120));
 }
 // Eén ingave per patiënt per dag: bestaat de dag al, dan wordt ze aangepast

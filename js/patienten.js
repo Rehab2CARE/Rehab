@@ -13,6 +13,7 @@ import * as bron from './bron.js';
 import { gekozenFiches, leegSelectie, bijSelectieWijziging } from './delen.js';
 import { toonPatientResultaten } from './testen.js';
 import { koppelKalender, dagAanduiden, vandaag as vandaagLokaal } from './sessies.js';
+import { huidigLicht, patientTekst, redenenPatient, LICHT } from './verkeerslicht.js';
 
 let ctx = null;          // hulpmiddelen uit app.js (zie initPatienten)
 let blobUrl = null;      // blob-URL van de geopende fiche in de patiëntweergave
@@ -505,6 +506,10 @@ function toonMijnProgramma() {
   // Programma's van een fase waarvan de therapeut de oefeningen verborg, niet tonen
   const verborgen = new Set(opvolging.filter(o => o.zichtbaar && !o.zichtbaar.oefeningen).map(o => o.traject_id));
   const zichtbaar = programmas.filter(g => !(g.traject_id && verborgen.has(g.traject_id)));
+  // Verkeerslicht: hoe reageert de knie (of enkel) op de oefeningen, volgens de eigen feedback
+  const deel = opvolging.some(o => /enkel/i.test(o.protocol || '')) && !opvolging.some(o => /vkb|knie|kruisband|menisc/i.test(o.protocol || '')) ? 'enkel' : 'knie';
+  const licht = huidigLicht(sessies, vandaagLokaal());
+  const lichtTekst = licht && patientTekst(licht.kleur, deel);
   inhoud.innerHTML = `
     <h1>Mijn programma</h1>
     ${opvolging.map(o => `
@@ -548,6 +553,15 @@ function toonMijnProgramma() {
         <button class="knop knop-hoofd" id="vandaag-aanduiden">${sessies.some(s => s.datum === vandaagLokaal()) ? 'Vandaag aanpassen' : 'Vandaag aanduiden'}</button>
       </div>
       <p class="hulp">Tik op een dag om aan te duiden of je geoefend hebt, en vertel kort hoe het ging. Je kinesitherapeut leest mee.</p>
+      ${licht ? `<div class="verkeerslicht vl-${licht.kleur}" role="status">
+        <div class="vl-paal" aria-hidden="true">${['rood', 'oranje', 'groen'].map(k => `<span class="vl-lamp vl-lamp-${k} ${k === licht.kleur ? 'aan' : ''}"></span>`).join('')}</div>
+        <div class="vl-tekst">
+          <p class="vl-kleur">${LICHT[licht.kleur].naam}<span class="hulp"> · ${licht.datum === vandaagLokaal() ? 'vandaag' : new Date(licht.datum + 'T00:00:00').toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' })}</span></p>
+          <h3>${esc(lichtTekst.titel)}</h3>
+          <p>${esc(lichtTekst.uitleg)}</p>
+          ${licht.redenen.length ? `<p class="vl-reden">Jouw feedback: <b>${esc(redenenPatient(licht.redenen))}</b></p>` : ''}
+        </div>
+      </div>` : `<p class="hulp vl-leeg">Vul na het oefenen je pijn en zwelling in. Dan zie je hier met een kleur hoe je ${deel} reageert: groen, oranje of rood.</p>`}
       <div id="kal-vak"></div>
     </section>` : ''}
     <div class="patient-voet">
@@ -556,7 +570,7 @@ function toonMijnProgramma() {
   toonPatientResultaten($('#mijn-resultaten'), resultaten);
   // Oefenkalender: tik op een dag (of "Vandaag aanduiden") om aan te duiden en feedback te geven
   const aanduiden = async datum => {
-    if (!await dagAanduiden(ctx.profielId(), datum, sessies.find(s => s.datum === datum), zichtbaar)) return;
+    if (!await dagAanduiden(ctx.profielId(), datum, sessies.find(s => s.datum === datum), zichtbaar, deel)) return;
     try { sessies = await bron.mijnSessies(); await db.put('mijnSessies', sessies); } catch { /* volgende keer */ }
     toonMijnProgramma();
   };

@@ -431,7 +431,33 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 /* Oefensessies */
 .strook-sessies { border-left: 4px solid #a86b00; }
 .signaal { background: #fdf0d5; border-radius: 10px; padding: 10px 14px; margin: 8px 0 12px; color: #6b4600; }
-.rij-signaal td { background: #fffaf0; }
+.signaal-rood { background: #fbe3e1; color: #7a1d16; }
+.rij-oranje td { background: #fff7e3; }
+.rij-rood td { background: #fdecea; }
+:root { --vl-groen: #2e8b57; --vl-oranje: #e0a100; --vl-rood: #c8372d; }
+.licht-bol { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; margin-right: 2px; }
+.licht-groen { background: var(--vl-groen); }
+.licht-oranje { background: var(--vl-oranje); }
+.licht-rood { background: var(--vl-rood); }
+.licht-telling { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 4px 0 8px; }
+/* Verkeerslicht bij de patiënt */
+.verkeerslicht { display: flex; gap: 16px; align-items: center; border-radius: 14px; padding: 14px 16px; margin: 10px 0 14px; border: 2px solid; }
+.vl-groen { background: #e8f5ee; border-color: var(--vl-groen); }
+.vl-oranje { background: #fdf3d8; border-color: var(--vl-oranje); }
+.vl-rood { background: #fbe3e1; border-color: var(--vl-rood); }
+.vl-paal { display: flex; flex-direction: column; gap: 6px; background: #2b2f2f; border-radius: 12px; padding: 8px; flex: none; }
+.vl-lamp { width: 26px; height: 26px; border-radius: 50%; opacity: .25; }
+.vl-lamp-groen { background: var(--vl-groen); }
+.vl-lamp-oranje { background: var(--vl-oranje); }
+.vl-lamp-rood { background: var(--vl-rood); }
+.vl-lamp.aan { opacity: 1; box-shadow: 0 0 10px 2px currentColor; }
+.vl-lamp-groen.aan { color: #4cd38a; } .vl-lamp-oranje.aan { color: #ffd04d; } .vl-lamp-rood.aan { color: #ff6b5e; }
+.vl-tekst h3 { margin: 2px 0 4px; font-size: 1.15rem; }
+.vl-tekst p { margin: 0; }
+.vl-kleur { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .85rem; }
+.vl-groen .vl-kleur { color: #1f6b41; } .vl-oranje .vl-kleur { color: #7a5300; } .vl-rood .vl-kleur { color: #9c2a21; }
+.vl-leeg { font-style: italic; }
+.vl-tekst p.vl-reden { margin-top: 6px; font-size: .95rem; }
 .grafiek-klein { height: 150px; margin-bottom: 8px; }
 /* Oefenkalender */
 .kalender { max-width: 520px; }
@@ -452,7 +478,15 @@ button.kal-dag:active { background: var(--hoofdkleur-licht); }
 .kal-niet .kal-teken { color: #8a9a9a; }
 .kal-vandaag { outline: 2px solid var(--tekst); outline-offset: 1px; }
 .kal-toekomst { opacity: .35; }
-.kal-signaal { box-shadow: inset 0 0 0 2px #c99a3a; }
+/* Verkeerslicht: rand en bolletje per dag */
+.kal-dag { position: relative; }
+.kal-groen { box-shadow: inset 0 0 0 3px var(--vl-groen); }
+.kal-oranje { box-shadow: inset 0 0 0 3px var(--vl-oranje); }
+.kal-rood { box-shadow: inset 0 0 0 3px var(--vl-rood); }
+.kal-licht { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border-radius: 50%; }
+.kal-groen .kal-licht { background: var(--vl-groen); }
+.kal-oranje .kal-licht { background: var(--vl-oranje); }
+.kal-rood .kal-licht { background: var(--vl-rood); }
 .kal-legende { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
 .sessie-raster { display: grid; gap: 16px; grid-template-columns: minmax(260px, 520px) minmax(0, 1fr); align-items: start; margin-bottom: 12px; }
 @media (max-width: 800px) { .sessie-raster { grid-template-columns: 1fr; } }
