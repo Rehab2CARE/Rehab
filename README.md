@@ -66,8 +66,10 @@ andere weg geen fiches te zien. De bestanden staan in een privé-opslag (bucket 
 - **Patiënt toevoegen**: optioneel een voornaam of initialen. De app maakt een **patiëntcode** (bv. `PT-7K3M9Q`) en een
   **wachtwoord**, met een QR-code. Druk het kaartje af of noteer het: het wachtwoord is later niet meer te zien.
   Kwijt? **Nieuwe toegangscode** maakt een nieuw wachtwoord.
-- **Programma maken**: kies fiches met het ronde knopje **+** (in de mappen of via Zoeken), open het programma en tik
-  **Gekozen fiches toevoegen**. Vul per oefening sets, herhalingen, hoe vaak en een notitie in (wordt meteen bewaard).
+- **Programma maken**: tik in het programma op **+ Toevoegen**. Je komt op de startpagina en onderaan verschijnt een balk
+  "Fiches kiezen voor …". Kies fiches met het ronde knopje **+** (in de mappen of via Zoeken) en tik **Toevoegen**:
+  ze komen in het programma en je bent terug bij de patiënt. Een fiche die er al in staat, wordt niet dubbel toegevoegd.
+  Vul per oefening sets, herhalingen, hoe vaak en een notitie in (wordt meteen bewaard).
 - **Stopzetten** verbergt het programma voor de patiënt. **Patiënt verwijderen** wist het account en alle programma's.
 
 ### De patiënt

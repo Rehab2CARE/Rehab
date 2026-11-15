@@ -203,7 +203,7 @@ export async function programma(gid) {
   const s = server(); team(s);
   const g = (s.programmas || []).find(x => x.id === gid);
   if (!g) throw new BronFout('niet gevonden');
-  return metItems(s, g);
+  return metItems(s, g, true);
 }
 export async function maakProgramma(v) {
   const s = server(); team(s);

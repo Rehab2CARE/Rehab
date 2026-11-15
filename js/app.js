@@ -2,7 +2,7 @@ import { db, maakDb } from './db.js';
 import { startDelen, kiesKnop, koppelKiesKnoppen } from './delen.js';
 import * as bron from './bron.js';
 import { synchroniseer } from './sync.js';
-import { initPatienten, toonTherapeut, startPatient, patientenTegel } from './patienten.js';
+import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbalkBij } from './patienten.js';
 
 // Twee modi:
 // - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
@@ -647,6 +647,7 @@ function toonKruimels(keten, ids) {
 async function toon() {
   if (actieveUrl) { URL.revokeObjectURL(actieveUrl); actieveUrl = null; }
   document.body.classList.remove('spel-modus');
+  werkKiesbalkBij(gedeeld() && beheer);
   $('#beheer').setAttribute('aria-pressed', String(beheer));
   $('#instellingen').hidden = !beheer;
   document.title = structuur.appTitel;

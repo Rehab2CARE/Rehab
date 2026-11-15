@@ -16,9 +16,13 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+const luisteraars = [];
+export const bijSelectieWijziging = fn => luisteraars.push(fn);
+
 function bewaarSelectie() {
   try { sessionStorage.setItem('selectie', JSON.stringify(selectie)); } catch { /* privémodus */ }
   werkMandBij();
+  luisteraars.forEach(fn => fn());
 }
 
 export const isGekozen = id => selectie.some(x => x.id === id);

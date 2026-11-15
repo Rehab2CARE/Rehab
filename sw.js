@@ -1,5 +1,5 @@
 // Offline-cache. Verhoog CACHE_VERSIE bij elke wijziging aan de app-bestanden.
-const CACHE_VERSIE = 'fiches-v10';
+const CACHE_VERSIE = 'fiches-v11';
 const BESTANDEN = [
   './', 'index.html', 'css/style.css', 'js/app.js', 'js/db.js', 'js/delen.js',
   'js/bron.js', 'js/sync.js', 'js/config.js', 'js/vendor/supabase.js', 'js/vendor/qrcode.js', 'js/patienten.js',

@@ -198,7 +198,7 @@ export async function programmasVan(patientId) {
 
 export async function programma(id) {
   return ok(await sb.from('programmas')
-    .select(`id, patient_id, titel, opmerking, actief, programma_items(${ITEM_VELDEN})`).eq('id', id).single());
+    .select(`id, patient_id, titel, opmerking, actief, programma_items(${ITEM_VELDEN}, fiche:fiches(id, titel))`).eq('id', id).single());
 }
 
 export async function maakProgramma(velden) {

@@ -284,3 +284,22 @@ dialog textarea { min-height: 260px; resize: vertical; }
 }
 .dosering input::placeholder { color: #a7b0b0; font-style: italic; }
 .knop:disabled { opacity: .45; cursor: default; }
+
+/* Kiesmodus: fiches kiezen voor een programma (balk onderaan) */
+.kiesbalk {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px calc(20px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+  background: var(--kaart); border-top: 3px solid #6b5ca5; box-shadow: 0 -6px 20px rgba(0,0,0,.12);
+}
+.kiesbalk[hidden] { display: none; }
+.kiesbalk-tekst { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+body.kiesmodus main { padding-bottom: calc(130px + env(safe-area-inset-bottom)); }
+body.kiesmodus .mand { display: none !important; }
+body.kiesmodus .kies { border-color: #6b5ca5; color: #6b5ca5; }
+body.kiesmodus .kies[aria-pressed="true"] { background: #6b5ca5; color: #fff; }
+@media (max-width: 600px) {
+  .kiesbalk { flex-wrap: wrap; }
+  .kiesbalk-tekst { flex-basis: 100%; }
+  .kiesbalk .knop { flex: 1; }
+}

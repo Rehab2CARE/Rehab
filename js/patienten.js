@@ -10,7 +10,7 @@
 
 import { db } from './db.js';
 import * as bron from './bron.js';
-import { gekozenFiches, leegSelectie } from './delen.js';
+import { gekozenFiches, leegSelectie, bijSelectieWijziging } from './delen.js';
 
 let ctx = null;          // hulpmiddelen uit app.js (zie initPatienten)
 let blobUrl = null;      // blob-URL van de geopende fiche in de patiëntweergave
@@ -18,6 +18,67 @@ let blobUrl = null;      // blob-URL van de geopende fiche in de patiëntweergav
 const $ = sel => document.querySelector(sel);
 
 export function initPatienten(hulp) { ctx = hulp; }
+
+// ---------- Kiesmodus: fiches kiezen voor een programma, vanaf de startpagina ----------
+// Vanuit een programma tik je op "Toevoegen": de app gaat naar de startpagina en onderaan verschijnt een balk.
+// Je kiest fiches met het knopje +, en met "Toevoegen" komen ze in het programma.
+
+const KIES = 'kiesVoorProgramma';
+let kiesActief = false;
+
+const kiesModus = () => { try { return JSON.parse(sessionStorage.getItem(KIES) || 'null'); } catch { return null; } };
+function zetKiesModus(info) {
+  try { if (info) sessionStorage.setItem(KIES, JSON.stringify(info)); else sessionStorage.removeItem(KIES); } catch { /* privémodus */ }
+}
+
+// actief = de therapeut is in Beheer (gedeelde modus). Wordt opgeroepen bij elk scherm en bij elke keuze.
+export function werkKiesbalkBij(actief = kiesActief) {
+  kiesActief = actief;
+  const balk = $('#kiesbalk');
+  if (!balk || !ctx) return;
+  const m = actief ? kiesModus() : null;
+  document.body.classList.toggle('kiesmodus', !!m);
+  if (!m) { balk.hidden = true; balk.innerHTML = ''; return; }
+  const n = gekozenFiches().length;
+  balk.hidden = false;
+  balk.innerHTML = `
+    <div class="kiesbalk-tekst">
+      <span>Fiches kiezen voor <b>${ctx.esc(m.titel)}</b> · ${ctx.esc(m.patient)}</span>
+      <span class="hulp">Tik op <b>+</b> bij elke fiche. Je kan ook zoeken.</span>
+    </div>
+    <button type="button" class="knop knop-plat" id="kies-annuleer">Annuleren</button>
+    <button type="button" class="knop knop-hoofd" id="kies-klaar" ${n ? '' : 'disabled'}>Toevoegen (${n})</button>`;
+  $('#kies-annuleer').addEventListener('click', () => {
+    zetKiesModus(null);
+    leegSelectie();
+    location.hash = programmaLink(m);
+  });
+  $('#kies-klaar').addEventListener('click', () => kiesKlaar(m));
+}
+
+const programmaLink = m => `#/patienten/${encodeURIComponent(m.pid)}/programma/${encodeURIComponent(m.progId)}`;
+
+async function kiesKlaar(m) {
+  const knop = $('#kies-klaar');
+  if (knop) knop.disabled = true;
+  try {
+    const g = await bron.programma(m.progId);
+    const items = g.programma_items || [];
+    const bestaand = new Set(items.map(it => it.fiche_id));
+    let volgorde = items.reduce((mx, it) => Math.max(mx, it.volgorde + 1), 0);
+    const nieuw = gekozenFiches().filter(x => !bestaand.has(x.id));
+    if (nieuw.length) await bron.voegItemsToe(nieuw.map(x => ({ programma_id: m.progId, fiche_id: x.id, volgorde: volgorde++ })));
+    zetKiesModus(null);
+    leegSelectie();
+    ctx.melding(`${nieuw.length} ${nieuw.length === 1 ? 'oefening' : 'oefeningen'} toegevoegd aan ${m.titel}.`);
+    location.hash = programmaLink(m);
+  } catch (e) {
+    ctx.melding(e.message);
+    if (knop) knop.disabled = false;
+  }
+}
+
+bijSelectieWijziging(() => werkKiesbalkBij());
 
 const doseringTekst = it => {
   const delen = [];
@@ -169,7 +230,6 @@ async function programmaScherm(pid, progId, thuis) {
   if (!g || !p || g.patient_id !== pid) { location.hash = `#/patienten/${encodeURIComponent(pid)}`; return; }
   const items = [...(g.programma_items || [])].sort((a, b) => a.volgorde - b.volgorde);
   const perId = new Map(ctx.alleFichesMetPlaats().map(x => [x.f.id, x]));
-  const gekozen = gekozenFiches();
 
   $('#kruimels').innerHTML = `${thuis} <a href="#/patienten">Patiënten</a> <span class="sep">›</span>
     <a href="#/patienten/${encodeURIComponent(pid)}">${esc(p.naam || p.code)}</a> <span class="sep">›</span> <span class="huidig">${esc(g.titel)}</span>`;
@@ -185,9 +245,9 @@ async function programmaScherm(pid, progId, thuis) {
 
     <div class="paneel">
       <h2>Oefeningen toevoegen</h2>
-      <p>Kies fiches met het ronde knopje <b>+</b> in de mappen of via <b>Zoeken</b>, en kom dan hier terug.</p>
+      <p>Kies fiches uit de oefen- en informatiefiches. Je komt daarna vanzelf hier terug.</p>
       <div class="knoppen">
-        <button class="knop knop-hoofd" id="voeg-toe" ${gekozen.length ? '' : 'disabled'}>Gekozen fiches toevoegen (${gekozen.length})</button>
+        <button class="knop knop-hoofd" id="kies-fiches">+ Toevoegen</button>
       </div>
     </div>
 
@@ -195,7 +255,7 @@ async function programmaScherm(pid, progId, thuis) {
       const x = perId.get(it.fiche_id);
       return `<li class="oefening" data-item="${esc(it.id)}">
         <div class="oefening-kop">
-          <span class="oefening-titel">${x ? `<a href="${ctx.link([...x.ids, x.f.id])}">${esc(x.f.titel)}</a>` : '<i>Fiche niet meer gevonden</i>'}</span>
+          <span class="oefening-titel">${x ? `<a href="${ctx.link([...x.ids, x.f.id])}">${esc(x.f.titel)}</a>` : it.fiche ? esc(it.fiche.titel) : '<i>Fiche niet meer gevonden</i>'}</span>
           <span class="oefening-acties">
             <button class="knop knop-plat klein" data-actie="op" ${i === 0 ? 'disabled' : ''} aria-label="Naar boven">▲</button>
             <button class="knop knop-plat klein" data-actie="neer" ${i === items.length - 1 ? 'disabled' : ''} aria-label="Naar onder">▼</button>
@@ -213,16 +273,10 @@ async function programmaScherm(pid, progId, thuis) {
 
   const opnieuw = () => programmaScherm(pid, progId, thuis);
 
-  $('#voeg-toe').addEventListener('click', async () => {
-    const bestaand = new Set(items.map(it => it.fiche_id));
-    const nieuw = gekozenFiches().filter(x => !bestaand.has(x.id));
-    let volgorde = items.reduce((m, it) => Math.max(m, it.volgorde + 1), 0);
-    try {
-      if (nieuw.length) await bron.voegItemsToe(nieuw.map(x => ({ programma_id: progId, fiche_id: x.id, volgorde: volgorde++ })));
-      leegSelectie();
-      ctx.melding(`${nieuw.length} ${nieuw.length === 1 ? 'oefening' : 'oefeningen'} toegevoegd.`);
-      opnieuw();
-    } catch (e) { ctx.melding(e.message); }
+  $('#kies-fiches').addEventListener('click', () => {
+    leegSelectie(); // een eventuele selectie om door te sturen niet per ongeluk meenemen
+    zetKiesModus({ pid, progId, titel: g.titel, patient: p.naam || p.code });
+    location.hash = '#/';
   });
 
   $('#wijzig-prog').addEventListener('click', async () => {
