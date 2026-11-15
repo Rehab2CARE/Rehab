@@ -3,7 +3,7 @@ import { startDelen, kiesKnop, koppelKiesKnoppen } from './delen.js';
 import * as bron from './bron.js';
 import { synchroniseer } from './sync.js';
 import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbalkBij } from './patienten.js';
-import { initProtocollen, toonProtocollen, protocollenTegel } from './protocollen.js';
+import { initProtocollen, toonProtocollen } from './protocollen.js';
 import { initTesten } from './testen.js';
 
 // Twee modi:
@@ -31,6 +31,7 @@ const $ = sel => document.querySelector(sel);
 const inhoud = $('#inhoud');
 let structuur = null;
 let games = { titel: 'Games', games: [] }; // uit data/games.json (vast, niet via Beheer)
+let hulp = null; // gedeelde hulpmiddelen voor patienten.js, protocollen.js en testen.js
 let beheer = false;
 let actieveUrl = null; // blob-URL van de geopende fiche (vrijgeven bij wisselen)
 
@@ -76,6 +77,13 @@ function alleFichesMetPlaats() {
   structuur.secties.forEach(s => (s.kinderen || []).forEach(r => (r.kinderen || []).forEach(c =>
     (c.fiches || []).forEach(f => uit.push({ f, ids: [s.id, r.id, c.id], pad: `${s.titel} › ${r.titel} › ${c.titel}` })))));
   return uit;
+}
+
+// Plaats van een categorie in de boom: { keten: [onderdeel, regio, categorie], ids } of null
+function knoopPad(id) {
+  for (const s of structuur.secties) for (const r of s.kinderen || []) for (const c of r.kinderen || [])
+    if (c.id === id) return { keten: [s, r, c], ids: [s.id, r.id, c.id] };
+  return null;
 }
 
 // Alle categorieën, bv. om een fiche naar te verplaatsen
@@ -398,8 +406,8 @@ async function start() {
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-  const hulp = {
-    esc, melding, dialoog, bevestig, link, pad, inhoud, toon, ficheVlak, alleFichesMetPlaats,
+  hulp = {
+    esc, melding, dialoog, bevestig, link, pad, inhoud, toon, ficheVlak, alleFichesMetPlaats, knoopPad,
     appTitel: () => structuur?.appTitel || 'Praktijkfiches', profielId: () => profiel?.id || null
   };
   initPatienten(hulp);
@@ -857,7 +865,7 @@ function toonTegels(keten, ids) {
     <div class="tegels ${diepte === 0 ? 'groot' : ''}">
       ${tegels}
       ${diepte === 0 && games.games.length ? gamesTegel() : ''}
-      ${diepte === 0 && gedeeld() && beheer ? patientenTegel() + protocollenTegel() : ''}
+      ${diepte === 0 && gedeeld() && beheer ? patientenTegel() : ''}
       ${beheer ? `<button class="tegel-nieuw" data-actie="nieuw">+ ${esc(naam)} toevoegen</button>` : ''}
     </div>
     ${diepte === 0 ? startRijen() : ''}`;
@@ -969,6 +977,7 @@ function toonFicheLijst(keten, ids) {
   inhoud.innerHTML = `
     <h1>${esc(cat.titel)}</h1>
     <p class="ondertitel">${esc(keten[0].titel)} · ${esc(keten[1].titel)}</p>
+    <div id="protocol-vak"></div>
     ${beheer ? `
       <div class="beheer-balk">
         <label class="knop knop-hoofd">
@@ -980,6 +989,8 @@ function toonFicheLijst(keten, ids) {
     ${!fiches.length ? `<div class="leeg">Nog geen fiches in deze categorie.${beheer ? '' : ' Zet <b>Beheer</b> aan om fiches toe te voegen.'}</div>` : ''}
     <div class="tegels">${tegels}</div>`;
   koppelKiesKnoppen(inhoud);
+  // Revalidatieprotocol dat bij deze categorie hoort (gedeelde modus)
+  if (gedeeld() && hulp?.protocolInCategorie) hulp.protocolInCategorie($('#protocol-vak'), keten, ids, beheer);
 
   if (!beheer) return;
   if (gedeeld()) return koppelFicheBeheerGedeeld(cat, fiches);

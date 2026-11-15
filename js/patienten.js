@@ -150,7 +150,10 @@ async function lijst(thuis) {
   inhoud.innerHTML = `
     <h1>Patiënten</h1>
     <p class="ondertitel">Elke patiënt krijgt een code en een wachtwoord om thuis zijn programma te bekijken.</p>
-    <div class="beheer-balk"><button class="knop knop-hoofd" id="nieuwe-patient">+ Patiënt toevoegen</button></div>
+    <div class="beheer-balk">
+      <button class="knop knop-hoofd" id="nieuwe-patient">+ Patiënt toevoegen</button>
+      <a class="knop knop-plat" href="#/protocollen">Alle protocollen</a>
+    </div>
     ${rijen.length ? `<ul class="lijst">${rijen.map(p => {
       const actief = (p.programmas || []).filter(x => x.actief).length;
       const t = (p.patient_trajecten || []).find(x => x.actief);

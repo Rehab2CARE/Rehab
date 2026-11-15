@@ -25,6 +25,7 @@ export function initProtocollen(hulp) {
   ctx = hulp;
   ctx.opvolgingVoor = (...a) => opvolgingVoor(...a); // gebruikt op het scherm van een patiënt
   ctx.criteriaScherm = (...a) => criteriaScherm(...a);
+  ctx.protocolInCategorie = (...a) => protocolInCategorie(...a);
   // Gekozen fiches toevoegen aan de standaardoefeningen van een fase
   registreerKiesDoel('fase', async (faseId, gekozen) => {
     const items = await bron.faseOefeningen(faseId);
@@ -100,6 +101,8 @@ async function protocolScherm(pid, thuis) {
   const { esc, inhoud } = ctx;
   const p = (await bron.protocollen()).find(x => x.id === pid);
   if (!p) { location.hash = '#/protocollen'; return; }
+  const plaats = p.knoop_id && ctx.knoopPad(p.knoop_id);
+  if (plaats) { location.replace(ctx.link(plaats.ids)); return; } // het protocol staat in de map Revalidatieprotocols
   const fasen = [...(p.protocol_fasen || [])].sort((a, b) => a.nummer - b.nummer);
   $('#kruimels').innerHTML = `${thuis} <a href="#/protocollen">Protocollen</a> <span class="sep">›</span> <span class="huidig">${esc(p.naam)}</span>`;
   inhoud.innerHTML = `
@@ -130,13 +133,21 @@ async function faseScherm(pid, nummer, thuis) {
   const concepten = crit.filter(c => c.patient_concept).length;
   const hier = `#/protocollen/${encodeURIComponent(pid)}/fase/${nummer}`;
 
-  $('#kruimels').innerHTML = `${thuis} <a href="#/protocollen">Protocollen</a> <span class="sep">›</span>
+  const plaats = f.protocol?.knoop_id && ctx.knoopPad(f.protocol.knoop_id);
+  $('#kruimels').innerHTML = plaats
+    ? `${thuis} ${plaats.keten.map((k, i) => `<a href="${ctx.link(plaats.ids.slice(0, i + 1))}">${esc(k.titel)}</a>`).join(' <span class="sep">›</span> ')} <span class="sep">›</span> <span class="huidig">Fase ${nummer}</span>`
+    : `${thuis} <a href="#/protocollen">Protocollen</a> <span class="sep">›</span>
     <a href="#/protocollen/${encodeURIComponent(pid)}">${esc(f.protocol?.naam || pid)}</a> <span class="sep">›</span> <span class="huidig">Fase ${nummer}</span>`;
+  const aantalFasen = ((await bron.protocollen()).find(x => x.id === pid)?.protocol_fasen || []).length;
 
   inhoud.innerHTML = `
     <h1>Fase ${nummer}: ${esc(f.titel)}</h1>
     <p class="ondertitel">${esc(f.wanneer || '')}${f.ondergrens_weken != null ? ` · biologische ondergrens week ${String(f.ondergrens_weken).replace('.', ',')}` : ''}</p>
-    <div class="beheer-balk"><button class="knop knop-plat" id="wijzig-fase">Fasegegevens wijzigen</button></div>
+    <div class="beheer-balk">
+      <button class="knop knop-plat" id="wijzig-fase">Fasegegevens wijzigen</button>
+      ${plaats ? `<a class="knop knop-plat" href="${ctx.link(plaats.ids)}">‹ Alle fasen</a>` : ''}
+      ${nummer === aantalFasen ? '<button class="knop knop-gevaar" id="wis-fase">Fase wissen</button>' : ''}
+    </div>
 
     <div class="paneel">
       <h2>Zichtbaar voor de patiënt</h2>
@@ -275,6 +286,16 @@ async function faseScherm(pid, nummer, thuis) {
     if (grens !== null && (Number.isNaN(grens) || grens < 0)) { ctx.melding('De ondergrens moet een getal zijn.'); return; }
     try { await bron.wijzigFase(f.id, { titel: r.titel, wanneer: r.wanneer, ondergrens_weken: grens, scope: r.scope, opmerkingen: r.opmerkingen }); ctx.melding('Bewaard.'); opnieuw(); }
     catch (e) { fout(e); }
+  });
+
+  $('#wis-fase')?.addEventListener('click', async () => {
+    try {
+      const inGebruik = (await bron.trajectenMetProtocol(pid)).filter(t => t.huidige_fase >= nummer).length;
+      if (inGebruik) { ctx.melding(`Fase ${nummer} is in gebruik bij ${inGebruik} ${inGebruik === 1 ? 'patiënt' : 'patiënten'}. Zet die eerst terug naar een vorige fase.`); return; }
+      if (!await ctx.bevestig(`Fase ${nummer} wissen?`, 'De fase, haar criteria en standaardoefeningen worden gewist. Dit kan je niet ongedaan maken.')) return;
+      await bron.wisFase(f.id);
+      location.hash = plaats ? ctx.link(plaats.ids) : `#/protocollen/${encodeURIComponent(pid)}`;
+    } catch (e) { fout(e); }
   });
 
   $('#nieuw-criterium').addEventListener('click', async () => {
@@ -522,7 +543,9 @@ const gegevensUit = r => {
   return uit;
 };
 
-async function toewijzen(p, prots, herlaad) {
+async function toewijzen(p, alle, herlaad) {
+  const prots = alle.filter(x => (x.protocol_fasen || []).length);
+  if (!prots.length) { ctx.melding('Er is nog geen protocol met fasen.'); return; }
   const r1 = await ctx.dialoog({
     titel: 'Protocol toewijzen', okTekst: 'Verder',
     velden: [{ naam: 'protocol', label: 'Welk protocol volgt deze patiënt?', soort: 'keuze', waarde: prots[0].id, opties: prots.map(x => ({ waarde: x.id, label: x.naam })) }]
@@ -695,3 +718,127 @@ const criteriumUit = r => {
   if ('test_id' in r) uit.test_id = r.test_id || null;
   return uit;
 };
+
+
+// ===================================================================================
+// Protocol in de map Revalidatieprotocols (categorie = protocol)
+// ===================================================================================
+
+const isRevalidatieMap = keten => /revalidatieprotocol/i.test(keten[0]?.titel || '');
+const slug = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'protocol';
+
+async function protocolInCategorie(box, keten, ids, beheer) {
+  const { esc } = ctx;
+  if (!box) return;
+  let prots;
+  try { prots = await bron.protocollen(); } catch { box.innerHTML = ''; return; }
+  if (!box.isConnected) return;
+  const cat = keten[2];
+  const p = prots.find(x => x.knoop_id === cat.id);
+  const opnieuw = () => ctx.toon();
+  const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
+
+  if (!p) {
+    if (!beheer || !isRevalidatieMap(keten)) { box.innerHTML = ''; return; }
+    const los = prots.filter(x => !x.knoop_id || !ctx.knoopPad(x.knoop_id));
+    box.innerHTML = `
+      <div class="paneel protocol-paneel">
+        <h2>Revalidatieprotocol</h2>
+        <p>Deze categorie heeft nog geen protocol. Maak er een met eigen fasen en criteria, en wijs het daarna toe aan patiënten.</p>
+        <div class="knoppen">
+          <button class="knop knop-hoofd" id="protocol-maak">Protocol maken</button>
+          ${los.length ? '<button class="knop knop-plat" id="protocol-koppel">Bestaand protocol koppelen</button>' : ''}
+        </div>
+      </div>`;
+    box.querySelector('#protocol-maak').addEventListener('click', async () => {
+      const r = await ctx.dialoog({
+        titel: 'Protocol maken', okTekst: 'Maken',
+        velden: [{ naam: 'naam', label: 'Naam van het protocol', waarde: cat.titel, verplicht: true }]
+      });
+      if (!r) return;
+      try {
+        const nieuw = await bron.maakProtocol({
+          id: `${slug(r.naam)}-${Math.random().toString(36).slice(2, 6)}`, naam: r.naam, versie: 'eigen protocol',
+          status: 'concept', instellingen: {}, volgorde: prots.length, knoop_id: cat.id
+        });
+        ctx.melding('Protocol gemaakt. Voeg nu de eerste fase toe.');
+        await faseToevoegen(nieuw, []);
+        opnieuw();
+      } catch (e) { fout(e); }
+    });
+    box.querySelector('#protocol-koppel')?.addEventListener('click', async () => {
+      const r = await ctx.dialoog({
+        titel: 'Bestaand protocol koppelen', okTekst: 'Koppelen',
+        velden: [{ naam: 'id', label: 'Welk protocol hoort bij deze categorie?', soort: 'keuze', waarde: los[0].id, opties: los.map(x => ({ waarde: x.id, label: x.naam })) }]
+      });
+      if (!r) return;
+      try { await bron.wijzigProtocol(r.id, { knoop_id: cat.id }); opnieuw(); } catch (e) { fout(e); }
+    });
+    return;
+  }
+
+  const fasen = [...(p.protocol_fasen || [])].sort((a, b) => a.nummer - b.nummer);
+
+  if (!beheer) {
+    // Patiëntversie: de fasen in patiënttaal, zonder drempels of vakjargon
+    box.innerHTML = fasen.length ? `
+      <section class="protocol-patient">
+        <h2>Zo verloopt je revalidatie</h2>
+        <ol class="fasen-patient">${fasen.map(f => `
+          <li><span class="fase-nr">${f.nummer}</span>
+            <div><b>${esc(f.titel_patient || f.titel)}</b>${f.doel_patient && !f.doel_concept ? `<p>${esc(f.doel_patient)}</p>` : ''}</div>
+          </li>`).join('')}</ol>
+        <p class="hulp">Je kinesitherapeut beslist samen met jou wanneer je naar de volgende fase gaat.</p>
+      </section>
+      ${(keten[2].fiches || []).length ? '<h2 class="rij-titel">Fiches</h2>' : ''}` : '';
+    return;
+  }
+
+  const t = tel(p);
+  box.innerHTML = `
+    <div class="paneel protocol-paneel">
+      <h2>Protocol: ${esc(p.naam)} ${t.concepten ? `<span class="label label-concept">${t.concepten} te keuren</span>` : ''}</h2>
+      <p class="hulp" style="font-size:.95rem">${t.fasen} fasen · ${t.criteria} criteria · ${t.oefeningen} standaardoefeningen. Wat je hier aanpast, geldt meteen voor je patiënten met dit protocol.</p>
+      ${fasen.length ? `<ul class="lijst">${fasen.map(f => {
+        const crit = f.protocol_criteria || [];
+        const concepten = crit.filter(c => c.patient_concept).length + (f.doel_concept ? 1 : 0);
+        return `<li><a href="#/protocollen/${encodeURIComponent(p.id)}/fase/${f.nummer}">
+          <span class="lijst-titel">Fase ${f.nummer}: ${esc(f.titel)} ${concepten ? `<span class="label label-concept">${concepten} te keuren</span>` : ''}</span>
+          <span class="lijst-sub">Patiënt: ${esc(f.titel_patient || '—')}${f.ondergrens_weken != null ? ` · vanaf week ${String(f.ondergrens_weken).replace('.', ',')}` : ''} · ${crit.length} criteria · ${(f.fase_oefeningen || []).length} oefeningen</span>
+        </a></li>`;
+      }).join('')}</ul>` : '<div class="leeg">Nog geen fasen.</div>'}
+      <div class="knoppen">
+        <button class="knop knop-hoofd" id="fase-nieuw">+ Fase toevoegen</button>
+        <button class="knop knop-plat" id="protocol-naam">Naam wijzigen</button>
+      </div>
+    </div>
+    <h2 class="rij-titel">Fiches</h2>`;
+  box.querySelector('#fase-nieuw').addEventListener('click', async () => { if (await faseToevoegen(p, fasen)) opnieuw(); });
+  box.querySelector('#protocol-naam').addEventListener('click', async () => {
+    const r = await ctx.dialoog({ titel: 'Naam van het protocol', okTekst: 'Bewaren', velden: [{ naam: 'naam', label: 'Naam', waarde: p.naam, verplicht: true }] });
+    if (!r) return;
+    try { await bron.wijzigProtocol(p.id, { naam: r.naam }); opnieuw(); } catch (e) { fout(e); }
+  });
+}
+
+async function faseToevoegen(p, fasen) {
+  const nummer = fasen.reduce((m, f) => Math.max(m, f.nummer), 0) + 1;
+  const r = await ctx.dialoog({
+    titel: `${p.naam}: fase ${nummer} toevoegen`, okTekst: 'Toevoegen',
+    velden: [
+      { naam: 'titel', label: 'Titel (therapeut)', verplicht: true, placeholder: 'bv. Belastbaarheid opbouwen' },
+      { naam: 'titel_patient', label: 'Titel voor de patiënt', placeholder: 'bv. Sterker worden' },
+      { naam: 'wanneer', label: 'Wanneer', placeholder: 'bv. Meestal week 6 tot 12' },
+      { naam: 'ondergrens', label: 'Biologische ondergrens (weken, optioneel)', type: 'number', inputmode: 'decimal' },
+      { naam: 'doel_patient', label: 'Doel voor de patiënt', soort: 'tekstvak', rijen: 3, hulp: 'Korte zinnen, positief, zonder vakjargon.' }
+    ]
+  });
+  if (!r) return false;
+  const grens = r.ondergrens === '' ? null : Number(String(r.ondergrens).replace(',', '.'));
+  try {
+    await bron.maakFase({ protocol_id: p.id, nummer, titel: r.titel, titel_patient: r.titel_patient || r.titel, wanneer: r.wanneer,
+      ondergrens_weken: Number.isNaN(grens) ? null : grens, doel_patient: r.doel_patient, doel_concept: false });
+    ctx.melding(`Fase ${nummer} toegevoegd. Open ze om criteria en oefeningen toe te voegen.`);
+    return true;
+  } catch (e) { ctx.melding(e.message || 'Er liep iets mis.'); return false; }
+}

@@ -260,7 +260,7 @@ export async function protocolFase(pid, nummer) {
   const f = (s.fasen || []).find(x => x.protocol_id === pid && x.nummer === Number(nummer));
   if (!f) throw new BronFout('niet gevonden');
   const p = s.protocollen.find(x => x.id === pid);
-  return { ...f, protocol: { id: p.id, naam: p.naam },
+  return { ...f, protocol: { id: p.id, naam: p.naam, knoop_id: p.knoop_id || null },
     protocol_criteria: (s.criteria || []).filter(c => c.fase_id === f.id).map(c => ({ ...c })),
     fase_oefeningen: (s.fase_oef || []).filter(o => o.fase_id === f.id).map(o => ({ ...o, fiche: (() => { const x = s.fiches.find(y => y.id === o.fiche_id); return x ? { id: x.id, titel: x.titel } : null; })() })) };
 }
@@ -365,3 +365,10 @@ export async function mijnTestresultaten() {
     })) };
   });
 }
+
+// ---------- Protocol in de map (nagebootst) ----------
+export async function maakProtocol(v) { const s = server(); team(s); const p = { versie: '', status: '', instellingen: {}, volgorde: 0, knoop_id: null, ...v }; s.protocollen.push(p); schrijfServer(s); return { ...p }; }
+export async function wijzigProtocol(pid, v) { const s = server(); team(s); Object.assign(s.protocollen.find(x => x.id === pid), v); schrijfServer(s); }
+export async function maakFase(v) { const s = server(); team(s); const f = { id: id(), titel_patient: '', kort: '', wanneer: '', ondergrens_weken: null, doel_patient: '', doel_concept: false, scope: '', opmerkingen: '', zichtbaar: { oefeningen: true, doel: true, criteria: true, testresultaten: true }, ...v }; s.fasen.push(f); schrijfServer(s); return { ...f }; }
+export async function wisFase(fid) { const s = server(); team(s); s.fasen = s.fasen.filter(f => f.id !== fid); s.criteria = s.criteria.filter(c => c.fase_id !== fid); schrijfServer(s); }
+export async function trajectenMetProtocol(pid) { const s = server(); team(s); return (s.trajecten || []).filter(t => t.protocol_id === pid && t.actief).map(t => ({ id: t.id, huidige_fase: t.huidige_fase })); }

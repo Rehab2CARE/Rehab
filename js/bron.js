@@ -231,16 +231,32 @@ export async function mijnProgrammas() {
 
 export async function protocollen() {
   return ok(await sb.from('protocollen')
-    .select('id, naam, versie, status, volgorde, instellingen, protocol_fasen(id, nummer, titel, titel_patient, ondergrens_weken, zichtbaar, doel_concept, protocol_criteria(id, patient_concept), fase_oefeningen(id))')
+    .select('id, naam, versie, status, volgorde, instellingen, knoop_id, protocol_fasen(id, nummer, titel, titel_patient, ondergrens_weken, zichtbaar, doel_concept, protocol_criteria(id, patient_concept), fase_oefeningen(id))')
     .order('volgorde'));
 }
 
 export async function protocolFase(protocolId, nummer) {
   return ok(await sb.from('protocol_fasen')
-    .select('*, protocol:protocollen(id, naam), protocol_criteria(*), fase_oefeningen(*, fiche:fiches(id, titel))')
+    .select('*, protocol:protocollen(id, naam, knoop_id), protocol_criteria(*), fase_oefeningen(*, fiche:fiches(id, titel))')
     .eq('protocol_id', protocolId).eq('nummer', nummer).single());
 }
 
+export async function maakProtocol(velden) {
+  return ok(await sb.from('protocollen').insert(velden).select().single());
+}
+export async function wijzigProtocol(id, velden) {
+  ok(await sb.from('protocollen').update(velden).eq('id', id));
+}
+export async function maakFase(velden) {
+  return ok(await sb.from('protocol_fasen').insert(velden).select().single());
+}
+export async function wisFase(id) {
+  ok(await sb.from('protocol_fasen').delete().eq('id', id));
+}
+// Actieve trajecten van een protocol (om te weten of een fase nog in gebruik is)
+export async function trajectenMetProtocol(protocolId) {
+  return ok(await sb.from('patient_trajecten').select('id, huidige_fase').eq('protocol_id', protocolId).eq('actief', true));
+}
 export async function wijzigFase(id, velden) {
   ok(await sb.from('protocol_fasen').update(velden).eq('id', id));
 }

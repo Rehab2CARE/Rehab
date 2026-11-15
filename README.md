@@ -88,8 +88,18 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
    Dit bestand staat bewust **niet** in de openbare repo: het is gemaakt uit je eigen werkboek met
    `python3 -I local/protocollen/bouw-seed.py`. Een protocol dat al bestaat, wordt overgeslagen.
 
+### Protocollen staan in de map Revalidatieprotocols
+- Elk protocol hoort bij een categorie, bv. **Revalidatieprotocols › Knie › VKB-reconstructie** (koppeling: SQL 011).
+  Wat je daar aanpast, is meteen het protocol dat je patiënten volgen.
+- **In Beheer** zie je in de categorie het protocol met zijn fasen, en daaronder de gewone fiches.
+  - **+ Fase toevoegen** en **Naam wijzigen**. De laatste fase kan je wissen (in de fase), als geen patiënt ze nog volgt.
+  - Categorie zonder protocol: **Protocol maken** (eigen fasen en criteria) of **Bestaand protocol koppelen**.
+- **Zonder Beheer** (bv. een patiënt op de iPad in de praktijk) zie je "Zo verloopt je revalidatie": de fasen in
+  patiënttaal (enkel goedgekeurde doelteksten), plus de fiches. Geen drempels of vakjargon.
+- Een protocol zonder map (bv. als de categorie gewist werd) vind je via **Patiënten → Alle protocollen**.
+
 ### Werken met protocollen
-- Tegel **Protocollen** → kies een protocol → kies een fase.
+- Open in de map het protocol → kies een fase.
 - **Zichtbaar voor de patiënt**: vinkjes voor oefeningen, doel en uitleg, criteria en voortgang, testresultaten.
   Dit is de standaard voor de fase; per patiënt aanpassen komt in stap 2.
 - **Wat de patiënt leest**: titel en doel in patiënttaal. **Wijzigen** of **Goedkeuren**.
