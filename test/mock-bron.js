@@ -303,7 +303,7 @@ export async function mijnOpvolging() {
     const f = s.fasen.find(x => x.protocol_id === t.protocol_id && x.nummer === t.huidige_fase);
     const std = f.zichtbaar || {};
     const z = {};
-    ['oefeningen', 'doel', 'criteria', 'testresultaten'].forEach(k => { z[k] = t.zichtbaar?.[k] ?? std[k] ?? (k !== 'testresultaten'); });
+    ['oefeningen', 'doel', 'criteria', 'testresultaten'].forEach(k => { z[k] = t.zichtbaar?.[k] ?? std[k] ?? true; });
     return {
       traject_id: t.id, protocol: s.protocollen.find(p => p.id === t.protocol_id).naam, fase: t.huidige_fase,
       aantal_fasen: s.fasen.filter(x => x.protocol_id === t.protocol_id).length, zichtbaar: z,
@@ -354,7 +354,7 @@ export async function mijnTestresultaten() {
   if (!u) throw new BronFout('Je hebt hiervoor geen toestemming.');
   return (s.trajecten || []).filter(t => t.patient_id === u.user.id && t.actief).filter(t => {
     const f = s.fasen.find(x => x.protocol_id === t.protocol_id && x.nummer === t.huidige_fase);
-    return t.zichtbaar?.testresultaten ?? f.zichtbaar?.testresultaten ?? false;
+    return t.zichtbaar?.testresultaten ?? f.zichtbaar?.testresultaten ?? true;
   }).map(t => {
     const tms = (s.testmomenten || []).filter(x => x.traject_id === t.id);
     const ms = (s.metingen || []).filter(m => tms.some(tm => tm.id === m.testmoment_id));

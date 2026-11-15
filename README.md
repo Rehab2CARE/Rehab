@@ -148,11 +148,13 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
   De app berekent de **LSI** (aangedaan ÷ gezond × 100; bij de 6 m timed hop en time to stabilization omgekeerd)
   en de waarde **per kg**. Groen = in de doelzone, oranje = nog niet. Een leeg veld wist de meting.
   De aangedane zijde komt uit de opvolging: vul die in, anders kan de LSI niet berekend worden.
-- **Grafieken**: per test het verloop over de tijd met een gekleurde doelzone, en een tabel met de absolute waarden.
+- **Grafieken**: bij tests met links en rechts toont de grafiek de **absolute waarden van beide benen** (aangedaan = volle lijn,
+  gezond = stippellijn), zodat vooruitgang zichtbaar is, ook als beide benen sterker worden. Eronder staat de **LSI** als balk
+  met het doel, en in de tabel per datum. Tests met één waarde (bv. IKDC) tonen een doelzone.
 - **Criteria bijhouden**: bij een criterium dat aan een test gekoppeld is, zie je meteen de laatste meting.
   De koppeling pas je aan via **Protocollen → fase → Criterium wijzigen → Gekoppelde meting**.
-- De patiënt ziet zijn grafieken (in patiënttaal, bv. "Kracht voorkant bovenbeen") enkel als **Testresultaten**
-  zichtbaar staat voor zijn fase. Positieve uitleg ("van 69 % naar 81 %. Goed bezig!"), geen notities.
+- De patiënt ziet zijn grafieken (in patiënttaal, bv. "Kracht voorkant bovenbeen"). **Testresultaten staan standaard aan**
+  (SQL 010); per fase of per patiënt kan je ze uitzetten. Positieve uitleg ("van 69 % naar 81 %. Goed bezig!"), geen notities.
 - De grafieken gebruiken Chart.js 4.4.4 (MIT), lokaal meegeleverd in `js/vendor/`, dus ook offline.
 
 ## Opbouw

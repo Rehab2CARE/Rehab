@@ -107,22 +107,30 @@ export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = 
   const kleur = '#2f6f73', kleur2 = '#a86b00';
   const lijn = (label, data, k) => ({ label, data, borderColor: k, backgroundColor: k, tension: .25, pointRadius: 5, spanGaps: true });
 
-  if (test.soort === 'lr' && test.doel_lsi != null) {
-    const w = punten.map(p => { const v = lsi(test, p.meting, zijde); return v == null ? null : Math.round(v); });
-    datasets = [lijn('LSI (%)', w, kleur)];
-    zone = { van: test.doel_lsi, tot: null };
-    const max = Math.max(110, ...w.filter(v => v != null));
-    y = { suggestedMin: 40, suggestedMax: max, ticks: { callback: v => v + ' %' } };
-    const met = w.filter(v => v != null);
-    if (met.length >= 2) {
-      const [a, b] = [met[0], met[met.length - 1]];
-      uitleg = b > a ? (patient ? `${test.naam}: van ${a} % naar ${b} %. Goed bezig!` : `LSI van ${a} % naar ${b} %.`) : `Laatste meting: ${b} %.`;
-    } else if (met.length === 1) uitleg = `Eerste meting: ${met[0]} %.`;
-    else if (!zijde) uitleg = 'Vul de zijde in bij de opvolging om de LSI te berekenen.';
-  } else if (test.soort === 'lr') {
-    // geen LSI (bv. extensie): links en rechts apart
-    datasets = [lijn('Links', punten.map(p => getal(p.meting?.links)), kleur), lijn('Rechts', punten.map(p => getal(p.meting?.rechts)), kleur2)];
-    y = { ticks: { callback: v => v + ' ' + test.eenheid } };
+  if (test.soort === 'lr') {
+    // Absolute waarden van beide benen: zo zie je vooruitgang, ook als beide benen sterker worden.
+    // De LSI staat apart eronder (lsiBalkHtml) en in de tabel.
+    const kant = (p, welke) => {
+      const z = zijden(p.meting, zijde);
+      if (zijde) return welke === 'a' ? z.aangedaan : z.gezond;
+      return getal(welke === 'a' ? p.meting?.links : p.meting?.rechts);
+    };
+    const a = punten.map(p => kant(p, 'a')), g = punten.map(p => kant(p, 'g'));
+    const namen = zijde
+      ? (patient ? ['Je behandelde been', 'Je andere been'] : [`Aangedaan (${zijde})`, `Gezond (${zijde === 'L' ? 'R' : 'L'})`])
+      : ['Links', 'Rechts'];
+    datasets = [lijn(namen[0], a, kleur), { ...lijn(namen[1], g, '#8a9a9a'), borderDash: [6, 4], pointRadius: 4 }];
+    const eenheid = test.eenheid;
+    y = { suggestedMin: 0, ticks: { callback: v => `${fmt(v)} ${eenheid}` } };
+    const met = a.filter(v => v != null);
+    if (met.length >= 2 && met[met.length - 1] !== met[0]) {
+      const [eerst, laatst] = [met[0], met[met.length - 1]];
+      const beter = test.lsi_omgekeerd ? laatst < eerst : laatst > eerst;
+      const wat = zijde ? (patient ? 'Je behandelde been' : 'Aangedaan') : 'Links';
+      uitleg = beter
+        ? `${wat}: van ${fmt(eerst)} naar ${fmt(laatst)} ${eenheid}${test.lsi_omgekeerd ? ' (sneller)' : ''}.${patient ? ' Goed bezig!' : ''}`
+        : `Laatste meting: ${fmt(laatst)} ${eenheid}.`;
+    } else if (met.length === 1) uitleg = `Eerste meting: ${fmt(met[0])} ${eenheid}.`;
   } else if (test.soort === 'keuze') {
     const opties = test.opties || [];
     datasets = [lijn(test.naam, punten.map(p => { const i = opties.indexOf(p.meting?.tekst); return i < 0 ? null : i; }), kleur)];
@@ -153,6 +161,20 @@ export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = 
     plugins: [doelzone]
   });
   return uitleg;
+}
+
+// LSI onder de grafiek: laatste waarde als balk met het doel (enkel bij tests met LSI)
+export function lsiBalkHtml(test, punten, zijde, { patient = false } = {}) {
+  if (test.soort !== 'lr' || test.doel_lsi == null) return '';
+  const w = punten.map(p => lsi(test, p.meting, zijde)).filter(v => v != null);
+  if (!w.length) return zijde || patient ? '' : '<p class="hulp">Vul de zijde in bij de opvolging om de LSI te berekenen.</p>';
+  const nu = Math.round(w[w.length - 1]), eerst = Math.round(w[0]);
+  const doel = Number(test.doel_lsi);
+  const label = patient ? 'Verhouding met je andere been' : 'LSI';
+  return `<div class="lsi-balk ${nu >= doel ? 'lsi-ok' : 'lsi-nog'}">
+    <div class="lsi-balk-tekst"><span>${label}: <b>${nu} %</b>${w.length > 1 && nu !== eerst ? ` <span class="hulp">(was ${eerst} %)</span>` : ''}</span><span class="hulp">doel ${patient ? '' : '≥ '}${doel} %</span></div>
+    <div class="voortgang-balk"><span style="width:${Math.min(100, nu)}%"></span><i style="left:${Math.min(100, doel)}%"></i></div>
+  </div>`;
 }
 
 // ===================================================================================
@@ -191,6 +213,7 @@ async function testenScherm(pid, thuis) {
         <h3>${esc(x.naam)}</h3>
         <div class="grafiek-vlak"><canvas></canvas></div>
         <p class="grafiek-uitleg hulp"></p>
+        <div class="grafiek-lsi"></div>
         <table class="meet-tabel"><thead><tr><th>Datum</th><th>Meting</th></tr></thead><tbody>${momenten.filter(tm => (tm.metingen || []).some(m => m.test_id === x.id)).map(tm => {
           const m = tm.metingen.find(y => y.test_id === x.id);
           return `<tr><td>${esc(datumKort(tm.datum))}</td><td>${esc(metingTekst(x, m, t.zijde, getal(tm.gewicht_kg)))}</td></tr>`;
@@ -201,6 +224,7 @@ async function testenScherm(pid, thuis) {
     const x = gemeten.find(y => y.id === sec.dataset.test);
     const punten = momenten.map(tm => ({ datum: tm.datum, meting: (tm.metingen || []).find(m => m.test_id === x.id) })).filter(pt => pt.meting);
     sec.querySelector('.grafiek-uitleg').textContent = tekenGrafiek(sec.querySelector('canvas'), x, punten, t.zijde);
+    sec.querySelector('.grafiek-lsi').innerHTML = lsiBalkHtml(x, punten, t.zijde);
   });
   $('#nieuw-testmoment').addEventListener('click', () => nieuwTestmoment(pid, t, momenten));
 }
@@ -329,17 +353,19 @@ export function toonPatientResultaten(box, resultaten) {
   box.innerHTML = `
     <section class="revalidatie testresultaten">
       <h2>Jouw testresultaten</h2>
-      <p class="hulp">De gekleurde zone is het doel. We vergelijken je geopereerde been met je andere been.</p>
+      <p class="hulp">De volle lijn is je behandelde been, de stippellijn je andere been. De balk eronder toont hoe dicht je behandelde been bij je andere been zit.</p>
       <div class="grafieken">${items.map((it, i) => `
         <div class="grafiek-kaart" data-i="${i}">
           <h3>${esc(it.x.naam)}</h3>
           <div class="grafiek-vlak"><canvas></canvas></div>
           <p class="grafiek-uitleg"></p>
+          <div class="grafiek-lsi"></div>
         </div>`).join('')}</div>
     </section>`;
   box.querySelectorAll('.grafiek-kaart').forEach(kaart => {
     const it = items[Number(kaart.dataset.i)];
     const punten = (it.x.metingen || []).map(m => ({ datum: m.datum, meting: m }));
     kaart.querySelector('.grafiek-uitleg').textContent = tekenGrafiek(kaart.querySelector('canvas'), it.x, punten, it.zijde, { patient: true });
+    kaart.querySelector('.grafiek-lsi').innerHTML = lsiBalkHtml(it.x, punten, it.zijde, { patient: true });
   });
 }

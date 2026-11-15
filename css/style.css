@@ -393,3 +393,10 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 .meet-tabel th { color: var(--tekst-zacht); font-weight: 600; }
 .laatste-meting { font-size: .9rem; background: var(--hoofdkleur-licht); border-radius: 8px; padding: 6px 10px; }
 .testresultaten .grafiek-kaart { box-shadow: none; }
+
+.lsi-balk { margin-top: 8px; }
+.lsi-balk-tekst { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; margin-bottom: 4px; }
+.lsi-balk .voortgang-balk { position: relative; overflow: visible; }
+.lsi-balk .voortgang-balk span { border-radius: 6px; }
+.lsi-balk .voortgang-balk i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tekst); border-radius: 1px; }
+.lsi-balk.lsi-nog .voortgang-balk span { background: #c99a3a; }

@@ -18,7 +18,7 @@ const ZICHTBAAR = [
   ['oefeningen', 'Oefeningen', 'De standaardoefeningen van deze fase, met dosering.'],
   ['doel', 'Doel en uitleg', 'De titel en het doel van de fase in patiënttaal.'],
   ['criteria', 'Criteria en voortgang', 'De patiëntteksten van de criteria en hoeveel er behaald zijn.'],
-  ['testresultaten', 'Testresultaten', 'Metingen en LSI-grafieken (komt in stap 4).']
+  ['testresultaten', 'Testresultaten', 'Grafieken van de metingen: absolute waarden van beide benen en de LSI.']
 ];
 
 export function initProtocollen(hulp) {
@@ -126,7 +126,7 @@ async function faseScherm(pid, nummer, thuis) {
   try { testlijst = await bron.tests(); } catch { /* stap 4 nog niet in de databank */ }
   const oef = [...(f.fase_oefeningen || [])].sort((a, b) => a.volgorde - b.volgorde);
   const perId = new Map(ctx.alleFichesMetPlaats().map(x => [x.f.id, x]));
-  const zichtbaar = { oefeningen: true, doel: true, criteria: true, testresultaten: false, ...(f.zichtbaar || {}) };
+  const zichtbaar = { oefeningen: true, doel: true, criteria: true, testresultaten: true, ...(f.zichtbaar || {}) };
   const concepten = crit.filter(c => c.patient_concept).length;
   const hier = `#/protocollen/${encodeURIComponent(pid)}/fase/${nummer}`;
 
@@ -469,7 +469,7 @@ async function opvolgingVoor(box, p, herlaad) {
     const z = t.zichtbaar || {};
     const std = huidig?.zichtbaar || {};
     const opties = k => [
-      { waarde: '', label: `Standaard van de fase (${std[k] ?? (k === 'testresultaten' ? false : true) ? 'aan' : 'uit'})` },
+      { waarde: '', label: `Standaard van de fase (${std[k] ?? true ? 'aan' : 'uit'})` },
       { waarde: 'aan', label: 'Aan voor deze patiënt' },
       { waarde: 'uit', label: 'Uit voor deze patiënt' }
     ];
