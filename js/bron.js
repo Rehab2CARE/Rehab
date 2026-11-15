@@ -290,6 +290,17 @@ export async function faseMetOefeningen(protocolId, nummer) {
     .select('id, titel, titel_patient, fase_oefeningen(fiche_id, sets, herhalingen, frequentie, notitie, volgorde)')
     .eq('protocol_id', protocolId).eq('nummer', nummer).single());
 }
+// ---------- Criteria afvinken per patiënt (opvolging stap 3) ----------
+export async function criteriumStatussen(trajectId) {
+  return ok(await sb.from('criterium_status').select('criterium_id, status, datum, notitie').eq('traject_id', trajectId));
+}
+export async function zetCriteriumStatus(trajectId, criteriumId, velden) {
+  ok(await sb.from('criterium_status').upsert({ traject_id: trajectId, criterium_id: criteriumId, ...velden }, { onConflict: 'traject_id,criterium_id' }));
+}
+export async function wisCriteriumStatus(trajectId, criteriumId) {
+  ok(await sb.from('criterium_status').delete().eq('traject_id', trajectId).eq('criterium_id', criteriumId));
+}
+
 // Voor de aangemelde patiënt: enkel patiëntteksten en wat zichtbaar staat (functie in de databank)
 export async function mijnOpvolging() {
   return ok(await sb.rpc('mijn_opvolging')) || [];

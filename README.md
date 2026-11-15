@@ -116,6 +116,20 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
   (de criteria in patiënttaal) en zijn oefeningen, telkens enkel als dat zichtbaar staat.
   Drempels, testmethodes en je opmerkingen ziet een patiënt nooit (de databank geeft enkel patiëntteksten door).
 
+## Criteria afvinken (stap 3)
+
+### Eenmalig instellen in Supabase
+- **SQL Editor**: plak `supabase/migraties/007_criteriumstatus.sql` en klik **Run**.
+
+### Werken met criteria
+- In het paneel **Opvolging** van een patiënt zie je de voortgang ("5 van 7 voldaan") en tik je **Criteria bijhouden**.
+- Per criterium: **Voldaan**, **Niet voldaan** of **N.v.t.**, met de datum (standaard vandaag) en een notitie voor het team.
+  Bij **Niet voldaan** toont de app wat je volgens het protocol doet bij niet halen. Met **✕** wis je de status.
+- Bovenaan kies je een andere fase om ook vroegere fasen na te kijken.
+- Bij **Fase vrijgeven** zegt de app hoeveel criteria nog niet voldaan zijn. Jij beslist.
+- De patiënt ziet (als criteria zichtbaar staan) een voortgangsbalk en een vinkje bij wat behaald is.
+  N.v.t. telt niet mee en wordt niet getoond. Je notities ziet een patiënt nooit.
+
 ## Opbouw
 
 **Onderdeel → Regio → Categorie → Fiches**

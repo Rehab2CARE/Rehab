@@ -132,6 +132,7 @@ export async function toonTherapeut(delen) {
   try {
     if (!delen.length) return await lijst(thuis);
     if (delen[1] === 'programma' && delen[2]) return await programmaScherm(delen[0], delen[2], thuis);
+    if (delen[1] === 'criteria' && ctx.criteriaScherm) return await ctx.criteriaScherm(delen[0], Number(delen[2]) || null, thuis);
     if (delen[1]) { location.hash = `#/patienten/${delen[0]}`; return; }
     return await patientScherm(delen[0], thuis);
   } catch (e) {
@@ -482,8 +483,18 @@ function toonMijnProgramma() {
         ${o.titel ? `<h2>${esc(o.titel)}</h2>` : ''}
         ${o.doel ? `<p>${esc(o.doel)}</p>` : ''}
         ${o.criteria?.length ? `<h3>Hier werk je naartoe</h3>
-          <ul class="doelen">${o.criteria.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
-        <p class="hulp">Je kiné beslist samen met jou wanneer je naar de volgende fase gaat.</p>
+          ${o.totaal ? `<div class="voortgang voortgang-patient">
+            <div class="voortgang-balk"><span style="width:${Math.round((o.voldaan || 0) / o.totaal * 100)}%"></span></div>
+            <span><b>${o.voldaan || 0} van ${o.totaal}</b> behaald${o.voldaan && o.voldaan === o.totaal ? '. Knap werk!' : ''}</span>
+          </div>` : ''}
+          <ul class="doelen">${o.criteria.map(c => {
+            const tekst = typeof c === 'string' ? c : c.tekst;
+            const ok = typeof c === 'object' && c.voldaan;
+            return `<li class="${ok ? 'behaald' : ''}"><span class="doel-vink" aria-hidden="true">${ok ? '✓' : ''}</span>${esc(tekst)}${ok ? '<span class="sr-only"> (behaald)</span>' : ''}</li>`;
+          }).join('')}</ul>` : ''}
+        <p class="hulp">${o.totaal && o.voldaan === o.totaal
+          ? 'Alles behaald voor deze fase. Je kiné bekijkt samen met jou de volgende stap.'
+          : 'Je kiné beslist samen met jou wanneer je naar de volgende fase gaat.'}</p>
       </section>`).join('')}
     ${zichtbaar.length ? zichtbaar.map(g => {
       const items = [...(g.programma_items || [])].filter(it => it.fiche).sort((a, b) => a.volgorde - b.volgorde);

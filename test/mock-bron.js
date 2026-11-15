@@ -308,7 +308,22 @@ export async function mijnOpvolging() {
       traject_id: t.id, protocol: s.protocollen.find(p => p.id === t.protocol_id).naam, fase: t.huidige_fase,
       aantal_fasen: s.fasen.filter(x => x.protocol_id === t.protocol_id).length, zichtbaar: z,
       titel: z.doel ? f.titel_patient : null, doel: z.doel ? f.doel_patient : null,
-      criteria: z.criteria ? s.criteria.filter(c => c.fase_id === f.id && c.patient_tekst).sort((a, b) => a.volgorde - b.volgorde).map(c => c.patient_tekst) : null
+      ...(() => {
+        if (!z.criteria) return { criteria: null, voldaan: null, totaal: null };
+        const st = cid => (s.criterium_status || []).find(x => x.traject_id === t.id && x.criterium_id === cid)?.status || '';
+        const lijst = s.criteria.filter(c => c.fase_id === f.id && c.patient_tekst && st(c.id) !== 'nvt').sort((a, b) => a.volgorde - b.volgorde);
+        return { criteria: lijst.map(c => ({ tekst: c.patient_tekst, voldaan: st(c.id) === 'voldaan' })), voldaan: lijst.filter(c => st(c.id) === 'voldaan').length, totaal: lijst.length };
+      })()
     };
   });
 }
+
+// ---------- Criteriumstatus (nagebootst) ----------
+export async function criteriumStatussen(tid) { const s = server(); team(s); return (s.criterium_status || []).filter(x => x.traject_id === tid).map(x => ({ ...x })); }
+export async function zetCriteriumStatus(tid, cid, v) {
+  const s = server(); team(s); s.criterium_status = s.criterium_status || [];
+  const r = s.criterium_status.find(x => x.traject_id === tid && x.criterium_id === cid);
+  if (r) Object.assign(r, v); else s.criterium_status.push({ id: id(), traject_id: tid, criterium_id: cid, notitie: '', ...v });
+  schrijfServer(s);
+}
+export async function wisCriteriumStatus(tid, cid) { const s = server(); team(s); s.criterium_status = (s.criterium_status || []).filter(x => !(x.traject_id === tid && x.criterium_id === cid)); schrijfServer(s); }

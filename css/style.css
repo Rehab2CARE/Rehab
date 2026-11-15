@@ -345,3 +345,28 @@ details.paneel summary { cursor: pointer; min-height: var(--min-knop); display: 
 .fasebalk-patient li span { width: 34px; height: 34px; font-size: .85rem; }
 .doelen { margin: 0 0 12px; padding-left: 1.2em; }
 .doelen li { margin-bottom: 4px; }
+
+/* Voortgang (criteria) */
+.voortgang { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0 12px; }
+.voortgang-balk { flex: 1 1 180px; height: 12px; background: #e6ecec; border-radius: 6px; overflow: hidden; }
+.voortgang-balk span { display: block; height: 100%; background: var(--hoofdkleur); border-radius: 6px; transition: width .3s; }
+.voortgang-groot .voortgang-balk { height: 16px; }
+.statusknoppen { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.statusknoppen .status-voldaan[aria-pressed="true"] { background: var(--hoofdkleur); color: #fff; border-color: var(--hoofdkleur); }
+.statusknoppen .status-niet_voldaan[aria-pressed="true"] { background: #a86b00; color: #fff; border-color: #a86b00; }
+.statusknoppen .status-nvt[aria-pressed="true"] { background: #6b7580; color: #fff; border-color: #6b7580; }
+.criterium-status-voldaan { border-left: 4px solid var(--hoofdkleur); }
+.criterium-status-niet_voldaan { border-left: 4px solid #a86b00; }
+.criterium-status-nvt { opacity: .7; }
+.status-details { display: grid; grid-template-columns: 170px 1fr; gap: 10px; margin-top: 6px; }
+.status-details label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--tekst-zacht); }
+.status-details input { font: inherit; font-size: 1rem; color: var(--tekst); min-height: var(--min-knop); padding: 8px 10px; border: 1px solid var(--rand); border-radius: 10px; background: #fff; min-width: 0; }
+@media (max-width: 600px) { .status-details { grid-template-columns: 1fr; } }
+
+/* Voortgang voor de patiënt */
+.voortgang-patient span b { color: var(--hoofdkleur); }
+.doelen { list-style: none; padding-left: 0; }
+.doelen li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.doel-vink { flex: 0 0 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rand); display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 700; }
+.doelen li.behaald .doel-vink { background: var(--hoofdkleur); border-color: var(--hoofdkleur); color: #fff; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

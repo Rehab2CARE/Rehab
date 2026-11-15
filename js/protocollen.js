@@ -23,6 +23,7 @@ const ZICHTBAAR = [
 export function initProtocollen(hulp) {
   ctx = hulp;
   ctx.opvolgingVoor = (...a) => opvolgingVoor(...a); // gebruikt op het scherm van een patiënt
+  ctx.criteriaScherm = (...a) => criteriaScherm(...a);
   // Gekozen fiches toevoegen aan de standaardoefeningen van een fase
   registreerKiesDoel('fase', async (faseId, gekozen) => {
     const items = await bron.faseOefeningen(faseId);
@@ -345,6 +346,9 @@ async function opvolgingVoor(box, p, herlaad) {
     t.zijde ? (t.zijde === 'L' ? 'links' : 'rechts') : '', t.graft, t.ingreep && t.ingreep !== 'Geen' ? t.ingreep : '', t.sportprofiel
   ].filter(Boolean);
   const afwijkend = Object.keys(t.zichtbaar || {}).length;
+  let statussen = [];
+  try { statussen = await bron.criteriumStatussen(t.id); } catch { /* stap 3 nog niet in de databank */ }
+  const vg = voortgang(huidig, statussen);
 
   box.innerHTML = `
     <div class="paneel opvolging">
@@ -356,8 +360,13 @@ async function opvolgingVoor(box, p, herlaad) {
         </li>`).join('')}</ol>
       <p class="opvolging-fase"><b>Fase ${t.huidige_fase}: ${esc(huidig?.titel || '')}</b><br>
         <span class="hulp">De patiënt leest: “${esc(huidig?.titel_patient || '')}”${sinds ? ` · vrijgegeven op ${datumTekst(sinds)}` : ''}</span></p>
+      <div class="voortgang">
+        <div class="voortgang-balk" role="progressbar" aria-valuemin="0" aria-valuemax="${vg.totaal}" aria-valuenow="${vg.voldaan}"><span style="width:${vg.procent}%"></span></div>
+        <span>Criteria fase ${t.huidige_fase}: <b>${vg.voldaan} van ${vg.totaal} voldaan</b>${vg.nietVoldaan ? ` · ${vg.nietVoldaan} niet voldaan` : ''}</span>
+        <a class="knop knop-plat klein" href="#/patienten/${encodeURIComponent(p.id)}/criteria/${t.huidige_fase}">Criteria bijhouden</a>
+      </div>
       ${volgende ? `<p class="opvolging-volgende">Volgende: <b>fase ${volgende.nummer}</b> (${esc(volgende.titel)})${grens != null
-        ? ` · ten vroegste vanaf <b>week ${String(grens).replace('.', ',')}</b>${grensDatum ? ` (${datumTekst(grensDatum)})` : ''}${weken != null ? (weken >= grens ? ' · <span class="ok">ondergrens bereikt</span>' : ` · <span class="nog">nog ${Math.ceil(grens - weken)} weken</span>`) : ''}`
+        ? ` · ten vroegste vanaf <b>week ${String(grens).replace('.', ',')}</b>${grensDatum ? ` (${datumTekst(grensDatum)})` : ''}${weken != null ? (weken >= grens ? ' · <span class="ok">ondergrens bereikt</span>' : ` · <span class="nog">nog ${Math.ceil(grens - weken)} ${Math.ceil(grens - weken) === 1 ? 'week' : 'weken'}</span>`) : ''}`
         : ''}</p>` : '<p class="opvolging-volgende">Dit is de laatste fase.</p>'}
       <div class="knoppen">
         ${volgende ? `<button class="knop knop-hoofd" id="fase-vrij">Fase ${volgende.nummer} vrijgeven</button>` : ''}
@@ -377,6 +386,8 @@ async function opvolgingVoor(box, p, herlaad) {
     } else if (grens != null && weken == null) {
       tekst = `Er is geen ${startLabel.toLowerCase()}datum ingevuld, dus de ondergrens (week ${String(grens).replace('.', ',')}) kan niet nagekeken worden. ` + tekst;
     }
+    const open = vg.totaal - vg.voldaan;
+    if (open > 0) tekst = `Nog niet voldaan in fase ${t.huidige_fase}: ${open} van ${vg.totaal} criteria. ` + tekst;
     if (!await ctx.bevestig(`Fase ${volgende.nummer} vrijgeven?`, tekst, 'Vrijgeven')) return;
     try { await zetFase(t, volgende.nummer); ctx.melding(`Fase ${volgende.nummer} vrijgegeven.`); herlaad(); } catch (e) { fout(e); }
   });
@@ -480,4 +491,95 @@ async function zetFase(t, nummer) {
   if (oef.length) await bron.voegItemsToe(oef.map((o, i) => ({
     programma_id: g.id, fiche_id: o.fiche_id, sets: o.sets, herhalingen: o.herhalingen, frequentie: o.frequentie, notitie: o.notitie, volgorde: i
   })));
+}
+
+
+// ===================================================================================
+// Criteria bijhouden per patiënt (stap 3)
+//   #/patienten/<id>/criteria/<fase>
+// ===================================================================================
+
+// Voortgang van een fase: n.v.t. telt niet mee
+function voortgang(fase, statussen) {
+  const ids = new Set((fase?.protocol_criteria || []).map(c => c.id));
+  const st = statussen.filter(x => ids.has(x.criterium_id));
+  const nvt = st.filter(x => x.status === 'nvt').length;
+  const voldaan = st.filter(x => x.status === 'voldaan').length;
+  const nietVoldaan = st.filter(x => x.status === 'niet_voldaan').length;
+  const totaal = ids.size - nvt;
+  return { voldaan, nietVoldaan, nvt, totaal, procent: totaal ? Math.round(voldaan / totaal * 100) : 0 };
+}
+
+const STATUS = [['voldaan', 'Voldaan'], ['niet_voldaan', 'Niet voldaan'], ['nvt', 'N.v.t.']];
+const vandaag = () => new Date().toISOString().slice(0, 10);
+
+async function criteriaScherm(pid, nummer, thuis) {
+  const { esc, inhoud } = ctx;
+  const p = (await bron.patienten()).find(x => x.id === pid);
+  if (!p) { location.hash = '#/patienten'; return; }
+  const t = (await bron.trajectenVan(pid)).find(x => x.actief);
+  if (!t) { location.hash = `#/patienten/${encodeURIComponent(pid)}`; return; }
+  const fNr = nummer || t.huidige_fase;
+  const [f, prots, statussen] = await Promise.all([bron.protocolFase(t.protocol_id, fNr), bron.protocollen(), bron.criteriumStatussen(t.id)]);
+  const aantal = (prots.find(x => x.id === t.protocol_id)?.protocol_fasen || []).length;
+  const crit = [...(f.protocol_criteria || [])].sort((a, b) => a.volgorde - b.volgorde);
+  const perCrit = new Map(statussen.map(x => [x.criterium_id, x]));
+  const vg = voortgang(f, statussen);
+  const naam = p.naam || p.code;
+
+  $('#kruimels').innerHTML = `${thuis} <a href="#/patienten">Patiënten</a> <span class="sep">›</span>
+    <a href="#/patienten/${encodeURIComponent(pid)}">${esc(naam)}</a> <span class="sep">›</span> <span class="huidig">Criteria fase ${fNr}</span>`;
+
+  inhoud.innerHTML = `
+    <h1>Criteria fase ${fNr}: ${esc(f.titel)}</h1>
+    <p class="ondertitel">${esc(naam)} · ${esc(f.protocol?.naam || '')}${fNr === t.huidige_fase ? ' · huidige fase' : ''}</p>
+    <ol class="fasebalk" aria-label="Kies een fase">${Array.from({ length: aantal }, (_, i) => i + 1).map(n => `
+      <li class="${n === fNr ? 'huidig' : n < t.huidige_fase ? 'klaar' : ''}"><a href="#/patienten/${encodeURIComponent(pid)}/criteria/${n}">${n}</a></li>`).join('')}</ol>
+    <div class="voortgang voortgang-groot">
+      <div class="voortgang-balk"><span style="width:${vg.procent}%"></span></div>
+      <span><b>${vg.voldaan} van ${vg.totaal} voldaan</b>${vg.nietVoldaan ? ` · ${vg.nietVoldaan} niet voldaan` : ''}${vg.nvt ? ` · ${vg.nvt} n.v.t.` : ''}</span>
+    </div>
+    <ol class="criteria">${crit.map(c => {
+      const st = perCrit.get(c.id);
+      return `<li class="criterium criterium-status-${st?.status || 'open'}" data-crit="${esc(c.id)}">
+        <div class="criterium-kop">
+          <b>${esc(c.criterium)}</b>
+          <span class="criterium-meta">${esc(c.drempel)}${c.niveau ? ` · niveau ${esc(c.niveau)}` : ''}</span>
+        </div>
+        ${c.testmethode ? `<div class="hulp">Test: ${esc(c.testmethode)}</div>` : ''}
+        <div class="statusknoppen" role="group" aria-label="Status">${STATUS.map(([w, l]) =>
+          `<button type="button" class="knop knop-plat klein status-${w}" data-status="${w}" aria-pressed="${st?.status === w}">${l}</button>`).join('')}
+          ${st ? '<button type="button" class="knop knop-plat klein" data-status="" aria-label="Status wissen">✕</button>' : ''}
+        </div>
+        ${st ? `<div class="status-details">
+          <label>Datum<input type="date" name="datum" value="${esc(st.datum || '')}"></label>
+          <label class="breed">Notitie (enkel voor het team)<input name="notitie" value="${esc(st.notitie || '')}" placeholder="bv. LSI 82 %, gemeten op de krachtplaat"></label>
+        </div>` : ''}
+        ${st?.status === 'niet_voldaan' && c.bij_niet_halen ? `<div class="criterium-actie">Bij niet halen: ${esc(c.bij_niet_halen)}</div>` : ''}
+        <div class="hulp">Patiënt leest: “${esc(c.patient_tekst || '—')}”</div>
+      </li>`;
+    }).join('')}</ol>
+    <div class="knoppen"><a class="knop knop-plat" href="#/patienten/${encodeURIComponent(pid)}">‹ Terug naar ${esc(naam)}</a></div>`;
+
+  const opnieuw = async () => { const y = window.scrollY; await criteriaScherm(pid, fNr, thuis); window.scrollTo(0, y); };
+  const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
+
+  inhoud.querySelectorAll('.criterium').forEach(li => {
+    const id = li.dataset.crit;
+    const st = perCrit.get(id);
+    li.querySelectorAll('[data-status]').forEach(knop => knop.addEventListener('click', async () => {
+      try {
+        if (!knop.dataset.status) await bron.wisCriteriumStatus(t.id, id);
+        else await bron.zetCriteriumStatus(t.id, id, { status: knop.dataset.status, datum: st?.datum || vandaag(), notitie: st?.notitie || '', door: ctx.profielId() });
+        opnieuw();
+      } catch (e) { fout(e); }
+    }));
+    li.querySelectorAll('.status-details input').forEach(inp => inp.addEventListener('change', async () => {
+      try {
+        await bron.zetCriteriumStatus(t.id, id, { status: st.status, datum: li.querySelector('[name=datum]').value || vandaag(),
+          notitie: li.querySelector('[name=notitie]').value.trim().slice(0, 300), door: ctx.profielId() });
+        ctx.melding('Bewaard.');
+      } catch (e) { fout(e); }
+    }));
+  });
 }
