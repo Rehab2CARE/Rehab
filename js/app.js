@@ -379,7 +379,21 @@ const LEGE_STRUCTUUR = () => ({ versie: 1, bron: 'gedeeld', appTitel: 'Praktijkf
 
 async function start() {
   $('#dialoog-annuleer').addEventListener('click', () => $('#dialoog').close('annuleer'));
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // Staat er een nieuwe versie klaar, dan herlaadt de app zichzelf één keer (niet bij de allereerste installatie).
+    // Zo draait een toestel nooit lang oude code naast nieuwe gegevens uit de databank.
+    const hadVersie = !!navigator.serviceWorker.controller;
+    let herladen = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadVersie || herladen) return;
+      herladen = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      // Een app op het beginscherm laadt zelden opnieuw: kijk bij elke terugkeer naar de app of er een update is.
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+    }).catch(() => {});
+  }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
   const hulp = {

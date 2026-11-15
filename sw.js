@@ -1,5 +1,5 @@
 // Offline-cache. Verhoog CACHE_VERSIE bij elke wijziging aan de app-bestanden.
-const CACHE_VERSIE = 'fiches-v15';
+const CACHE_VERSIE = 'fiches-v16';
 const BESTANDEN = [
   './', 'index.html', 'css/style.css', 'js/app.js', 'js/db.js', 'js/delen.js',
   'js/bron.js', 'js/sync.js', 'js/config.js', 'js/vendor/supabase.js', 'js/vendor/qrcode.js', 'js/patienten.js', 'js/protocollen.js',
@@ -8,7 +8,10 @@ const BESTANDEN = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_VERSIE).then(c => c.addAll(BESTANDEN)).then(() => self.skipWaiting()));
+  // cache: 'reload' = altijd vers van de server, niet uit de tijdelijke opslag van de browser
+  e.waitUntil(caches.open(CACHE_VERSIE)
+    .then(c => c.addAll(BESTANDEN.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
