@@ -600,7 +600,9 @@ function toonGeenToegang() {
       <div class="paneel">
         <p>${patient
           ? 'Je oefenprogramma verschijnt hier binnenkort.'
-          : `Je bent aangemeld als <b>${esc(profiel.email)}</b>, maar je account is nog niet geactiveerd. Vraag de beheerder van de praktijk om je toegang te geven en open de app daarna opnieuw.`}</p>
+          : /@patienten\./.test(profiel.email || '')
+            ? `Je account met code <b>${esc(profiel.email.split('@')[0].toUpperCase())}</b> is nog niet klaar. Vraag je kiné om het na te kijken en open de app daarna opnieuw.`
+            : `Je bent aangemeld als <b>${esc(profiel.email)}</b>, maar je account is nog niet geactiveerd. Vraag de beheerder van de praktijk om je toegang te geven en open de app daarna opnieuw.`}</p>
         <div class="knoppen"><button class="knop knop-plat" id="afmelden">Afmelden</button></div>
       </div>
     </div>`;
