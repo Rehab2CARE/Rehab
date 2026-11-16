@@ -366,6 +366,14 @@ export async function wisSessie(id) {
   ok(await sb.from('oefensessies').delete().eq('id', id));
 }
 
+// ---------- Oefenschema's (bv. quadriceps): inhoud aanpasbaar in de app ----------
+export async function oefenschemas() {
+  return ok(await sb.from('oefenschemas').select('id, inhoud, bijgewerkt'));
+}
+export async function bewaarOefenschema(id, inhoud, door) {
+  ok(await sb.from('oefenschemas').upsert({ id, inhoud, bijgewerkt_door: door || null }, { onConflict: 'id' }));
+}
+
 // Voor de aangemelde patiënt: enkel patiëntteksten en wat zichtbaar staat (functie in de databank)
 export async function mijnOpvolging() {
   return ok(await sb.rpc('mijn_opvolging')) || [];

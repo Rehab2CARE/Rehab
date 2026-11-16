@@ -481,7 +481,7 @@ async function werkPatientBij() {
   bezig = true;
   try {
     const nieuw = await bron.mijnProgrammas();
-    if (!schemas.length) schemas = await laadSchemas();
+    schemas = await laadSchemas({ vers: true });
     try { opvolging = await bron.mijnOpvolging(); await db.put('mijnOpvolging', opvolging); } catch { /* nog geen opvolging in de databank */ }
     try { resultaten = await bron.mijnTestresultaten(); await db.put('mijnTestresultaten', resultaten); } catch { /* nog geen testresultaten in de databank */ }
     try { sessies = await bron.mijnSessies(); await db.put('mijnSessies', sessies); } catch { /* nog geen oefensessies in de databank */ }

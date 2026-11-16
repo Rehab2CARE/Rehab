@@ -10,7 +10,7 @@
 import * as bron from './bron.js';
 import { startKiesModus, registreerKiesDoel } from './patienten.js';
 import { laatsteMeting, metingTekst } from './testen.js';
-import { schemaPanelen } from './schemas.js';
+import { schemaPanelen, laadSchemas } from './schemas.js';
 
 let ctx = null;
 const $ = sel => document.querySelector(sel);
@@ -95,7 +95,17 @@ async function lijst(thuis) {
         <span class="lijst-titel">${esc(p.naam)} ${t.concepten ? `<span class="label label-concept">${t.concepten} te keuren</span>` : ''}</span>
         <span class="lijst-sub">${t.fasen} fasen · ${t.criteria} criteria · ${t.oefeningen} standaardoefeningen${p.status ? ' · ' + esc(p.status) : ''}</span>
       </a></li>`;
-    }).join('')}</ul>` : '<div class="leeg">Nog geen protocollen. Voer de protocolinhoud uit in Supabase (zie README).</div>'}`;
+    }).join('')}</ul>` : '<div class="leeg">Nog geen protocollen. Voer de protocolinhoud uit in Supabase (zie README).</div>'}
+    <div id="schema-lijst"></div>`;
+  // Oefenschema's (bv. quadriceps): vaste inhoud uit data/schema-*.json
+  const schemas = await laadSchemas();
+  if (schemas.length) $('#schema-lijst').innerHTML = `
+    <h2>Oefenschema's</h2>
+    <p class="ondertitel">De patiënt ziet het blok dat bij zijn week na de operatie hoort. Bijsturen doe je per patiënt, bij de opvolging.</p>
+    <ul class="lijst">${schemas.map(sc => `<li><a href="#/schema/${encodeURIComponent(sc.id)}">
+      <span class="lijst-titel">${esc(sc.titel_therapeut || sc.titel)} ${sc.status === 'concept' ? '<span class="label label-concept">concept</span>' : ''}</span>
+      <span class="lijst-sub">${sc.blokken.length} blokken · ${Object.keys(sc.oefeningen).length} oefeningen · voor ${esc((sc.protocollen || []).map(x => rijen.find(p => p.id === x)?.naam || x).join(', '))}</span>
+    </a></li>`).join('')}</ul>`;
 }
 
 async function protocolScherm(pid, thuis) {

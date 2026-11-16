@@ -320,6 +320,19 @@ export async function mijnOpvolging() {
   });
 }
 
+// ---------- Oefenschema's (nagebootst): lezen voor iedereen die aangemeld is, schrijven enkel het team ----------
+export async function oefenschemas() {
+  const s = server(); if (!sessie()) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  return (s.oefenschemas || []).map(x => ({ ...x }));
+}
+export async function bewaarOefenschema(sid, inhoud, door) {
+  const s = server(); team(s); s.oefenschemas = s.oefenschemas || [];
+  const r = s.oefenschemas.find(x => x.id === sid);
+  if (r) Object.assign(r, { inhoud, bijgewerkt: nu(), bijgewerkt_door: door || null });
+  else s.oefenschemas.push({ id: sid, inhoud, bijgewerkt: nu(), bijgewerkt_door: door || null });
+  schrijfServer(s);
+}
+
 // ---------- Criteriumstatus (nagebootst) ----------
 export async function criteriumStatussen(tid) { const s = server(); team(s); return (s.criterium_status || []).filter(x => x.traject_id === tid).map(x => ({ ...x })); }
 export async function zetCriteriumStatus(tid, cid, v) {

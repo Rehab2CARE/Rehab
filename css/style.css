@@ -525,3 +525,5 @@ button.kal-dag:active { background: var(--hoofdkleur-licht); }
 .schema-vaktekst dt { color: var(--tekst-zacht); }
 .schema-vaktekst dd { margin: 0; }
 .schema-bron { margin-top: 20px; }
+.schema-acties { margin-top: 12px; flex-wrap: wrap; }
+.schema-acties .knop { min-height: 44px; min-width: 44px; }
