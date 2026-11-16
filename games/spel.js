@@ -35,18 +35,18 @@ export function bouwKeuzes(opties, waarden, bijWijziging) {
 }
 
 // Volledig scherm tijdens het spelen: aan bij Start of Opnieuw, uit zodra je terug op het startscherm van het spel komt
-// (Stoppen of Instellingen). Bij voorkeur de hele app (het spel draait in een iframe), anders enkel het spel.
+// (Stoppen of Instellingen). Enkel het spel gaat volledig scherm (het iframe, zonder de balk van de app erboven).
 // Moet starten vanuit een tik; lukt het niet (bv. iPhone), dan gewoon verder.
 const isVol = d => d && (d.fullscreenElement || d.webkitFullscreenElement);
 function bovenDoc() { try { return window.top.document; } catch { return null; } }
 
 export function volScherm() {
-  const boven = bovenDoc();
-  if (isVol(document) || isVol(boven)) return;
-  const vraag = el => { const f = el.requestFullscreen || el.webkitRequestFullscreen; return f ? Promise.resolve(f.call(el)) : Promise.reject(); };
+  if (isVol(document) || isVol(bovenDoc())) return;
+  const vraag = el => { const f = el?.requestFullscreen || el?.webkitRequestFullscreen; return f ? Promise.resolve(f.call(el)) : Promise.reject(); };
+  let kader = null;
+  try { kader = window.frameElement; } catch { /* ander domein */ }
   try {
-    (boven ? vraag(boven.documentElement) : Promise.reject())
-      .catch(() => vraag(document.documentElement)).catch(() => {});
+    vraag(kader).catch(() => vraag(document.documentElement)).catch(() => {});
   } catch { /* niet ondersteund */ }
 }
 
