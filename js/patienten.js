@@ -5,6 +5,7 @@
 //                         #/patienten/<id>/programma/<pid> programma samenstellen (fiches + dosering)
 // Patiënt (eigen login):  #/                               Mijn programma
 //                         #/oefening/<itemId>              één oefening met de fiche
+//                         #/schema/<id>/<nr>               één oefening uit een oefenschema (bv. quadriceps)
 //
 // Minimale gegevens: een code (PT-…) en eventueel een voornaam of initialen. Geen medische gegevens.
 
@@ -14,6 +15,7 @@ import { gekozenFiches, leegSelectie, bijSelectieWijziging } from './delen.js';
 import { toonPatientResultaten } from './testen.js';
 import { koppelKalender, dagAanduiden, vandaag as vandaagLokaal } from './sessies.js';
 import { huidigLicht, patientTekst, redenenPatient, LICHT } from './verkeerslicht.js';
+import { laadSchemas, huidigBlok, hoortBij, patientSectie, patientOefening } from './schemas.js';
 
 let ctx = null;          // hulpmiddelen uit app.js (zie initPatienten)
 let blobUrl = null;      // blob-URL van de geopende fiche in de patiëntweergave
@@ -441,6 +443,7 @@ let programmas = [];
 let opvolging = [];  // per actief traject: fase, titel, doel, criteria, zichtbaar (enkel patiëntteksten)
 let resultaten = []; // testresultaten (enkel als zichtbaar), uit mijn_testresultaten()
 let sessies = [];    // eigen oefenkalender (een ingave per dag)
+let schemas = [];    // oefenschema's (data/schema-*.json) die met de weken na de operatie meegaan
 const kalOpties = { verschuiving: 0, klikbaar: true };
 
 export async function startPatient() {
@@ -457,8 +460,9 @@ export async function startPatient() {
   opvolging = (await db.get('mijnOpvolging')) || [];
   resultaten = (await db.get('mijnTestresultaten')) || [];
   sessies = (await db.get('mijnSessies')) || [];
+  schemas = await laadSchemas();
   window.addEventListener('hashchange', toonPatient);
-  $('#terug').addEventListener('click', () => { location.hash = ctx.pad()[0] === 'oefening' ? '#/oefenen' : '#/'; });
+  $('#terug').addEventListener('click', () => { location.hash = ['oefening', 'schema'].includes(ctx.pad()[0]) ? '#/oefenen' : '#/'; });
   toonPatient();
   await werkPatientBij();
   window.addEventListener('online', werkPatientBij);
@@ -477,6 +481,7 @@ async function werkPatientBij() {
   bezig = true;
   try {
     const nieuw = await bron.mijnProgrammas();
+    if (!schemas.length) schemas = await laadSchemas();
     try { opvolging = await bron.mijnOpvolging(); await db.put('mijnOpvolging', opvolging); } catch { /* nog geen opvolging in de databank */ }
     try { resultaten = await bron.mijnTestresultaten(); await db.put('mijnTestresultaten', resultaten); } catch { /* nog geen testresultaten in de databank */ }
     try { sessies = await bron.mijnSessies(); await db.put('mijnSessies', sessies); } catch { /* nog geen oefensessies in de databank */ }
@@ -506,6 +511,7 @@ function toonPatient() {
   if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
   const delen = ctx.pad();
   if (delen[0] === 'oefening' && delen[1]) return toonOefening(delen[1]);
+  if (delen[0] === 'schema' && delen[1]) return toonSchemaOefening(delen[1], Number(delen[2]));
   if (PAGINAS[delen[0]]) return toonMijnProgramma(delen[0]);
   if (delen.length) { history.replaceState(null, '', '#/'); }
   toonMijnProgramma(null);
@@ -529,7 +535,8 @@ function toonMijnProgramma(pagina = null) {
   const licht = huidigLicht(sessies, vandaagLokaal());
   const lichtTekst = licht && patientTekst(licht.kleur, deel);
   const heeftResultaten = resultaten.some(r => (r.tests || []).length);
-  const beschikbaar = { vooruitgang: opvolging.length > 0, resultaten: heeftResultaten, oefenen: zichtbaar.length > 0 };
+  const blokken = mijnSchemaBlokken();
+  const beschikbaar = { vooruitgang: opvolging.length > 0, resultaten: heeftResultaten, oefenen: zichtbaar.length > 0 || blokken.length > 0 };
   if (pagina && !beschikbaar[pagina]) { location.replace('#/'); return; }
   if (!pagina) {
     const o = opvolging[0];
@@ -541,7 +548,7 @@ function toonMijnProgramma(pagina = null) {
       ${Object.values(beschikbaar).some(Boolean) ? `<ul class="tegels groot patient-knoppen">
         ${tegel('vooruitgang', o ? `Fase ${o.fase} van ${o.aantal_fasen}${o.totaal ? ` · ${o.voldaan || 0} van ${o.totaal} behaald` : ''}` : '')}
         ${tegel('resultaten', `${aantalTesten} ${aantalTesten === 1 ? 'test' : 'testen'}`)}
-        ${tegel('oefenen', `${zichtbaar.length} ${zichtbaar.length === 1 ? 'programma' : "programma's"}${sessies.some(x => x.datum === vandaagLokaal()) ? ' · vandaag aangeduid' : ''}`,
+        ${tegel('oefenen', `${[zichtbaar.length ? `${zichtbaar.length} ${zichtbaar.length === 1 ? 'programma' : "programma's"}` : '', ...blokken.map(x => x.schema.titel)].filter(Boolean).join(' · ')}${sessies.some(x => x.datum === vandaagLokaal()) ? ' · vandaag aangeduid' : ''}`,
           licht ? `<span class="knop-licht"><i class="licht-bol licht-${licht.kleur}"></i> ${LICHT[licht.kleur].naam}: ${esc(patientTekst(licht.kleur, deel).titel.toLowerCase())}</span>` : '')}
       </ul>` : `<div class="leeg">Je kinesitherapeut heeft nog geen programma voor je klaargezet.</div>`}
       <div class="patient-voet">
@@ -593,6 +600,7 @@ function toonMijnProgramma(pagina = null) {
   // pagina === 'oefenen'
   inhoud.innerHTML = `
     <h1>${PAGINAS.oefenen}</h1>
+    ${blokken.map(x => patientSectie(x.schema, x.blok, esc)).join('')}
     ${zichtbaar.length ? zichtbaar.map(g => {
       const items = [...(g.programma_items || [])].filter(it => it.fiche).sort((a, b) => a.volgorde - b.volgorde);
       return `<section class="programma">
@@ -633,6 +641,34 @@ function toonMijnProgramma(pagina = null) {
   const kalVak = $('#kal-vak');
   if (kalVak) koppelKalender(kalVak, () => sessies, kalOpties, aanduiden);
   $('#vandaag-aanduiden')?.addEventListener('click', () => aanduiden(vandaagLokaal()));
+}
+
+// De blokken die deze patiënt nu ziet: per actief traject en per schema dat bij het protocol hoort.
+// Verbergt de therapeut de oefeningen van de fase, dan ook het schema niet tonen.
+function mijnSchemaBlokken() {
+  const uit = [];
+  for (const o of opvolging) {
+    if (o.zichtbaar && o.zichtbaar.oefeningen === false) continue;
+    for (const s of schemas) {
+      if (!hoortBij(s, o.protocol_id)) continue;
+      const { blok } = huidigBlok(s, o.week, (o.schemas || {})[s.id]);
+      if (blok && !uit.some(x => x.schema.id === s.id)) uit.push({ schema: s, blok });
+    }
+  }
+  return uit;
+}
+
+function toonSchemaOefening(schemaId, nr) {
+  const { esc, inhoud } = ctx;
+  const x = mijnSchemaBlokken().find(b => b.schema.id === schemaId);
+  const html = x && Number.isInteger(nr) ? patientOefening(x.schema, x.blok, nr, esc) : null;
+  if (!html) { location.replace('#/oefenen'); return; }
+  const def = x.schema.oefeningen[x.blok.oefeningen[nr].oefening] || {};
+  $('#terug').hidden = false;
+  $('#kruimels').innerHTML = `<a href="#/">Mijn programma</a> <span class="sep">›</span> <a href="#/oefenen">Oefenprogramma</a> <span class="sep">›</span> <span class="huidig">${esc(def.naam || '')}</span>`;
+  document.title = def.naam || x.schema.titel;
+  inhoud.innerHTML = html;
+  window.scrollTo(0, 0);
 }
 
 async function toonOefening(itemId) {

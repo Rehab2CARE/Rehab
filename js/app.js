@@ -6,6 +6,7 @@ import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbal
 import { initProtocollen, toonProtocollen } from './protocollen.js';
 import { initTesten } from './testen.js';
 import { initSessies } from './sessies.js';
+import { initSchemas, toonSchema } from './schemas.js';
 
 // Twee modi:
 // - 'lokaal'  : zonder Supabase (js/config.js leeg). Alles staat enkel op dit toestel, zoals vroeger.
@@ -419,6 +420,7 @@ async function start() {
   initProtocollen(hulp);
   initTesten(hulp);
   initSessies(hulp);
+  initSchemas(hulp);
 
   let linkMelding = null;
   if (bron.isIngesteld()) {
@@ -711,6 +713,10 @@ async function toon() {
   if (delen[0] === 'protocollen') {
     if (!gedeeld() || !beheer) { location.hash = '#/'; return; }
     return toonProtocollen(delen.slice(1));
+  }
+  if (delen[0] === 'schema') {
+    if (!gedeeld() || !beheer) { location.hash = '#/'; return; }
+    return toonSchema(delen.slice(1));
   }
 
   const keten = zoek(delen);

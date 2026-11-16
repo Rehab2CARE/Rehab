@@ -306,6 +306,8 @@ export async function mijnOpvolging() {
     ['oefeningen', 'doel', 'criteria', 'testresultaten'].forEach(k => { z[k] = t.zichtbaar?.[k] ?? std[k] ?? true; });
     return {
       traject_id: t.id, protocol: s.protocollen.find(p => p.id === t.protocol_id).naam, fase: t.huidige_fase,
+      protocol_id: t.protocol_id, schemas: t.schemas || {},
+      week: t.startdatum ? Math.floor((Date.now() - new Date(t.startdatum + 'T00:00:00').getTime()) / (7 * 864e5)) : null,
       aantal_fasen: s.fasen.filter(x => x.protocol_id === t.protocol_id).length, zichtbaar: z,
       titel: z.doel ? f.titel_patient : null, doel: z.doel ? f.doel_patient : null,
       ...(() => {

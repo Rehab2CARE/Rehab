@@ -1,0 +1,1211 @@
+{
+  "id": "quadriceps",
+  "versie": 1,
+  "status": "concept",
+  "titel": "Je bovenbeenspier trainen",
+  "titel_therapeut": "Quadricepsschema — oefenselectie en belastingsprogressie",
+  "uitleg": "Deze oefeningen maken je bovenbeenspier (quadriceps) stap voor stap sterker. Je kinesitherapeut kiest welke stap bij jou past.",
+  "pijnregel": "Pijn tijdens het oefenen mag, maar hoogstens 2 à 4 op 10. Wordt je knie de volgende dag dikker of pijnlijker? Vertel het je kinesitherapeut.",
+  "protocollen": [
+    "vkb"
+  ],
+  "bron": "Solie e.a., Appendix A — Exercise selection and theoretical load-progressions for quadriceps training after ACL reconstruction. Integraal overgenomen en vertaald (werkboek, tabblad Quadricepsschema). De kolom Poort, de ROM-afspraak van poort 2, de patiënttekst en de uitvoering zijn eigen toevoegingen.",
+  "notitie_therapeut": [
+    "Weken volgen de operatiedatum (Solie). Ze schuiven niet op bij een bijkomende ingreep: stuur dan zelf bij per patiënt.",
+    "ROM-afspraak poort 2 aangehouden: open keten met last in 90–45°, tempo 3-1-3, in week 3–8. Daarna de hoeken van Solie.",
+    "Patiënttekst en uitvoering zijn een concept, na te kijken.",
+    "Maximale en explosieve isometrieën (duwen tegen een vast punt, stil houden op één been) gebeuren in de praktijk; de submaximale versies thuis."
+  ],
+  "oefeningen": {
+    "quad-set": {
+      "naam": "Bovenbeen aanspannen in lange zit",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Zit met je been gestrekt voor je. Leg een opgerold handdoekje onder je enkel.",
+        "Duw je knie naar beneden en span je bovenbeen op. Je knieschijf schuift wat omhoog.",
+        "Hou 5 tellen vast en laat rustig los."
+      ]
+    },
+    "tke-zit": {
+      "naam": "Knie strekken tegen een elastiek, in lange zit",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Zit met je been gestrekt voor je, met een kleine rol onder je knie.",
+        "Een elastiek ligt rond je knieholte en is vóór je vastgemaakt.",
+        "Duw je knieholte naar beneden tot je knie helemaal gestrekt is. Span je bovenbeen goed op.",
+        "Hou 3 tellen vast en ontspan rustig."
+      ]
+    },
+    "metronoom": {
+      "naam": "Bovenbeen aanspannen op het ritme",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Zit met je been gestrekt voor je, zoals bij het aanspannen in lange zit.",
+        "Zet een metronoom aan (een gratis app op je gsm).",
+        "Span je bovenbeen kort op en los weer, telkens op de tik.",
+        "Hou dat vol voor de hele reeks."
+      ]
+    },
+    "prone": {
+      "naam": "Bovenbeen aanspannen in buiklig",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Lig op je buik. Zet je tenen in de mat of leg je voet net over de rand van het bed.",
+        "Span je bovenbeen op en duw je knie gestrekt. Je knie komt wat van de mat.",
+        "Hou 5 tellen vast en laat rustig los."
+      ]
+    },
+    "slr": {
+      "naam": "Gestrekt been heffen",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Lig op je rug. Buig je andere been en zet die voet plat.",
+        "Span eerst je bovenbeen op, zodat je knie helemaal gestrekt is.",
+        "Hef je gestrekte been tot de hoogte van je andere knie.",
+        "Laat rustig zakken. Je knie blijft de hele tijd gestrekt."
+      ]
+    },
+    "saq-laq": {
+      "naam": "Knie strekken vanuit een kleine of grote buiging",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Klein: lig op je rug met een rol onder je knie. Til je hiel op tot je knie gestrekt is.",
+        "Groot: zit op een stoel en strek je knie zo ver als het gaat.",
+        "Hou telkens even vast bovenaan en laat rustig zakken."
+      ]
+    },
+    "bfr-tke": {
+      "naam": "Knie strekken tegen een elastiek, met bloedstroomband",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine doet een band rond je bovenbeen die de bloedstroom wat afremt. Zo train je met weinig gewicht toch heel goed.",
+        "Je doet de oefening zoals thuis: in lange zit je knieholte naar beneden duwen tegen het elastiek.",
+        "Ga door tot je echt geen herhaling meer kan."
+      ]
+    },
+    "bfr-laq": {
+      "naam": "Knie strekken op een stoel, met bloedstroomband",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine doet een band rond je bovenbeen die de bloedstroom wat afremt. Zo train je met weinig gewicht toch heel goed.",
+        "Zit op een stoel of bank en strek je knie, rustig op en neer.",
+        "Ga door tot je echt geen herhaling meer kan."
+      ]
+    },
+    "bfr-prone-curl": {
+      "naam": "Aanspannen en buigen in buiklig, met bloedstroomband",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine doet een band rond je bovenbeen die de bloedstroom wat afremt. Zo train je met weinig gewicht toch heel goed.",
+        "Lig op je buik. Span je bovenbeen op met je knie gestrekt, en buig daarna je knie.",
+        "Ga door tot je echt geen herhaling meer kan."
+      ]
+    },
+    "bfr-slr": {
+      "naam": "Gestrekt been heffen, met bloedstroomband",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine doet een band rond je bovenbeen die de bloedstroom wat afremt. Zo train je met weinig gewicht toch heel goed.",
+        "Lig op je rug, span je bovenbeen op en hef je gestrekte been.",
+        "Ga door tot je echt geen herhaling meer kan."
+      ]
+    },
+    "okc-duwen": {
+      "naam": "Duwen tegen een vast punt",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Zit op een stoel of tafel met je knie gebogen in de hoek die hierboven staat.",
+        "Een riem of een tafelpoot houdt je enkel tegen.",
+        "Probeer je knie te strekken. Je been beweegt niet, je spier werkt wel.",
+        "Bouw rustig op, hou vast zo lang als gevraagd en ontspan."
+      ]
+    },
+    "okc-houden": {
+      "naam": "Been stil houden met een gewicht",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Zit op een hoge stoel of tafelrand, met een gewichtje rond je enkel.",
+        "Strek je knie tot de hoek die hierboven staat.",
+        "Hou je been daar stil, zo lang je kan."
+      ]
+    },
+    "tke-staand": {
+      "naam": "Knie strekken tegen een elastiek, staand",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Maak een elastiek vast vóór je, ter hoogte van je knie. Het elastiek ligt rond je knieholte.",
+        "Sta met je knie een beetje gebogen.",
+        "Duw je knie naar achteren tot ze gestrekt is en span je bovenbeen op.",
+        "Laat rustig terugkomen."
+      ]
+    },
+    "ckc-houden-2": {
+      "naam": "Zitten tegen de muur, op twee benen",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Sta met je rug tegen de muur, voeten op heupbreedte, een stap van de muur.",
+        "Zak tot je knieën in de hoek staan die hierboven staat.",
+        "Hou vast zo lang je kan. Je knieën blijven boven je voeten.",
+        "Lukt het goed? Zet dan wat meer gewicht op je geopereerde been."
+      ]
+    },
+    "ckc-houden-1": {
+      "naam": "Stil houden op één been",
+      "plaats": "thuis",
+      "uitvoering": [
+        "Sta op je geopereerde been. Hou je licht vast aan een stoel of de muur.",
+        "Buig je knie tot de hoek die hierboven staat.",
+        "Hou vast zo lang je kan. Je knie blijft boven je voet en zakt niet naar binnen."
+      ]
+    },
+    "bfr-legext": {
+      "naam": "Beenstrekmachine, met bloedstroomband",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine doet een band rond je bovenbeen die de bloedstroom wat afremt. Zo train je met weinig gewicht toch heel goed.",
+        "Je strekt je knie op de beenstrekmachine, met een gewicht dat je kine instelt.",
+        "Ga door tot je echt geen herhaling meer kan."
+      ]
+    },
+    "legext-houden": {
+      "naam": "Beenstrekmachine: gewicht stil houden",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine stelt een zwaar gewicht in op de beenstrekmachine.",
+        "Je houdt je knie stil in de gevraagde hoek, tot het niet meer gaat."
+      ]
+    },
+    "legext-eqi": {
+      "naam": "Beenstrekmachine: zo lang mogelijk tegenhouden",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine stelt een zwaar gewicht in op de beenstrekmachine.",
+        "Je probeert het gewicht stil te houden. Je knie zakt heel traag mee, omdat je spier moe wordt.",
+        "Je gaat door tot je het gewicht niet meer kan tegenhouden."
+      ]
+    },
+    "legext-zwaar": {
+      "naam": "Beenstrekmachine: zwaar en traag",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je strekt en buigt je knie op de beenstrekmachine, traag en gecontroleerd.",
+        "Het gewicht is zwaar: je haalt maar een paar herhalingen."
+      ]
+    },
+    "legext-exc": {
+      "naam": "Beenstrekmachine: met twee omhoog, met één omlaag",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je duwt het gewicht omhoog met twee benen.",
+        "Daarna laat je het traag zakken met enkel je geopereerde been."
+      ]
+    },
+    "legpress-eqi": {
+      "naam": "Beenpers: zo lang mogelijk tegenhouden",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je kine stelt een zwaar gewicht in op de beenpers.",
+        "Je houdt het gewicht stil met gebogen knie. Je knie zakt heel traag mee als je spier moe wordt.",
+        "Je gaat door tot het niet meer gaat."
+      ]
+    },
+    "legpress-zwaar": {
+      "naam": "Beenpers: zwaar en traag",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je duwt op de beenpers, traag en gecontroleerd.",
+        "Het gewicht is zwaar: je haalt maar een paar herhalingen."
+      ]
+    },
+    "legpress-exc": {
+      "naam": "Beenpers: met twee omhoog, met één omlaag",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je duwt het gewicht weg met twee benen.",
+        "Daarna laat je het traag terugkomen met enkel je geopereerde been."
+      ]
+    },
+    "ckc-snelheid": {
+      "naam": "Kracht met snelheid",
+      "plaats": "praktijk",
+      "uitvoering": [
+        "Je doet een oefening zoals een squat, zo snel mogelijk naar boven.",
+        "Een toestel meet je snelheid. Zodra je trager gaat, stopt de reeks."
+      ]
+    }
+  },
+  "blokken": [
+    {
+      "van": 0,
+      "tot": 1,
+      "poort": "Vóór poort 1",
+      "id": "week-0-1",
+      "titel": "Week 0–1",
+      "oefeningen": [
+        {
+          "oefening": "quad-set",
+          "vak": {
+            "naam": "Quad set (lang zittend)",
+            "frequentie": "4–5× per dag",
+            "intensiteit": "Gewicht van het been (ondersteund)",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Knie verder naar extensie brengen; contractieduur verlengen; doorgroeien naar de straight leg raise; elektrostimulatie over de oefening leggen."
+          },
+          "frequentie": "4 à 5 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been, ondersteund",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Strek je knie nog wat verder en hou het aanspannen langer vol. Later ga je over naar het gestrekte been heffen."
+        },
+        {
+          "oefening": "tke-zit",
+          "vak": {
+            "naam": "Sitting TKE quad set",
+            "frequentie": "4–5× per dag",
+            "intensiteit": "Oplopende elastiekweerstand",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Elastiekweerstand opvoeren; elektrostimulatie over de oefening leggen."
+          },
+          "frequentie": "4 à 5 keer per dag",
+          "intensiteit": "Elastiek, stap voor stap sterker",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Neem een sterker elastiek."
+        },
+        {
+          "oefening": "metronoom",
+          "vak": {
+            "naam": "Metronome quad set training",
+            "frequentie": "2–3× per dag",
+            "intensiteit": "Gewicht van het been (ondersteund)",
+            "volume": "2–4 reeksen van 30–45 seconden",
+            "progressie": "Contractiesnelheid opvoeren, dus het aantal slagen per minuut verhogen."
+          },
+          "frequentie": "2 à 3 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been, ondersteund",
+          "volume": "2 à 4 reeksen van 30 à 45 seconden",
+          "progressie": "Zet de metronoom sneller: meer tikken per minuut."
+        }
+      ]
+    },
+    {
+      "van": 1,
+      "tot": 2,
+      "poort": "Vóór poort 1 tot poort 1",
+      "id": "week-1-2",
+      "titel": "Week 1–2",
+      "oefeningen": [
+        {
+          "oefening": "quad-set",
+          "vak": {
+            "naam": "Quad set (lang zittend)",
+            "frequentie": "4–5× per dag",
+            "intensiteit": "Gewicht van het been (ondersteund)",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Knie verder naar extensie brengen; contractieduur verlengen; doorgroeien naar de straight leg raise; elektrostimulatie over de oefening leggen."
+          },
+          "frequentie": "4 à 5 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been, ondersteund",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Strek je knie nog wat verder en hou het aanspannen langer vol. Later ga je over naar het gestrekte been heffen."
+        },
+        {
+          "oefening": "tke-zit",
+          "vak": {
+            "naam": "Sitting TKE quad set",
+            "frequentie": "4–5× per dag",
+            "intensiteit": "Oplopende elastiekweerstand",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Elastiekweerstand opvoeren; elektrostimulatie erover; doorgroeien naar BFR-werk (1–2× per dag, 3–4 reeksen tot vrijwillige uitputting op 80 % AOP)."
+          },
+          "frequentie": "4 à 5 keer per dag",
+          "intensiteit": "Elastiek, stap voor stap sterker",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Neem een sterker elastiek. Later doe je deze oefening in de praktijk met een bloedstroomband."
+        },
+        {
+          "oefening": "metronoom",
+          "vak": {
+            "naam": "Metronome quad set training",
+            "frequentie": "2–3× per dag",
+            "intensiteit": "Gewicht van het been (ondersteund)",
+            "volume": "2–4 reeksen van 30–45 seconden",
+            "progressie": "Contractiesnelheid opvoeren."
+          },
+          "frequentie": "2 à 3 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been, ondersteund",
+          "volume": "2 à 4 reeksen van 30 à 45 seconden",
+          "progressie": "Zet de metronoom sneller: meer tikken per minuut."
+        },
+        {
+          "oefening": "prone",
+          "vak": {
+            "naam": "Prone quad set (buiklig)",
+            "frequentie": "2–3× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Doorgroeien naar prone quad set met hamstring curl; daarna naar BFR-werk (1–2× per dag, 3–4 reeksen tot uitputting op 80 % AOP)."
+          },
+          "frequentie": "2 à 3 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Later buig je daarna ook je knie, en ga je over naar de oefening met de bloedstroomband."
+        }
+      ]
+    },
+    {
+      "van": 2,
+      "tot": 3,
+      "poort": "Poort 1",
+      "id": "week-2-3",
+      "titel": "Week 2–3",
+      "oefeningen": [
+        {
+          "oefening": "quad-set",
+          "vak": {
+            "naam": "Quad set (lang zittend)",
+            "frequentie": "4× per dag",
+            "intensiteit": "Gewicht van het been (ondersteund)",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Knie verder naar extensie; contractieduur verlengen; doorgroeien naar de straight leg raise; elektrostimulatie erover."
+          },
+          "frequentie": "4 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been, ondersteund",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Strek je knie nog wat verder en hou het aanspannen langer vol. Later ga je over naar het gestrekte been heffen."
+        },
+        {
+          "oefening": "tke-zit",
+          "vak": {
+            "naam": "Sitting TKE quad set",
+            "frequentie": "4× per dag",
+            "intensiteit": "Oplopende elastiekweerstand",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Elastiekweerstand opvoeren; elektrostimulatie erover; doorgroeien naar BFR-werk."
+          },
+          "frequentie": "4 keer per dag",
+          "intensiteit": "Elastiek, stap voor stap sterker",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Neem een sterker elastiek. Later doe je deze oefening in de praktijk met een bloedstroomband."
+        },
+        {
+          "oefening": "metronoom",
+          "vak": {
+            "naam": "Metronome quad set training",
+            "frequentie": "2–3× per dag",
+            "intensiteit": "Gewicht van het been (ondersteund)",
+            "volume": "2–4 reeksen van 30–45 seconden",
+            "progressie": "Contractiesnelheid opvoeren."
+          },
+          "frequentie": "2 à 3 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been, ondersteund",
+          "volume": "2 à 4 reeksen van 30 à 45 seconden",
+          "progressie": "Zet de metronoom sneller: meer tikken per minuut."
+        },
+        {
+          "oefening": "prone",
+          "vak": {
+            "naam": "Prone quad set (buiklig)",
+            "frequentie": "2–3× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Doorgroeien naar prone quad set met hamstring curl; daarna naar BFR-werk."
+          },
+          "frequentie": "2 à 3 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Later buig je daarna ook je knie, en ga je over naar de oefening met de bloedstroomband."
+        },
+        {
+          "oefening": "slr",
+          "vak": {
+            "naam": "Quad set naar straight leg raise",
+            "frequentie": "4× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen van 8–15 herhalingen",
+            "progressie": "Last distaal op het scheenbeen opvoeren; elektrostimulatie erover; doorgroeien naar BFR-werk."
+          },
+          "frequentie": "4 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen van 8 à 15 keer",
+          "progressie": "Je kine hangt een gewichtje aan je onderbeen."
+        },
+        {
+          "oefening": "saq-laq",
+          "vak": {
+            "naam": "SAQ / LAQ",
+            "frequentie": "4× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen van 10–20 herhalingen",
+            "progressie": "Contractie-intensiteit en knieflexiehoek opvoeren; elektrostimulatie erover; doorgroeien naar BFR-werk."
+          },
+          "frequentie": "4 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen van 10 à 20 keer",
+          "progressie": "Span harder op en strek vanuit een grotere buiging."
+        }
+      ]
+    },
+    {
+      "van": 3,
+      "tot": 4,
+      "poort": "Poort 2",
+      "id": "week-3-4",
+      "titel": "Week 3–4",
+      "oefeningen": [
+        {
+          "oefening": "bfr-tke",
+          "vak": {
+            "naam": "BFR: sitting TKE quad set",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Oplopende elastiekweerstand",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Elastiekweerstand opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Elastiek, stap voor stap sterker",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een sterker elastiek."
+        },
+        {
+          "oefening": "bfr-laq",
+          "vak": {
+            "naam": "BFR: LAQ",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Last distaal op het scheenbeen opvoeren; doorgroeien naar de leg extension machine.",
+            "bereik": "Eigen ROM-afspraak poort 2: 90–45° met tempo 3-1-3; pas uitbreiden naar 45–0° als het middenbereik pijnvrij en zonder effusierespons verdragen wordt."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een gewichtje aan je onderbeen. Later ga je naar de beenstrekmachine.",
+          "bereik": "Strek je knie enkel tussen 90 en 45 graden buiging. Rustig: 3 tellen omhoog, 1 tel vasthouden, 3 tellen omlaag."
+        },
+        {
+          "oefening": "bfr-prone-curl",
+          "vak": {
+            "naam": "BFR: prone quad set naar hamstring curl",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Knieflexiehoek opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je buigt je knie verder."
+        },
+        {
+          "oefening": "bfr-slr",
+          "vak": {
+            "naam": "BFR: quad set naar straight leg raise",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Last distaal op het scheenbeen opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een gewichtje aan je onderbeen."
+        },
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC submaximale pushing / overcoming isometrieën (45–60° knieflexie)",
+            "frequentie": "1× per dag",
+            "intensiteit": "Submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "12–15 contracties van 8–10+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren."
+          },
+          "frequentie": "1 keer per dag",
+          "intensiteit": "Niet voluit. Pijn mag, maar hoogstens 2 à 4 op 10",
+          "volume": "12 à 15 keer aanspannen, telkens 8 à 10 seconden of langer",
+          "progressie": "Duw harder.",
+          "hoek": "Knie gebogen tussen 45 en 60 graden"
+        },
+        {
+          "oefening": "okc-houden",
+          "vak": {
+            "naam": "OKC submaximale yielding / holding isometrieën (45–60° knieflexie)",
+            "frequentie": "3–5× per week",
+            "intensiteit": "Submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "3–4 reeksen tot uitputting (45–90 s)",
+            "progressie": "Last distaal op het scheenbeen en/of de houdduur opvoeren."
+          },
+          "frequentie": "3 à 5 keer per week",
+          "intensiteit": "Niet voluit. Pijn mag, maar hoogstens 2 à 4 op 10",
+          "volume": "3 à 4 keer volhouden tot het niet meer gaat (45 à 90 seconden)",
+          "progressie": "Een zwaarder gewichtje of langer vasthouden.",
+          "hoek": "Knie gebogen tussen 45 en 60 graden"
+        }
+      ]
+    },
+    {
+      "van": 4,
+      "tot": 6,
+      "poort": "Poort 2",
+      "id": "week-4-6",
+      "titel": "Week 4–6",
+      "oefeningen": [
+        {
+          "oefening": "bfr-tke",
+          "vak": {
+            "naam": "BFR: sitting TKE quad set",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Oplopende elastiekweerstand",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Elastiekniveau opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Elastiek, stap voor stap sterker",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een sterker elastiek."
+        },
+        {
+          "oefening": "bfr-laq",
+          "vak": {
+            "naam": "BFR: LAQ",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Last distaal opvoeren; doorgroeien naar de leg extension machine.",
+            "bereik": "Eigen ROM-afspraak poort 2: 90–45° met tempo 3-1-3; pas uitbreiden naar 45–0° als het middenbereik pijnvrij en zonder effusierespons verdragen wordt."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een gewichtje aan je onderbeen. Later ga je naar de beenstrekmachine.",
+          "bereik": "Strek je knie enkel tussen 90 en 45 graden buiging. Rustig: 3 tellen omhoog, 1 tel vasthouden, 3 tellen omlaag."
+        },
+        {
+          "oefening": "bfr-prone-curl",
+          "vak": {
+            "naam": "BFR: prone quad set naar hamstring curl",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Knieflexiehoek opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je buigt je knie verder."
+        },
+        {
+          "oefening": "bfr-slr",
+          "vak": {
+            "naam": "BFR: quad set naar straight leg raise",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Last distaal opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een gewichtje aan je onderbeen."
+        },
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC submaximale pushing / overcoming isometrieën (45–60° knieflexie)",
+            "frequentie": "1× per dag",
+            "intensiteit": "Submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "12–15 contracties van 8–10+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren."
+          },
+          "frequentie": "1 keer per dag",
+          "intensiteit": "Niet voluit. Pijn mag, maar hoogstens 2 à 4 op 10",
+          "volume": "12 à 15 keer aanspannen, telkens 8 à 10 seconden of langer",
+          "progressie": "Duw harder.",
+          "hoek": "Knie gebogen tussen 45 en 60 graden"
+        },
+        {
+          "oefening": "okc-houden",
+          "vak": {
+            "naam": "OKC submaximale yielding / holding isometrieën (45–60° knieflexie)",
+            "frequentie": "3–5× per week",
+            "intensiteit": "Submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "3–4 reeksen tot uitputting (45–90 s)",
+            "progressie": "Last distaal, houdduur of knieflexiehoek opvoeren."
+          },
+          "frequentie": "3 à 5 keer per week",
+          "intensiteit": "Niet voluit. Pijn mag, maar hoogstens 2 à 4 op 10",
+          "volume": "3 à 4 keer volhouden tot het niet meer gaat (45 à 90 seconden)",
+          "progressie": "Een zwaarder gewichtje, langer vasthouden of een grotere hoek.",
+          "hoek": "Knie gebogen tussen 45 en 60 graden"
+        },
+        {
+          "oefening": "tke-staand",
+          "vak": {
+            "naam": "Standing TKE",
+            "frequentie": "2× per dag",
+            "intensiteit": "Oplopende elastiekweerstand",
+            "volume": "2–4 reeksen van 10–15 herhalingen",
+            "progressie": "Elastiekniveau opvoeren."
+          },
+          "frequentie": "2 keer per dag",
+          "intensiteit": "Elastiek, stap voor stap sterker",
+          "volume": "2 à 4 reeksen van 10 à 15 keer",
+          "progressie": "Een sterker elastiek."
+        },
+        {
+          "oefening": "ckc-houden-2",
+          "vak": {
+            "naam": "CKC submaximale tweebenige yielding / holding isometrie (45–60° knieflexie)",
+            "frequentie": "2× per dag",
+            "intensiteit": "Lichaamsgewicht; submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "3–6 reeksen tot uitputting (45–90 s)",
+            "progressie": "Knieflexiehoek, positieve scheenhoek (dus het extern knieflexiemoment) en houdduur opvoeren; gewicht verschuiven naar het geopereerde been."
+          },
+          "frequentie": "2 keer per dag",
+          "intensiteit": "Je eigen gewicht, niet voluit. Pijn hoogstens 2 à 4 op 10",
+          "volume": "3 à 6 keer volhouden tot het niet meer gaat (45 à 90 seconden)",
+          "progressie": "Dieper zakken, je knieën verder naar voren en langer vasthouden. Zet meer gewicht op je geopereerde been.",
+          "hoek": "Knie gebogen tussen 45 en 60 graden"
+        }
+      ]
+    },
+    {
+      "van": 6,
+      "tot": 8,
+      "poort": "Poort 3",
+      "id": "week-6-8",
+      "titel": "Week 6–8",
+      "oefeningen": [
+        {
+          "oefening": "bfr-laq",
+          "vak": {
+            "naam": "BFR: LAQ",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Last distaal opvoeren.",
+            "bereik": "Eigen ROM-afspraak poort 2: 90–45° met tempo 3-1-3; pas uitbreiden naar 45–0° als het middenbereik pijnvrij en zonder effusierespons verdragen wordt."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Een gewichtje aan je onderbeen.",
+          "bereik": "Strek je knie enkel tussen 90 en 45 graden buiging. Rustig: 3 tellen omhoog, 1 tel vasthouden, 3 tellen omlaag."
+        },
+        {
+          "oefening": "bfr-prone-curl",
+          "vak": {
+            "naam": "BFR: prone quad set naar hamstring curl",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Gewicht van het been",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Knieflexiehoek opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Enkel het gewicht van je been",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je buigt je knie verder."
+        },
+        {
+          "oefening": "bfr-legext",
+          "vak": {
+            "naam": "BFR: leg extension machine",
+            "frequentie": "2–4× per week",
+            "intensiteit": "20–30+ RM, 40–60 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Machinegewicht opvoeren.",
+            "bereik": "Eigen ROM-afspraak poort 2: 90–45° met tempo 3-1-3; pas uitbreiden naar 45–0° als het middenbereik pijnvrij en zonder effusierespons verdragen wordt."
+          },
+          "frequentie": "2 à 4 keer per week",
+          "intensiteit": "Licht gewicht: je haalt het 20 à 30 keer of meer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je kine zet meer gewicht op de machine.",
+          "bereik": "Strek je knie enkel tussen 90 en 45 graden buiging. Rustig: 3 tellen omhoog, 1 tel vasthouden, 3 tellen omlaag."
+        },
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC submaximale pushing / overcoming isometrieën (60–90° knieflexie)",
+            "frequentie": "1× per dag",
+            "intensiteit": "Submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "12–15 contracties van 8–10+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren."
+          },
+          "frequentie": "1 keer per dag",
+          "intensiteit": "Niet voluit. Pijn mag, maar hoogstens 2 à 4 op 10",
+          "volume": "12 à 15 keer aanspannen, telkens 8 à 10 seconden of langer",
+          "progressie": "Duw harder.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        },
+        {
+          "oefening": "okc-houden",
+          "vak": {
+            "naam": "OKC submaximale yielding / holding isometrieën (60–90° knieflexie)",
+            "frequentie": "3–5× per week",
+            "intensiteit": "Submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "3–6 reeksen tot uitputting (45–90 s)",
+            "progressie": "Last distaal, houdduur of knieflexiehoek opvoeren."
+          },
+          "frequentie": "3 à 5 keer per week",
+          "intensiteit": "Niet voluit. Pijn mag, maar hoogstens 2 à 4 op 10",
+          "volume": "3 à 6 keer volhouden tot het niet meer gaat (45 à 90 seconden)",
+          "progressie": "Een zwaarder gewichtje, langer vasthouden of een grotere hoek.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        },
+        {
+          "oefening": "ckc-houden-1",
+          "vak": {
+            "naam": "CKC submaximale eenbenige yielding / holding isometrieën (45–60° knieflexie)",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Lichaamsgewicht; submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "3–6 reeksen tot uitputting (45–90 s)",
+            "progressie": "Knieflexiehoek, positieve scheenhoek en houdduur opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Je eigen gewicht, niet voluit. Pijn hoogstens 2 à 4 op 10",
+          "volume": "3 à 6 keer volhouden tot het niet meer gaat (45 à 90 seconden)",
+          "progressie": "Dieper zakken, je knie verder naar voren en langer vasthouden.",
+          "hoek": "Knie gebogen tussen 45 en 60 graden"
+        }
+      ]
+    },
+    {
+      "van": 8,
+      "tot": 12,
+      "poort": "Poort 3",
+      "id": "week-8-12",
+      "titel": "Week 8–12",
+      "oefeningen": [
+        {
+          "oefening": "bfr-legext",
+          "vak": {
+            "naam": "BFR: leg extension machine",
+            "frequentie": "2–3× per week",
+            "intensiteit": "20–30+ RM, 40–60 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Licht gewicht: je haalt het 20 à 30 keer of meer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je kine zet meer gewicht op de machine."
+        },
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC maximale pushing / overcoming isometrieën (60–90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Maximaal",
+            "volume": "12–15 contracties van 8–10+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren; toewerken naar maximale contractiesnelheid bij de start."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Voluit",
+          "volume": "12 à 15 keer aanspannen, telkens 8 à 10 seconden of langer",
+          "progressie": "Duw harder, en zet de kracht steeds sneller aan bij de start.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "legext-houden",
+          "vak": {
+            "naam": "Leg extension machine, maximale yielding / holding isometrieën (60–90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 70–80 % 1-RM (con)",
+            "volume": "2–4 reeksen tot uitputting (30–60 s)",
+            "progressie": "Machinegewicht opvoeren; doorgroeien naar EQI-contracties tussen 45 en 70° knieflexie."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 keer volhouden tot het niet meer gaat (30 à 60 seconden)",
+          "progressie": "Meer gewicht. Later ga je over naar het tegenhouden tussen 45 en 70 graden.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        },
+        {
+          "oefening": "ckc-houden-1",
+          "vak": {
+            "naam": "CKC submaximale eenbenige yielding / holding isometrieën (60–90° knieflexie)",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Lichaamsgewicht; submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "2–4 reeksen tot uitputting (30–60 s)",
+            "progressie": "Knieflexiehoek en positieve scheenhoek opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Je eigen gewicht, niet voluit. Pijn hoogstens 2 à 4 op 10",
+          "volume": "2 à 4 keer volhouden tot het niet meer gaat (30 à 60 seconden)",
+          "progressie": "Dieper zakken en je knie verder naar voren.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        }
+      ]
+    },
+    {
+      "van": 12,
+      "tot": 14,
+      "poort": "Poort 4 en 5",
+      "id": "week-12-14",
+      "titel": "Week 12–14",
+      "oefeningen": [
+        {
+          "oefening": "bfr-legext",
+          "vak": {
+            "naam": "BFR: leg extension machine",
+            "frequentie": "2–3× per week",
+            "intensiteit": "15–20 RM, 60–70 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Matig gewicht: je haalt het 15 à 20 keer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je kine zet meer gewicht op de machine."
+        },
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC maximale pushing / overcoming isometrieën (60–90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Maximaal",
+            "volume": "12–15 contracties van 5–8+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren; toewerken naar maximale contractiesnelheid bij de start."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Voluit",
+          "volume": "12 à 15 keer aanspannen, telkens 5 à 8 seconden of langer",
+          "progressie": "Duw harder, en zet de kracht steeds sneller aan bij de start.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "legext-eqi",
+          "vak": {
+            "naam": "Leg extension machine EQI (45–70° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 80 % 1-RM (con)",
+            "volume": "2–4 reeksen tot isometrische uitputting (20–45 s)",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 keer tegenhouden tot het niet meer gaat (20 à 45 seconden)",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 45 en 70 graden"
+        },
+        {
+          "oefening": "ckc-houden-1",
+          "vak": {
+            "naam": "CKC maximale eenbenige yielding / holding isometrieën (60–90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Lichaamsgewicht; maximaal, pijn < 2–4/10 NPRS",
+            "volume": "2–4 reeksen tot uitputting (20–45 s)",
+            "progressie": "Knieflexiehoek, positieve scheenhoek en houdduur opvoeren richting maximale yielding isometrieën."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Je eigen gewicht, voluit. Pijn hoogstens 2 à 4 op 10",
+          "volume": "2 à 4 keer volhouden tot het niet meer gaat (20 à 45 seconden)",
+          "progressie": "Dieper zakken, je knie verder naar voren en langer vasthouden.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "ckc-houden-1",
+          "vak": {
+            "naam": "CKC submaximale eenbenige yielding / holding isometrie (60–90° knieflexie)",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Lichaamsgewicht; submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "2–4 reeksen tot uitputting (30–60 s)",
+            "progressie": "Knieflexiehoek en positieve scheenhoek opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Je eigen gewicht, niet voluit. Pijn hoogstens 2 à 4 op 10",
+          "volume": "2 à 4 keer volhouden tot het niet meer gaat (30 à 60 seconden)",
+          "progressie": "Dieper zakken en je knie verder naar voren.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        }
+      ]
+    },
+    {
+      "van": 14,
+      "tot": 16,
+      "poort": "Poort 4 en 5",
+      "id": "week-14-16",
+      "titel": "Week 14–16",
+      "oefeningen": [
+        {
+          "oefening": "bfr-legext",
+          "vak": {
+            "naam": "BFR: leg extension machine",
+            "frequentie": "2–3× per week",
+            "intensiteit": "8–15 RM, 70–80 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaarder gewicht: je haalt het 8 à 15 keer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Je kine zet meer gewicht op de machine."
+        },
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC maximale pushing / overcoming isometrieën (90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Maximaal",
+            "volume": "12–15 contracties van 5–8+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren; toewerken naar maximale contractiesnelheid bij de start."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Voluit",
+          "volume": "12 à 15 keer aanspannen, telkens 5 à 8 seconden of langer",
+          "progressie": "Duw harder, en zet de kracht steeds sneller aan bij de start.",
+          "hoek": "Knie gebogen op 90 graden",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "legext-eqi",
+          "vak": {
+            "naam": "Leg extension machine EQI (60–90+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot isometrische uitputting (20–45 s)",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zeer zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 keer tegenhouden tot het niet meer gaat (20 à 45 seconden)",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        },
+        {
+          "oefening": "ckc-houden-1",
+          "vak": {
+            "naam": "CKC maximale eenbenige yielding / holding isometrieën (60–90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Lichaamsgewicht",
+            "volume": "2–4 reeksen tot uitputting (20–45 s)",
+            "progressie": "Knieflexiehoek en positieve scheenhoek opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Je eigen gewicht",
+          "volume": "2 à 4 keer volhouden tot het niet meer gaat (20 à 45 seconden)",
+          "progressie": "Dieper zakken en je knie verder naar voren.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "ckc-houden-1",
+          "vak": {
+            "naam": "CKC submaximale eenbenige yielding / holding isometrieën (90° knieflexie)",
+            "frequentie": "1–2× per dag",
+            "intensiteit": "Lichaamsgewicht; submaximaal, pijn < 2–4/10 NPRS",
+            "volume": "2–4 reeksen tot uitputting (30–60 s)",
+            "progressie": "Knieflexiehoek en positieve scheenhoek opvoeren."
+          },
+          "frequentie": "1 à 2 keer per dag",
+          "intensiteit": "Je eigen gewicht, niet voluit. Pijn hoogstens 2 à 4 op 10",
+          "volume": "2 à 4 keer volhouden tot het niet meer gaat (30 à 60 seconden)",
+          "progressie": "Dieper zakken en je knie verder naar voren.",
+          "hoek": "Knie gebogen op 90 graden"
+        }
+      ]
+    },
+    {
+      "van": 16,
+      "tot": 24,
+      "poort": "Poort 6 naar 7",
+      "id": "week-16-24",
+      "titel": "Week 16–24",
+      "oefeningen": [
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC ballistische / explosieve pushing / overcoming isometrieën (90° knieflexie)",
+            "frequentie": "2–4× per week",
+            "intensiteit": "Maximaal",
+            "volume": "12–15 contracties van 5–8+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren; toewerken naar maximale contractiesnelheid bij de start."
+          },
+          "frequentie": "2 à 4 keer per week",
+          "intensiteit": "Voluit",
+          "volume": "12 à 15 keer aanspannen, telkens 5 à 8 seconden of langer",
+          "progressie": "Duw harder, en zet de kracht zo snel mogelijk aan bij de start.",
+          "hoek": "Knie gebogen op 90 graden",
+          "opmerking": "Explosief: zet je kracht in één keer aan.",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "legext-eqi",
+          "vak": {
+            "naam": "Leg extension machine EQI (70–90+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot isometrische uitputting (20–45 s)",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zeer zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 keer tegenhouden tot het niet meer gaat (20 à 45 seconden)",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 70 en 90 graden"
+        },
+        {
+          "oefening": "legext-zwaar",
+          "vak": {
+            "naam": "Leg extension machine HSRT (45–120+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "4–6 RM, 80–90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht: je haalt het maar 4 à 6 keer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 45 en 120 graden"
+        },
+        {
+          "oefening": "legpress-eqi",
+          "vak": {
+            "naam": "Leg press EQI (60–90+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 80 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Knieflexiehoek en positieve scheenhoek opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Dieper zakken en je knieën verder naar voren.",
+          "hoek": "Knie gebogen tussen 60 en 90 graden"
+        }
+      ]
+    },
+    {
+      "van": 24,
+      "tot": null,
+      "poort": "Poort 7 naar 8",
+      "id": "week-24-plus",
+      "titel": "Week 24 en verder",
+      "oefeningen": [
+        {
+          "oefening": "okc-duwen",
+          "vak": {
+            "naam": "OKC ballistische / explosieve pushing / overcoming isometrieën (90° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Maximaal",
+            "volume": "12–15 contracties van 5–8+ seconden",
+            "progressie": "Contractie-intensiteit opvoeren, met maximale contractiesnelheid bij de start."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Voluit",
+          "volume": "12 à 15 keer aanspannen, telkens 5 à 8 seconden of langer",
+          "progressie": "Duw harder, en zet de kracht zo snel mogelijk aan bij de start.",
+          "hoek": "Knie gebogen op 90 graden",
+          "opmerking": "Explosief: zet je kracht in één keer aan.",
+          "plaats": "praktijk"
+        },
+        {
+          "oefening": "ckc-snelheid",
+          "vak": {
+            "naam": "CKC velocity-based oefening",
+            "frequentie": "2–3× per week",
+            "intensiteit": "Maximaal",
+            "volume": "4–5 reeksen; stop de reeks bij 10 % snelheidsverlies",
+            "progressie": "Externe last of het aantal geslaagde herhalingen per reeks opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Voluit",
+          "volume": "4 à 5 reeksen. De reeks stopt zodra je trager gaat",
+          "progressie": "Meer gewicht, of meer goede herhalingen per reeks."
+        },
+        {
+          "oefening": "legext-eqi",
+          "vak": {
+            "naam": "Leg extension machine EQI (70–90+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot isometrische uitputting (20–30 s)",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zeer zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 keer tegenhouden tot het niet meer gaat (20 à 30 seconden)",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 70 en 90 graden"
+        },
+        {
+          "oefening": "legext-zwaar",
+          "vak": {
+            "naam": "Leg extension machine HSRT (45–90+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "4–6 RM, 80–90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht: je haalt het maar 4 à 6 keer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 45 en 90 graden"
+        },
+        {
+          "oefening": "legext-exc",
+          "vak": {
+            "naam": "Up 2 / down 1 excentrische leg extension machine (45–100+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 100 % 1-RM (con)",
+            "volume": "2–4 reeksen van 4–5 herhalingen",
+            "progressie": "Machinegewicht opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaarder dan je met één been kan opduwen",
+          "volume": "2 à 4 reeksen van 4 à 5 keer",
+          "progressie": "Meer gewicht.",
+          "hoek": "Knie gebogen tussen 45 en 100 graden"
+        },
+        {
+          "oefening": "legpress-eqi",
+          "vak": {
+            "naam": "Leg press EQI (60–110+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "80–90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot uitputting",
+            "progressie": "Knieflexiehoek en positieve scheenhoek tijdens de oefening opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht, dat je kine instelt",
+          "volume": "2 à 4 reeksen, tot het niet meer gaat",
+          "progressie": "Dieper zakken en je knieën verder naar voren.",
+          "hoek": "Knie gebogen tussen 60 en 110 graden"
+        },
+        {
+          "oefening": "legpress-zwaar",
+          "vak": {
+            "naam": "Leg press HSRT (45–120+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "4–6 RM, 80–90 % 1-RM (con)",
+            "volume": "2–4 reeksen tot vrijwillige uitputting",
+            "progressie": "Knieflexiehoek en positieve scheenhoek tijdens de oefening opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaar gewicht: je haalt het maar 4 à 6 keer",
+          "volume": "2 à 4 reeksen, tot je geen herhaling meer kan",
+          "progressie": "Dieper zakken en je knieën verder naar voren.",
+          "hoek": "Knie gebogen tussen 45 en 120 graden"
+        },
+        {
+          "oefening": "legpress-exc",
+          "vak": {
+            "naam": "Up 2 / down 1 excentrische leg press (0–70+° knieflexie)",
+            "frequentie": "2–3× per week",
+            "intensiteit": "> 100 % 1-RM (con)",
+            "volume": "2–4 reeksen van 4–5 herhalingen",
+            "progressie": "Knieflexiehoek en positieve scheenhoek tijdens de oefening opvoeren."
+          },
+          "frequentie": "2 à 3 keer per week",
+          "intensiteit": "Zwaarder dan je met één been kan opduwen",
+          "volume": "2 à 4 reeksen van 4 à 5 keer",
+          "progressie": "Dieper zakken en je knieën verder naar voren.",
+          "hoek": "Knie gebogen tussen 0 en 70 graden"
+        }
+      ]
+    }
+  ]
+}

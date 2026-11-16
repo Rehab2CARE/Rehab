@@ -10,6 +10,7 @@
 import * as bron from './bron.js';
 import { startKiesModus, registreerKiesDoel } from './patienten.js';
 import { laatsteMeting, metingTekst } from './testen.js';
+import { schemaPanelen } from './schemas.js';
 
 let ctx = null;
 const $ = sel => document.querySelector(sel);
@@ -455,7 +456,9 @@ async function opvolgingVoor(box, p, herlaad) {
         <button class="knop knop-plat" id="traject-gegevens">Gegevens</button>
         <button class="knop knop-gevaar" id="traject-stop">Opvolging stoppen</button>
       </div>
-    </div>`;
+    </div>
+    <div id="schema-panelen"></div>`;
+  schemaPanelen(box.querySelector('#schema-panelen'), t, herlaad).catch(() => {});
 
   const fout = e => ctx.melding(e.message || 'Er liep iets mis.');
 

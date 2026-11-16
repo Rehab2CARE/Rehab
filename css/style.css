@@ -503,3 +503,25 @@ button.kal-dag:active { background: var(--hoofdkleur-licht); }
 .patient-knop { gap: 6px; }
 .patient-knop .tegel-titel::after { content: ' ›'; color: var(--hoofdkleur); }
 .knop-licht { display: inline-flex; align-items: center; gap: 6px; font-size: .95rem; font-weight: 600; margin-top: 4px; }
+
+/* Oefenschema's (bv. quadriceps): blok volgens de weken na de operatie */
+.schema-stap { margin: -4px 0 8px; color: var(--hoofdkleur); font-weight: 600; }
+.schema-plaats { margin: 18px 0 8px; font-size: 1.05rem; color: var(--tekst-zacht); }
+.kaarten-praktijk .kaart { border-style: dashed; }
+.label-praktijk { background: #fdf0d5; color: #8a5a00; }
+.schema-pijn { margin-top: 14px; }
+.schema-dosering { margin: 12px 0; }
+.schema-kop { font-size: 1.15rem; margin: 20px 0 6px; }
+.schema-stappen { padding-left: 1.4em; font-size: 1.1rem; line-height: 1.5; }
+.schema-stappen li { margin-bottom: 6px; }
+.schema-oefening h1 { margin-bottom: 6px; }
+.schema-blokken { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
+.schema-blokken .knop { min-height: 44px; }
+.schema-lijst { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.schema-vak h3 { margin: 0 0 4px; }
+.schema-vaktekst { margin-top: 12px; }
+.schema-vaktekst summary, .schema-bron summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; color: var(--hoofdkleur); }
+.schema-vaktekst dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 6px 0 0; }
+.schema-vaktekst dt { color: var(--tekst-zacht); }
+.schema-vaktekst dd { margin: 0; }
+.schema-bron { margin-top: 20px; }
