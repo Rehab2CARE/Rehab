@@ -1,5 +1,6 @@
 -- Praktijkfiches: metingen met een dubbeltaak niet tonen aan de patiënt.
 -- Plak dit in Supabase -> SQL Editor -> New query -> Run (na 015). Je mag het meermaals uitvoeren.
+-- VERVANGEN DOOR 017: de patiënt ziet de dubbeltaak toch, als aparte reeks. Deze stap hoeft niet meer.
 --
 -- mijn_testresultaten() gaf alle metingen door, ook die met een dubbeltaak (bv. single-leg stand terwijl de
 -- patiënt een spel speelt). Omdat de patiënt het veld "dubbeltaak" niet krijgt, kwamen die waarden als gewone

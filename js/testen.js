@@ -113,6 +113,9 @@ export function laatsteMeting(testId, momenten) {
 
 // ---------- Grafiek (Chart.js, lokaal in js/vendor) ----------
 
+// Dubbeltaak in patiënttaal (de test terwijl de patiënt tegelijk een spel of opdracht doet)
+const DT_PATIENT = 'met extra taak';
+
 // Gekleurde doelzone achter de lijn
 const doelzone = {
   id: 'doelzone',
@@ -184,14 +187,14 @@ export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = 
 
     return { datasets, zone, y, uitleg };
   };
-  const metDt = !patient && punten.some(p => p.meting?.dubbeltaak);
+  const metDt = punten.some(p => p.meting?.dubbeltaak);
   const zonder = metDt ? punten.map(p => p.meting?.dubbeltaak ? { ...p, meting: null } : p) : punten;
   ({ datasets, zone, y, uitleg } = bouw(zonder));
   if (metDt) {
     const alleenDt = punten.map(p => p.meting?.dubbeltaak ? p : { ...p, meting: null });
     const kleurenDt = ['#c2410c', '#e3a07a'];
     datasets.push(...bouw(alleenDt).datasets.map((ds, i) => ({
-      ...ds, label: `${ds.label} · met dubbeltaak`, borderColor: kleurenDt[i] || kleurenDt[1], backgroundColor: kleurenDt[i] || kleurenDt[1],
+      ...ds, label: `${ds.label} · ${patient ? DT_PATIENT : 'met dubbeltaak'}`, borderColor: kleurenDt[i] || kleurenDt[1], backgroundColor: kleurenDt[i] || kleurenDt[1],
       pointStyle: 'triangle', pointRadius: 7
     })));
   }
@@ -214,16 +217,17 @@ export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = 
 export function lsiBalkHtml(test, punten, zijde, { patient = false } = {}) {
   if (test.soort !== 'lr' || test.doel_lsi == null) return '';
   // Metingen met dubbeltaak tellen apart: de balk toont de gewone metingen, de dubbeltaak staat eronder.
-  const metDt = patient ? [] : punten.filter(p => p.meting?.dubbeltaak);
+  const metDt = punten.filter(p => p.meting?.dubbeltaak);
   const gewoon = metDt.length ? punten.filter(p => !p.meting?.dubbeltaak) : punten;
   const doel = Number(test.doel_lsi);
   const wDt = metDt.map(p => lsi(test, p.meting, zijde)).filter(v => v != null);
   const dtRegel = wDt.length
-    ? `<p class="hulp lsi-dt">Met dubbeltaak: LSI <b>${Math.round(wDt[wDt.length - 1])} %</b>${wDt.length > 1 ? ` (was ${Math.round(wDt[0])} %)` : ''}</p>` : '';
+    ? `<p class="hulp lsi-dt">${patient ? `${DT_PATIENT[0].toUpperCase() + DT_PATIENT.slice(1)}: verhouding` : 'Met dubbeltaak: LSI'} <b>${Math.round(wDt[wDt.length - 1])} %</b>${wDt.length > 1 ? ` (was ${Math.round(wDt[0])} %)` : ''}</p>` : '';
   const w = gewoon.map(p => lsi(test, p.meting, zijde)).filter(v => v != null);
   if (!w.length) return (zijde || patient ? '' : '<p class="hulp">Vul de zijde in bij de opvolging om de LSI te berekenen.</p>') + dtRegel;
   const nu = Math.round(w[w.length - 1]), eerst = Math.round(w[0]);
-  const label = patient ? 'Verhouding met je andere been' : metDt.length ? 'LSI zonder dubbeltaak' : 'LSI';
+  const label = patient ? (metDt.length ? 'Verhouding met je andere been, zonder extra taak' : 'Verhouding met je andere been')
+    : metDt.length ? 'LSI zonder dubbeltaak' : 'LSI';
   return `<div class="lsi-balk ${nu >= doel ? 'lsi-ok' : 'lsi-nog'}">
     <div class="lsi-balk-tekst"><span>${label}: <b>${nu} %</b>${w.length > 1 && nu !== eerst ? ` <span class="hulp">(was ${eerst} %)</span>` : ''}</span><span class="hulp">doel ${patient ? '' : '≥ '}${doel} %</span></div>
     <div class="voortgang-balk"><span style="width:${Math.min(100, nu)}%"></span><i style="left:${Math.min(100, doel)}%"></i></div>
@@ -513,6 +517,7 @@ export function toonPatientResultaten(box, resultaten) {
     <section class="revalidatie testresultaten">
       <h2>Jouw testresultaten</h2>
       <p class="hulp">De volle lijn is je behandelde been, de stippellijn je andere been. De balk eronder toont hoe dicht je behandelde been bij je andere been zit.</p>
+      ${items.some(it => (it.x.metingen || []).some(m => m.dubbeltaak)) ? `<p class="hulp">De oranje driehoekjes zijn metingen ${DT_PATIENT}: je deed de test terwijl je tegelijk een spel of opdracht deed. Dat is moeilijker, dus die waarden liggen vaak wat lager.</p>` : ''}
       <div class="grafieken">${items.map((it, i) => `
         <div class="grafiek-kaart" data-i="${i}">
           <h3>${esc(it.x.naam)}</h3>
