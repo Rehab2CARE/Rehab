@@ -145,7 +145,7 @@
 </section>
 
 <script type="module">
-import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, aftellen } from './spel.js';
+import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, aftellen, volScherm } from './spel.js';
 
 // ---------- Inhoud ----------
 
@@ -437,18 +437,8 @@ async function houdWakker(aan) {
   } catch { /* niet erg */ }
 }
 
-// Volledig scherm: moet starten vanuit een tik (Start/Opnieuw), anders weigert de browser.
-function volScherm(aan) {
-  const d = document, el = d.documentElement;
-  const actief = d.fullscreenElement || d.webkitFullscreenElement;
-  try {
-    if (aan && !actief) (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el)?.catch?.(() => {});
-    else if (!aan && actief) (d.exitFullscreen || d.webkitExitFullscreen)?.call(d)?.catch?.(() => {});
-  } catch { /* niet ondersteund (bv. iPhone): gewoon verder */ }
-}
-
 async function speel() {
-  volScherm(true);
+  volScherm();
   startGeluid();
   const mijn = ++beurt;
   const lijst = mogelijkePrikkels();
@@ -505,9 +495,8 @@ function einde() {
 
 document.getElementById('begin').addEventListener('click', speel);
 document.getElementById('opnieuw').addEventListener('click', speel);
-document.getElementById('naar-start').addEventListener('click', () => { volScherm(false); toonScherm('start'); });
+document.getElementById('naar-start').addEventListener('click', () => toonScherm('start'));
 document.getElementById('stop').addEventListener('click', () => {
-  volScherm(false);
   beurt++;
   houdWakker(false);
   verberg();

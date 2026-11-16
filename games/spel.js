@@ -34,6 +34,21 @@ export function bouwKeuzes(opties, waarden, bijWijziging) {
   }
 }
 
+// Volledig scherm, altijd tijdens een spel. Bij voorkeur de hele app (het spel draait in een iframe),
+// anders enkel het spel. Moet starten vanuit een tik; lukt het niet (bv. iPhone), dan gewoon verder.
+// Het volledig scherm stopt pas als je het spel verlaat (dat regelt de app).
+export function volScherm() {
+  const actief = d => d && (d.fullscreenElement || d.webkitFullscreenElement);
+  let boven = null;
+  try { boven = window.top.document; } catch { /* ander domein */ }
+  if (actief(document) || actief(boven)) return;
+  const vraag = el => { const f = el.requestFullscreen || el.webkitRequestFullscreen; return f ? Promise.resolve(f.call(el)) : Promise.reject(); };
+  try {
+    (boven ? vraag(boven.documentElement) : Promise.reject())
+      .catch(() => vraag(document.documentElement)).catch(() => {});
+  } catch { /* niet ondersteund */ }
+}
+
 export function toonScherm(id) {
   document.querySelectorAll('.scherm').forEach(s => { s.hidden = s.id !== id; });
 }

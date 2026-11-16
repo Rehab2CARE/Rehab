@@ -3,12 +3,6 @@
   "omschrijving": "Spelletjes voor concentratie, reactie en geheugen",
   "games": [
     {
-      "id": "pijlen",
-      "titel": "Pijlenspel",
-      "omschrijving": "Wordt nog uitgewerkt",
-      "bestand": null
-    },
-    {
       "id": "ballen",
       "titel": "Ballen volgen",
       "omschrijving": "Volg de balletjes met je ogen",
@@ -23,7 +17,7 @@
     {
       "id": "trainthebrain",
       "titel": "Trainthebrain",
-      "omschrijving": "Reageer op pijlen, cijfers en kleuren",
+      "omschrijving": "Reageer op prikkels",
       "bestand": "games/trainthebrain.html"
     }
   ]

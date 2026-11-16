@@ -115,7 +115,7 @@
 </section>
 
 <script type="module">
-import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, wacht, aftellen } from './spel.js';
+import { laadInstellingen, bewaarInstellingen, bouwKeuzes, toonScherm, startGeluid, piep, wacht, aftellen, volScherm } from './spel.js';
 
 // ---------- Instellingen en niveaus ----------
 
@@ -589,6 +589,7 @@ function pasTempoAan(goed) {
 }
 
 async function speel() {
+  volScherm();
   startGeluid();
   const mijn = ++beurt;
   tempoFactor = 1;

@@ -688,8 +688,19 @@ function toonKruimels(keten, ids) {
   nav.innerHTML = stukken.join(' ');
 }
 
+// Volledig scherm voor de spellen: aan bij het tikken op een spel, uit zodra je het spel verlaat
+function volScherm(aan) {
+  const d = document, el = d.documentElement;
+  const actief = d.fullscreenElement || d.webkitFullscreenElement;
+  try {
+    if (aan && !actief) Promise.resolve((el.requestFullscreen || el.webkitRequestFullscreen)?.call(el)).catch(() => {});
+    else if (!aan && actief) Promise.resolve((d.exitFullscreen || d.webkitExitFullscreen)?.call(d)).catch(() => {});
+  } catch { /* niet ondersteund (bv. iPhone) */ }
+}
+
 async function toon() {
   if (actieveUrl) { URL.revokeObjectURL(actieveUrl); actieveUrl = null; }
+  if (!(pad()[0] === 'games' && pad()[1])) volScherm(false);
   document.body.classList.remove('spel-modus');
   werkKiesbalkBij(gedeeld() && beheer);
   $('#beheer').setAttribute('aria-pressed', String(beheer));
@@ -773,6 +784,7 @@ function toonGames(spelId) {
     <h1>${esc(games.titel)}</h1>
     <p class="ondertitel">Kies een spel.</p>
     <div class="tegels groot">${tegels}</div>`;
+  inhoud.querySelectorAll('a[href^="#/games/"]').forEach(a => a.addEventListener('click', () => volScherm(true)));
 }
 
 // Een spel (in het iframe) kan zijn score laten bewaren bij een patiënt, als dubbeltaak bij een test.
