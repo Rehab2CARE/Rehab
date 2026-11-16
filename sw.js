@@ -1,10 +1,12 @@
 // Offline-cache. Verhoog CACHE_VERSIE bij elke wijziging aan de app-bestanden.
-const CACHE_VERSIE = 'fiches-v43';
+const CACHE_VERSIE = 'fiches-v44';
 const BESTANDEN = [
   './', 'index.html', 'css/style.css', 'js/app.js', 'js/db.js', 'js/delen.js',
   'js/bron.js', 'js/sync.js', 'js/config.js', 'js/vendor/supabase.js', 'js/vendor/qrcode.js', 'js/patienten.js', 'js/protocollen.js', 'js/testen.js', 'js/sessies.js', 'js/verkeerslicht.js', 'js/schemas.js', 'js/vendor/chart.umd.js',
   'data/structuur.json', 'data/games.json', 'data/schema-quadriceps.json', 'manifest.webmanifest',
   'games/spel.css', 'games/spel.js', 'games/ballen.html', 'games/cijfers.html', 'games/trainthebrain.html',
+  'fonts/barlow-condensed-latin-600-normal.woff2', 'fonts/barlow-condensed-latin-700-normal.woff2',
+  'fonts/inter-latin-400-normal.woff2', 'fonts/inter-latin-500-normal.woff2', 'fonts/inter-latin-600-normal.woff2',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'
 ];
 

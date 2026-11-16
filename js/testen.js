@@ -136,7 +136,7 @@ export function tekenGrafiek(canvas, test, punten, zijde, { patient = false } = 
   if (!window.Chart) return '';
   const labels = punten.map(p => datumKort(p.datum));
   let datasets, zone, y, uitleg;
-  const kleur = '#2f6f73', kleur2 = '#a86b00';
+  const kleur = '#15181b', kleur2 = '#d4460f';
   const lijn = (label, data, k) => ({ label, data, borderColor: k, backgroundColor: k, tension: .25, pointRadius: 5, spanGaps: true });
 
   // Metingen met dubbeltaak (bv. single-leg stand terwijl de patiënt een spel speelt) komen in een aparte reeks,

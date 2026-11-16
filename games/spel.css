@@ -1,10 +1,12 @@
 /* Gedeelde stijl voor alle spellen. Leesbaar op 3 m, donkere achtergrond. */
+@font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("../fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("../fonts/inter-latin-600-normal.woff2") format("woff2"); }
 :root {
-  --spel-achtergrond: #0f1c1d;
-  --spel-vlak: #182a2b;
-  --spel-tekst: #f2f5f4;
-  --spel-zacht: #a9bcbc;
-  --spel-hoofd: #4fb3a9;
+  --spel-achtergrond: #101315;
+  --spel-vlak: #1e2327;
+  --spel-tekst: #f4f5f6;
+  --spel-zacht: #a3abb3;
+  --spel-hoofd: #ff5a1f;
   --spel-goed: #5cc98b;
   --spel-fout: #e2706a;
   --spel-accent: #f2c14e;
@@ -14,7 +16,7 @@
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--spel-achtergrond); color: var(--spel-tekst);
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
   overflow: hidden;
@@ -36,11 +38,11 @@ body {
   border: 2px solid #2d4547; background: var(--spel-vlak); color: var(--spel-tekst);
   font: inherit; font-size: .95rem; cursor: pointer;
 }
-.keuzes button[aria-pressed="true"] { border-color: var(--spel-hoofd); background: #1f4544; font-weight: 600; }
+.keuzes button[aria-pressed="true"] { border-color: var(--spel-hoofd); background: #3a2116; font-weight: 600; }
 
 .spel-knop {
   min-height: 64px; padding: 0 40px; border-radius: 16px; border: 0;
-  background: var(--spel-hoofd); color: #062221; font: inherit; font-size: 1.2rem; font-weight: 700; cursor: pointer;
+  background: var(--spel-hoofd); color: #ffffff; font: inherit; font-size: 1.2rem; font-weight: 700; cursor: pointer;
 }
 .spel-knop.plat { background: transparent; color: var(--spel-tekst); border: 2px solid #2d4547; }
 .knoppen { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
