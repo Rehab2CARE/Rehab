@@ -688,7 +688,7 @@ function toonKruimels(keten, ids) {
   nav.innerHTML = stukken.join(' ');
 }
 
-// Volledig scherm voor de spellen: aan bij het tikken op een spel, uit zodra je het spel verlaat
+// Volledig scherm voor de spellen: het spel zet het aan bij Start (games/spel.js); de app zet het uit als je het spel verlaat
 function volScherm(aan) {
   const d = document, el = d.documentElement;
   const actief = d.fullscreenElement || d.webkitFullscreenElement;
@@ -784,7 +784,6 @@ function toonGames(spelId) {
     <h1>${esc(games.titel)}</h1>
     <p class="ondertitel">Kies een spel.</p>
     <div class="tegels groot">${tegels}</div>`;
-  inhoud.querySelectorAll('a[href^="#/games/"]').forEach(a => a.addEventListener('click', () => volScherm(true)));
 }
 
 // Een spel (in het iframe) kan zijn score laten bewaren bij een patiënt, als dubbeltaak bij een test.

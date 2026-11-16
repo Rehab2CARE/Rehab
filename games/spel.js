@@ -34,14 +34,15 @@ export function bouwKeuzes(opties, waarden, bijWijziging) {
   }
 }
 
-// Volledig scherm, altijd tijdens een spel. Bij voorkeur de hele app (het spel draait in een iframe),
-// anders enkel het spel. Moet starten vanuit een tik; lukt het niet (bv. iPhone), dan gewoon verder.
-// Het volledig scherm stopt pas als je het spel verlaat (dat regelt de app).
+// Volledig scherm tijdens het spelen: aan bij Start of Opnieuw, uit zodra je terug op het startscherm van het spel komt
+// (Stoppen of Instellingen). Bij voorkeur de hele app (het spel draait in een iframe), anders enkel het spel.
+// Moet starten vanuit een tik; lukt het niet (bv. iPhone), dan gewoon verder.
+const isVol = d => d && (d.fullscreenElement || d.webkitFullscreenElement);
+function bovenDoc() { try { return window.top.document; } catch { return null; } }
+
 export function volScherm() {
-  const actief = d => d && (d.fullscreenElement || d.webkitFullscreenElement);
-  let boven = null;
-  try { boven = window.top.document; } catch { /* ander domein */ }
-  if (actief(document) || actief(boven)) return;
+  const boven = bovenDoc();
+  if (isVol(document) || isVol(boven)) return;
   const vraag = el => { const f = el.requestFullscreen || el.webkitRequestFullscreen; return f ? Promise.resolve(f.call(el)) : Promise.reject(); };
   try {
     (boven ? vraag(boven.documentElement) : Promise.reject())
@@ -49,7 +50,15 @@ export function volScherm() {
   } catch { /* niet ondersteund */ }
 }
 
+export function volSchermUit() {
+  for (const d of [document, bovenDoc()]) {
+    if (!isVol(d)) continue;
+    try { Promise.resolve((d.exitFullscreen || d.webkitExitFullscreen)?.call(d)).catch(() => {}); } catch { /* niet ondersteund */ }
+  }
+}
+
 export function toonScherm(id) {
+  if (id === 'start') volSchermUit();
   document.querySelectorAll('.scherm').forEach(s => { s.hidden = s.id !== id; });
 }
 
