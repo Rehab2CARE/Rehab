@@ -202,11 +202,13 @@ async function patientScherm(pid, thuis) {
     </div>
     <nav class="sprongen" aria-label="Ga naar">
       <button type="button" class="knop knop-plat klein" data-naar="strook-opvolging">Opvolging</button>
+      <button type="button" class="knop knop-plat klein" data-naar="strook-notities">Notities</button>
       <button type="button" class="knop knop-plat klein" data-naar="strook-testen">Testresultaten</button>
       <button type="button" class="knop knop-plat klein" data-naar="strook-programmas">Oefenprogramma's</button>
       <button type="button" class="knop knop-plat klein" data-naar="strook-sessies">Oefensessies</button>
     </nav>
     <section class="strook" id="strook-opvolging"><div id="opvolging"><p class="ondertitel">Opvolging laden…</p></div></section>
+    <section class="strook" id="strook-notities"><div id="notities-vak"><p class="ondertitel">Notities laden…</p></div></section>
     <section class="strook" id="strook-testen"><div id="testresultaten-vak"><p class="ondertitel">Testresultaten laden…</p></div></section>
     <section class="strook paneel strook-programmas" id="strook-programmas">
       <div class="strook-kop">
@@ -225,6 +227,8 @@ async function patientScherm(pid, thuis) {
     document.getElementById(k.dataset.naar)?.scrollIntoView({ block: 'start' })));
   if (ctx.opvolgingVoor) ctx.opvolgingVoor($('#opvolging'), p, () => patientScherm(pid, thuis));
   else $('#opvolging').innerHTML = '';
+  if (ctx.notitiesPaneel) ctx.notitiesPaneel($('#notities-vak'), p);
+  else $('#notities-vak').innerHTML = '';
   if (ctx.testenPaneel) ctx.testenPaneel($('#testresultaten-vak'), p);
   else $('#testresultaten-vak').innerHTML = '';
   if (ctx.sessiesPaneel) ctx.sessiesPaneel($('#sessies-vak'), p);

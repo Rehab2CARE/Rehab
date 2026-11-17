@@ -6,6 +6,7 @@ import { initPatienten, toonTherapeut, startPatient, patientenTegel, werkKiesbal
 import { initProtocollen, toonProtocollen } from './protocollen.js';
 import { initTesten } from './testen.js';
 import { initSessies } from './sessies.js';
+import { initNotities } from './notities.js';
 import { initSchemas, toonSchema } from './schemas.js';
 
 // Twee modi:
@@ -420,6 +421,7 @@ async function start() {
   initProtocollen(hulp);
   initTesten(hulp);
   initSessies(hulp);
+  initNotities(hulp);
   initSchemas(hulp);
 
   let linkMelding = null;

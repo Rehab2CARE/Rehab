@@ -366,6 +366,21 @@ export async function wisSessie(id) {
   ok(await sb.from('oefensessies').delete().eq('id', id));
 }
 
+// ---------- Opvolgnotities: enkel zichtbaar voor de schrijver (RLS in 020_opvolgnotities.sql) ----------
+export async function notitiesVan(patientId) {
+  return ok(await sb.from('opvolgnotities').select('id, datum, tekst, aangemaakt, bijgewerkt').eq('patient_id', patientId)
+    .order('datum', { ascending: false }).order('aangemaakt', { ascending: false }));
+}
+export async function maakNotitie(velden) {
+  return ok(await sb.from('opvolgnotities').insert(velden).select('id, datum, tekst, aangemaakt, bijgewerkt').single());
+}
+export async function wijzigNotitie(id, velden) {
+  ok(await sb.from('opvolgnotities').update(velden).eq('id', id));
+}
+export async function wisNotitie(id) {
+  ok(await sb.from('opvolgnotities').delete().eq('id', id));
+}
+
 // ---------- Oefenschema's (bv. quadriceps): inhoud aanpasbaar in de app ----------
 export async function oefenschemas() {
   return ok(await sb.from('oefenschemas').select('id, inhoud, bijgewerkt'));

@@ -389,6 +389,33 @@ export async function wisFase(fid) { const s = server(); team(s); s.fasen = s.fa
 export async function trajectenMetProtocol(pid) { const s = server(); team(s); return (s.trajecten || []).filter(t => t.protocol_id === pid && t.actief).map(t => ({ id: t.id, huidige_fase: t.huidige_fase })); }
 
 // ---------- Oefensessies (nagebootst, met dezelfde regels als de RLS) ----------
+// Opvolgnotities: zoals de RLS, enkel de schrijver (en enkel het team) ziet en wijzigt ze
+function eigenNotitie(s, nid) {
+  team(s);
+  const n = (s.notities || []).find(x => x.id === nid && x.auteur_id === sessie().user.id);
+  if (!n) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  return n;
+}
+export async function notitiesVan(pid) {
+  const s = server(); team(s);
+  return (s.notities || []).filter(x => x.patient_id === pid && x.auteur_id === sessie().user.id)
+    .sort((a, b) => String(b.datum).localeCompare(String(a.datum)) || String(b.aangemaakt).localeCompare(String(a.aangemaakt)))
+    .map(x => ({ ...x }));
+}
+export async function maakNotitie(v) {
+  const s = server(); team(s);
+  if (v.auteur_id && v.auteur_id !== sessie().user.id) throw new BronFout('Je hebt hiervoor geen toestemming.');
+  s.notities = s.notities || [];
+  const r = { id: id(), datum: new Date().toISOString().slice(0, 10), ...v, auteur_id: sessie().user.id, aangemaakt: nu(), bijgewerkt: nu() };
+  s.notities.push(r); schrijfServer(s); return { ...r };
+}
+export async function wijzigNotitie(nid, v) {
+  const s = server(); Object.assign(eigenNotitie(s, nid), v, { bijgewerkt: nu() }); schrijfServer(s);
+}
+export async function wisNotitie(nid) {
+  const s = server(); eigenNotitie(s, nid); s.notities = s.notities.filter(x => x.id !== nid); schrijfServer(s);
+}
+
 export async function sessiesVan(pid) {
   const s = server(); team(s);
   return (s.sessies || []).filter(x => x.patient_id === pid).sort((a, b) => String(b.datum).localeCompare(String(a.datum)) || String(b.aangemaakt).localeCompare(String(a.aangemaakt)))

@@ -553,3 +553,20 @@ button.kal-dag:active { background: var(--hoofdkleur-licht); }
 .schema-bron { margin-top: 20px; }
 .schema-acties { margin-top: 12px; flex-wrap: wrap; }
 .schema-acties .knop { min-height: 44px; min-width: 44px; }
+
+/* Opvolgnotities (enkel zichtbaar voor de schrijver) */
+.strook-notities { border-left: 3px solid var(--tekst); }
+.label-prive { font-size: .8rem; }
+.notitie-nieuw textarea {
+  font: inherit; font-size: 1rem; color: var(--tekst); width: 100%; box-sizing: border-box;
+  min-height: 96px; padding: 10px 12px; border: 1px solid var(--rand); border-radius: 4px; background: #fff; resize: vertical;
+}
+.notitie-balk { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 8px; }
+.notitie-balk .notitie-datum { margin-bottom: 0; }
+.notities { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--rand); }
+.notitie { padding: 12px 0; border-bottom: 1px solid var(--rand); }
+.notitie-kop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.notitie-wanneer { font-weight: 600; }
+.notitie-acties { display: flex; gap: 6px; }
+.notitie-acties .knop { min-height: 44px; min-width: 44px; }
+.notitie-tekst { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }

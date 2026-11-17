@@ -169,12 +169,25 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
 
 ## Patiëntscherm in stroken
 
-Bij een patiënt (in Beheer) staan vier stroken, met bovenaan knoppen om er meteen naartoe te springen:
+Bij een patiënt (in Beheer) staan vijf stroken, met bovenaan knoppen om er meteen naartoe te springen:
 1. **Opvolging**: protocol, fasebalk, ondergrens, criteria en fase vrijgeven.
-2. **Testresultaten**: per test de laatste meting, de LSI in kleur en het verloop ten opzichte van de vorige meting,
+2. **Opvolgnotities**: je eigen notities per sessie, enkel zichtbaar voor jou (zie hieronder).
+3. **Testresultaten**: per test de laatste meting, de LSI in kleur en het verloop ten opzichte van de vorige meting,
    met **+ Testmoment** en **Grafieken**.
-3. **Oefenprogramma's**: actieve programma's bovenaan en **+ Nieuw programma**.
-4. **Oefensessies**: de feedback van de patiënt (zie hieronder).
+4. **Oefenprogramma's**: actieve programma's bovenaan en **+ Nieuw programma**.
+5. **Oefensessies**: de feedback van de patiënt (zie hieronder).
+
+## Opvolgnotities (enkel voor jou)
+
+### Eenmalig instellen in Supabase
+- **SQL Editor**: plak `supabase/migraties/020_opvolgnotities.sql` en klik **Run**.
+
+### Hoe het werkt
+- In de strook **Opvolgnotities** typ je een notitie, kies je de datum (standaard vandaag) en tik je **Notitie bewaren**.
+  De nieuwste notitie staat bovenaan; met **Wijzigen** of **✕** pas je een notitie aan of wis je ze.
+- **Enkel de schrijver ziet een notitie.** De databank geeft ze niet door aan collega's, aan de beheerder of aan de patiënt.
+  Wordt een patiënt verwijderd, dan verdwijnen ook zijn notities.
+- Dit zijn gezondheidsgegevens: voor echte patiënten hoort dit bij het GDPR-advies.
 
 ## Oefenkalender met feedback van de patiënt
 
