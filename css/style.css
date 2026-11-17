@@ -570,3 +570,11 @@ button.kal-dag:active { background: var(--hoofdkleur-licht); }
 .notitie-acties { display: flex; gap: 6px; }
 .notitie-acties .knop { min-height: 44px; min-width: 44px; }
 .notitie-tekst { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Tegels op het patiëntscherm: strook open bij aantikken */
+.tegels-strook { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 4px; }
+.tegels-strook .knop { min-height: 56px; padding: 10px 6px; gap: 0; white-space: normal; justify-content: center; text-align: center; font-size: 1rem; font-weight: 600; }
+.tegels-strook .knop[aria-expanded="true"] { background: var(--hoofdkleur); border-color: var(--hoofdkleur); color: #fff; }
+.tegels-strook .knop::after { content: '▾'; margin-left: 6px; }
+.tegels-strook .knop[aria-expanded="true"]::after { content: '▴'; }
+.strook[hidden] { display: none; }

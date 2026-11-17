@@ -186,6 +186,23 @@ async function lijst(thuis) {
   });
 }
 
+// Tegels op het scherm van een patiënt (de opvolging staat er altijd boven, die is niet inklapbaar)
+const STROKEN = [
+  { id: 'notities', titel: 'Notities' },
+  { id: 'testen', titel: 'Testresultaten' },
+  { id: 'programmas', titel: "Oefenprogramma's" },
+  { id: 'sessies', titel: 'Oefensessies' }
+];
+const OPEN_STROOK = 'openStrook';
+const openStrookVan = pid => { try { return JSON.parse(sessionStorage.getItem(OPEN_STROOK) || '{}')[pid] || null; } catch { return null; } };
+function zetOpenStrook(pid, id) {
+  try {
+    const m = JSON.parse(sessionStorage.getItem(OPEN_STROOK) || '{}');
+    if (id) m[pid] = id; else delete m[pid];
+    sessionStorage.setItem(OPEN_STROOK, JSON.stringify(m));
+  } catch { /* zonder opslag: gewoon niet onthouden */ }
+}
+
 async function patientScherm(pid, thuis) {
   const { esc, inhoud } = ctx;
   const p = (await bron.patienten()).find(x => x.id === pid);
@@ -200,17 +217,13 @@ async function patientScherm(pid, thuis) {
       <button class="knop knop-plat" id="nieuwe-code">Nieuwe toegangscode</button>
       <button class="knop knop-gevaar" id="verwijder">Patiënt verwijderen</button>
     </div>
-    <nav class="sprongen" aria-label="Ga naar">
-      <button type="button" class="knop knop-plat klein" data-naar="strook-opvolging">Opvolging</button>
-      <button type="button" class="knop knop-plat klein" data-naar="strook-notities">Notities</button>
-      <button type="button" class="knop knop-plat klein" data-naar="strook-testen">Testresultaten</button>
-      <button type="button" class="knop knop-plat klein" data-naar="strook-programmas">Oefenprogramma's</button>
-      <button type="button" class="knop knop-plat klein" data-naar="strook-sessies">Oefensessies</button>
-    </nav>
     <section class="strook" id="strook-opvolging"><div id="opvolging"><p class="ondertitel">Opvolging laden…</p></div></section>
-    <section class="strook" id="strook-notities"><div id="notities-vak"><p class="ondertitel">Notities laden…</p></div></section>
-    <section class="strook" id="strook-testen"><div id="testresultaten-vak"><p class="ondertitel">Testresultaten laden…</p></div></section>
-    <section class="strook paneel strook-programmas" id="strook-programmas">
+    <nav class="sprongen tegels-strook" aria-label="Onderdelen van de patiënt">
+      ${STROKEN.map(x => `<button type="button" class="knop knop-plat" data-strook="${x.id}" aria-expanded="false" aria-controls="strook-${x.id}">${x.titel}</button>`).join('')}
+    </nav>
+    <section class="strook" id="strook-notities" hidden><div id="notities-vak"><p class="ondertitel">Notities laden…</p></div></section>
+    <section class="strook" id="strook-testen" hidden><div id="testresultaten-vak"><p class="ondertitel">Testresultaten laden…</p></div></section>
+    <section class="strook paneel strook-programmas" id="strook-programmas" hidden>
       <div class="strook-kop">
         <h2>Oefenprogramma's</h2>
         <button class="knop knop-hoofd" id="nieuw-programma">+ Nieuw programma</button>
@@ -221,18 +234,35 @@ async function patientScherm(pid, thuis) {
         <span class="lijst-sub">${(g.programma_items || []).length} ${(g.programma_items || []).length === 1 ? 'oefening' : 'oefeningen'}${g.opmerking ? ' · ' + esc(g.opmerking) : ''}</span>
       </a></li>`).join('')}</ul>` : '<div class="leeg">Nog geen programma. Maak er een aan.</div>'}
     </section>
-    <section class="strook" id="strook-sessies"><div id="sessies-vak"><p class="ondertitel">Oefensessies laden…</p></div></section>`;
+    <section class="strook" id="strook-sessies" hidden><div id="sessies-vak"><p class="ondertitel">Oefensessies laden…</p></div></section>`;
 
-  inhoud.querySelectorAll('[data-naar]').forEach(k => k.addEventListener('click', () =>
-    document.getElementById(k.dataset.naar)?.scrollIntoView({ block: 'start' })));
   if (ctx.opvolgingVoor) ctx.opvolgingVoor($('#opvolging'), p, () => patientScherm(pid, thuis));
   else $('#opvolging').innerHTML = '';
-  if (ctx.notitiesPaneel) ctx.notitiesPaneel($('#notities-vak'), p);
-  else $('#notities-vak').innerHTML = '';
-  if (ctx.testenPaneel) ctx.testenPaneel($('#testresultaten-vak'), p);
-  else $('#testresultaten-vak').innerHTML = '';
-  if (ctx.sessiesPaneel) ctx.sessiesPaneel($('#sessies-vak'), p);
-  else $('#sessies-vak').innerHTML = '';
+
+  // Stroken onder de opvolging: dicht tot je op de tegel tikt. Eén tegel tegelijk open; nog eens tikken = dicht.
+  // Een strook laadt pas bij het eerste openen. De open tegel blijft onthouden (bv. na een testmoment terug).
+  const vullen = {
+    notities: () => ctx.notitiesPaneel ? ctx.notitiesPaneel($('#notities-vak'), p) : ($('#notities-vak').innerHTML = ''),
+    testen: () => ctx.testenPaneel ? ctx.testenPaneel($('#testresultaten-vak'), p) : ($('#testresultaten-vak').innerHTML = ''),
+    programmas: () => {},
+    sessies: () => ctx.sessiesPaneel ? ctx.sessiesPaneel($('#sessies-vak'), p) : ($('#sessies-vak').innerHTML = '')
+  };
+  const geladen = new Set();
+  const openStrook = (id, scroll) => {
+    inhoud.querySelectorAll('[data-strook]').forEach(k => {
+      const open = k.dataset.strook === id;
+      k.setAttribute('aria-expanded', String(open));
+      document.getElementById(`strook-${k.dataset.strook}`).hidden = !open;
+    });
+    zetOpenStrook(pid, id);
+    if (!id) return;
+    if (!geladen.has(id)) { geladen.add(id); vullen[id](); }
+    if (scroll) document.getElementById(`strook-${id}`).scrollIntoView({ block: 'nearest' });
+  };
+  inhoud.querySelectorAll('[data-strook]').forEach(k => k.addEventListener('click', () =>
+    openStrook(k.getAttribute('aria-expanded') === 'true' ? null : k.dataset.strook, true)));
+  const onthouden = openStrookVan(pid);
+  if (STROKEN.some(x => x.id === onthouden)) openStrook(onthouden, false);
 
   $('#nieuw-programma').addEventListener('click', async () => {
     const r = await ctx.dialoog({

@@ -169,7 +169,9 @@ Overzicht van de revalidatieprotocollen (VKB, enkelverstuiking) met hun fasen en
 
 ## Patiëntscherm in stroken
 
-Bij een patiënt (in Beheer) staan vijf stroken, met bovenaan knoppen om er meteen naartoe te springen:
+Bij een patiënt (in Beheer) staat de **Opvolging** altijd bovenaan. Daaronder staan tegels voor de andere stroken:
+een strook gaat pas open als je op de tegel tikt (nog eens tikken = dicht, één tegel tegelijk). De app onthoudt welke
+tegel open stond, zodat je na bv. een testmoment op dezelfde plek terugkomt.
 1. **Opvolging**: protocol, fasebalk, ondergrens, criteria en fase vrijgeven.
 2. **Opvolgnotities**: je eigen notities per sessie, enkel zichtbaar voor jou (zie hieronder).
 3. **Testresultaten**: per test de laatste meting, de LSI in kleur en het verloop ten opzichte van de vorige meting,
