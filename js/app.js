@@ -969,7 +969,7 @@ function toonTegels(keten, ids) {
     return `
       <div class="tegel">
         <a class="tegel-link" href="${link([...ids, k.id])}">
-          <span class="tegel-titel">${esc(k.titel)}</span>
+          <span class="tegel-titel">${esc(diepte === 0 && /revalidatieprotocol/i.test(k.titel || '') ? 'Protocols' : k.titel)}</span>
           ${onder ? `<span class="tegel-sub">${esc(onder)}</span>` : ''}
         </a>
         ${beheer ? beheerKnoppen(i, lijst.length) : ''}
