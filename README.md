@@ -15,7 +15,7 @@ Twee modi:
 2. **SQL Editor → New query**: plak de inhoud van `supabase/migraties/001_basis.sql` en klik **Run**.
    Doe daarna hetzelfde met `supabase/migraties/002_standaardstructuur.sql` (de standaardindeling).
 3. **Authentication → Sign In / Providers**: zet **Allow new users to sign up** uit. Zo kan enkel wie uitgenodigd is binnen.
-4. **Authentication → URL Configuration**: zet *Site URL* op `https://rehab2care.github.io/praktijkfiches/`
+4. **Authentication → URL Configuration**: zet *Site URL* op `https://rehab2care.github.io/Rehab/`
    en voeg die ook toe bij *Redirect URLs* (plus `http://localhost:8765/` om lokaal te testen).
 5. **Authentication → Users → Invite user**: nodig jezelf uit. Open de mail en kies een wachtwoord.
 6. Maak jezelf beheerder: **SQL Editor**, vervang het e-mailadres en klik **Run**:
@@ -58,7 +58,8 @@ andere weg geen fiches te zien. De bestanden staan in een privé-opslag (bucket 
 1. **SQL Editor → New query**: plak `supabase/migraties/003_patienten_programmas.sql` en klik **Run**.
 2. **Edge Functions → Deploy a new function → Via Editor**. Naam: `patient-account` (precies zo).
    Plak de inhoud van `supabase/functions/patient-account/index.ts` en klik **Deploy**.
-   Laat **Verify JWT** aan staan. De geheime sleutel staat automatisch in Supabase; die hoef je nergens in te vullen.
+   Zet **Verify JWT** uit. De functie kijkt zelf na of wie haar oproept aangemeld is als therapeut of beheerder.
+   De geheime sleutel staat automatisch in Supabase; die hoef je nergens in te vullen.
 
 ### Werken met patiënten
 - Zet **Beheer** aan. Op het startscherm verschijnt de tegel **Patiënten** (patiëntgegevens zijn enkel in Beheer te zien,
@@ -293,6 +294,14 @@ Let op: de app op het beginscherm en dezelfde website in Safari hebben **elk hun
 | Koppeling met Supabase (adres en sleutel) | `js/config.js` |
 | Alle contact met Supabase | `js/bron.js` |
 | Gedeelde fiches ophalen (offline kopie) | `js/sync.js` |
+| Patiënten, oefenprogramma's, patiëntscherm ("Mijn programma") en de kiesbalk | `js/patienten.js` |
+| Protocollen, fasen en criteria | `js/protocollen.js` |
+| Testmomenten, LSI en grafieken | `js/testen.js` |
+| Oefenkalender en feedback van de patiënt | `js/sessies.js` |
+| Signaal bij de oefenkalender (pijn, zwelling, stijfheid) | `js/verkeerslicht.js` |
+| Opvolgnotities (enkel voor de schrijver) | `js/notities.js` |
+| Oefenschema's volgens de weken na de operatie (startinhoud in `data/schema-quadriceps.json`) | `js/schemas.js` |
+| Patiëntaccounts maken, nieuwe toegangscode, verwijderen (draait in Supabase) | `supabase/functions/patient-account/index.ts` |
 | Databank: tabellen, rollen en beveiliging | `supabase/migraties/` |
 
 `data/structuur.json` wordt enkel gebruikt bij de allereerste start of na **Instellingen → Alles wissen**.
